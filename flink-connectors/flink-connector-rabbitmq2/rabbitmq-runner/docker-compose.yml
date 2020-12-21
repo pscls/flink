@@ -1,0 +1,31 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.9-management-alpine
+    ports:
+      - 5672:5672 #AMQP
+      - 8080:15672 # UI
+    networks:
+      - network
+
+  consumer:
+    build: consumer
+    environment:
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+      QUEUE: 'pub'
+    networks:
+      - network
+
+  publisher:
+    build: publisher
+    environment:
+      AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+      QUEUE: 'pub'
+      DELAY: 2
+    networks:
+      - network
+
+networks:
+  # Declare our private network.  We must declare one for the magic
+  # Docker DNS to work, but otherwise its default settings are fine.
+  network: {}
