@@ -12,7 +12,7 @@ services:
     build: consumer
     environment:
       AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
-      QUEUE: 'pub'
+      QUEUE: 'sub'
     networks:
       - network
 

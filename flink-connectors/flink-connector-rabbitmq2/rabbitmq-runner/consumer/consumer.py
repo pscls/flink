@@ -11,7 +11,7 @@ def main():
 
     connection = pika.BlockingConnection(pika.URLParameters(amqp_url))
     channel = connection.channel()
-    channel.queue_declare(queue='hello')
+    channel.queue_declare(queue=queue_name)
 
     
     channel.basic_consume(queue=queue_name,
