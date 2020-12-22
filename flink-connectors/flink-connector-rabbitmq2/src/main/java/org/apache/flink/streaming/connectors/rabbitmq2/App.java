@@ -1,4 +1,4 @@
-package com.mycompany.app;
+package org.apache.flink.streaming.connectors.rabbitmq2;
 
 
 import org.apache.flink.api.common.functions.MapFunction;
