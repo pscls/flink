@@ -1,5 +1,4 @@
-package org.apache.flink.streaming.connectors.rabbitmq2;
-
+package org.apache.flink.connector.rabbitmq2;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
@@ -10,9 +9,8 @@ import org.apache.flink.streaming.connectors.rabbitmq.RMQSource;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 public class App {
-
-    public static void main( String[] args ) throws Exception {
-    	System.out.println( "Starting" );
+	public static void main(String[] args) throws Exception {
+		System.out.println("Starting");
 
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 		// checkpointing is required for exactly-once or at-least-once guarantees
