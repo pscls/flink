@@ -22,7 +22,7 @@ public class RabbitMQEnumerator implements SplitEnumerator<RabbitMQPartitionSpli
 
 //	private final RMQConnectionConfig connectionConfig;
 	private final SplitEnumeratorContext<RabbitMQPartitionSplit> context;
-	private final HashMap<Integer, Set<RabbitMQPartitionSplit>> splitAssignments;
+	private final HashMap<Integer, List<RabbitMQPartitionSplit>> splitAssignments;
 	private final RabbitMQPartitionSplit masterSplit;
 
 	public RabbitMQEnumerator(RMQConnectionConfig connectionConfig,
@@ -30,7 +30,7 @@ public class RabbitMQEnumerator implements SplitEnumerator<RabbitMQPartitionSpli
 		this(connectionConfig, context, new HashMap<>());
 	}
 	public RabbitMQEnumerator(RMQConnectionConfig connectionConfig,
-							  SplitEnumeratorContext<RabbitMQPartitionSplit> context, Map<Integer, Set<RabbitMQPartitionSplit>> currentSplitsAssignments) {
+							  SplitEnumeratorContext<RabbitMQPartitionSplit> context, Map<Integer, List<RabbitMQPartitionSplit>> currentSplitsAssignments) {
 //		this.connectionConfig = connectionConfig;
 		this.context = context;
 		this.splitAssignments = new HashMap<>(currentSplitsAssignments);
@@ -39,6 +39,7 @@ public class RabbitMQEnumerator implements SplitEnumerator<RabbitMQPartitionSpli
 
 	@Override
 	public void start() {
+		System.out.println("Start ENUMERATOR");
 		assignPendingPartitionSplits();
 	}
 
@@ -70,11 +71,11 @@ public class RabbitMQEnumerator implements SplitEnumerator<RabbitMQPartitionSpli
 
 	//	PRIVATE METHODS
 	private void assignPendingPartitionSplits() {
-		HashMap<Integer, Set<RabbitMQPartitionSplit>> pendingAssignments = new HashMap<>();
-
+		HashMap<Integer, List<RabbitMQPartitionSplit>> pendingAssignments = new HashMap<>();
+		System.out.println("Num of registered readers: " + context.registeredReaders().keySet().size());
 		for (int readerId : context.registeredReaders().keySet()) {
 			if (!splitAssignments.containsKey(readerId)) { //TODO: split assignment could be a simple hashset of reader ids to make it easier
-				pendingAssignments.put(readerId, new HashSet<>(Arrays.asList(masterSplit)));
+				pendingAssignments.put(readerId, Arrays.asList(masterSplit));
 			}
 		}
 		context.assignSplits(new SplitsAssignment(pendingAssignments));

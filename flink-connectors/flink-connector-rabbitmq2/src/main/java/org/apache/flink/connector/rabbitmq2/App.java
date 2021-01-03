@@ -1,12 +1,15 @@
 package org.apache.flink.connector.rabbitmq2;
 
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.connector.rabbitmq2.source.RabbitMQSourceBuilder;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.RMQSink;
 import org.apache.flink.streaming.connectors.rabbitmq.RMQSource;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 
 public class App {
 	public static void main(String[] args) throws Exception {
@@ -25,24 +28,32 @@ public class App {
 			.setPort(5672)
     		.build();
 
+//		final DataStream<String> stream = env
+//			.addSource(new RMQSource<String>(
+//				connectionConfig,
+//				// config for the RabbitMQ connection
+//				"pub",
+//				// name of the RabbitMQ queue to consume
+//				true,
+//				// use correlation ids; can be false if only at-least-once is required
+//				new SimpleStringSchema()))   // deserialization schema to turn messages into Java objects
+//			.setParallelism(1);
+		RabbitMQSource<String> rabbitMQSource = RabbitMQSource.<String>builder().build(connectionConfig, "pub", new SimpleStringSchema());
+
 		final DataStream<String> stream = env
-			.addSource(new RMQSource<String>(
-				connectionConfig,
-				// config for the RabbitMQ connection
-				"pub",
-				// name of the RabbitMQ queue to consume
-				true,
-				// use correlation ids; can be false if only at-least-once is required
-				new SimpleStringSchema()))   // deserialization schema to turn messages into Java objects
+			.fromSource(rabbitMQSource,
+				WatermarkStrategy.noWatermarks(),
+				"RabbitMQSource")
 			.setParallelism(1);
 
-		DataStream<String> mappedMessages = stream
-			.map(new MapFunction<String, String>() {
-				public String map(String message) {
-					System.out.println(message);
-					return message;
-				}
-			});
+
+//		DataStream<String> mappedMessages = stream
+//			.map(new MapFunction<String, String>() {
+//				public String map(String message) {
+//					System.out.println(message);
+//					return message;
+//				}
+//			});
 
 		// ====================== SINK ========================
 		stream.addSink(new RMQSink<String>(

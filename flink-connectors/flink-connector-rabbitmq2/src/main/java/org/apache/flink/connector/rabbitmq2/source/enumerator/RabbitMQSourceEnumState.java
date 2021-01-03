@@ -4,16 +4,16 @@ package org.apache.flink.connector.rabbitmq2.source.enumerator;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 
 import java.util.Map;
-import java.util.Set;
+import java.util.List;
 
 public class RabbitMQSourceEnumState {
-	private final Map<Integer, Set<RabbitMQPartitionSplit>> currentAssignment;
+	private final Map<Integer, List<RabbitMQPartitionSplit>> currentAssignment;
 
-	RabbitMQSourceEnumState(Map<Integer, Set<RabbitMQPartitionSplit>> currentAssignment) {
+	RabbitMQSourceEnumState(Map<Integer, List<RabbitMQPartitionSplit>> currentAssignment) {
 		this.currentAssignment = currentAssignment;
 	}
 
-	public Map<Integer, Set<RabbitMQPartitionSplit>> getCurrentAssignment() {
+	public Map<Integer, List<RabbitMQPartitionSplit>> getCurrentAssignment() {
 		return currentAssignment;
 	}
 }
