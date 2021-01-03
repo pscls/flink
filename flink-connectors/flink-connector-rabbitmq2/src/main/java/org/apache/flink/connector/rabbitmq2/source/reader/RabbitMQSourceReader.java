@@ -92,6 +92,9 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 	@Override
 	public InputStatus pollNext(ReaderOutput<T> output) throws Exception {
 		T element = queue.poll();
+		if (element == null) {
+			return InputStatus.NOTHING_AVAILABLE;
+		}
 		output.collect(element); //TODO: maybe we want to emit a timestamp as well?
 		//emittedAndUnacknowledgedMessageIds.add(element.id);
 		return queue.size() > 0 ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
@@ -191,7 +194,6 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 
 	@Override
 	public CompletableFuture<Void> isAvailable() {
-		// currentFetch != null ? FutureCompletingBlockingQueue.AVAILABLE : elementsQueue.getAvailabilityFuture()
 		return FutureCompletingBlockingQueue.AVAILABLE;
 	}
 
