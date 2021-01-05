@@ -38,7 +38,13 @@ public class App {
 //				// use correlation ids; can be false if only at-least-once is required
 //				new SimpleStringSchema()))   // deserialization schema to turn messages into Java objects
 //			.setParallelism(1);
-		RabbitMQSource<String> rabbitMQSource = RabbitMQSource.<String>builder().build(connectionConfig, "pub", new SimpleStringSchema());
+		RabbitMQSource<String> rabbitMQSource = RabbitMQSource.
+			<String>builder()
+			.build(
+				connectionConfig,
+				"pub",
+				new SimpleStringSchema()
+			);
 
 		final DataStream<String> stream = env
 			.fromSource(rabbitMQSource,
@@ -47,16 +53,14 @@ public class App {
 			.setParallelism(1);
 
 
-//		DataStream<String> mappedMessages = stream
-//			.map(new MapFunction<String, String>() {
-//				public String map(String message) {
-//					System.out.println(message);
-//					return message;
-//				}
-//			});
+		DataStream<String> mappedMessages = stream
+			.map((MapFunction<String, String>) message -> {
+				System.out.println(message);
+				return "Flink was here: " + message;
+			});
 
 		// ====================== SINK ========================
-		stream.addSink(new RMQSink<String>(
+		mappedMessages.addSink(new RMQSink<String>(
 			connectionConfig,            // config for the RabbitMQ connection
 			"sub",                 // name of the RabbitMQ queue to send messages to
 			new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
