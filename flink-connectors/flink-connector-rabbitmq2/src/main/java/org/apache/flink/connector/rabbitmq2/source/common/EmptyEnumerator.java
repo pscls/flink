@@ -25,7 +25,7 @@ public class EmptyEnumerator implements SplitEnumerator<EmptyPartitionSplit, Emp
 
 	@Override
 	public EmptyEnumState snapshotState() {
-		return null;
+		return new EmptyEnumState();
 	}
 
 	@Override

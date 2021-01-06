@@ -39,12 +39,12 @@ public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, Emp
 
 	private final RMQConnectionConfig connectionConfig;
 	private final String queueName;
-	protected RMQDeserializationSchema<OUT> deliveryDeserializer;
+	protected DeserializationSchema<OUT> deliveryDeserializer;
 
 	public RabbitMQSource (RMQConnectionConfig connectionConfig, String queueName, DeserializationSchema<OUT> deserializationSchema) {
 		this.connectionConfig = connectionConfig;
 		this.queueName = queueName;
-		this.deliveryDeserializer = new RabbitMQDeserializationSchemaWrapper<>(deserializationSchema);
+		this.deliveryDeserializer = deserializationSchema;
 		System.out.println("Create SOURCE");
 	}
 
