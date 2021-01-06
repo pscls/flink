@@ -8,11 +8,11 @@ import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SourceReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
+import org.apache.flink.connector.rabbitmq2.source.common.EmptyPartitionSplit;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.core.io.InputStatus;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
-import org.apache.flink.streaming.connectors.rabbitmq.RMQSource;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -33,7 +33,7 @@ import java.util.concurrent.TimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitionSplit> {
+public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSplit> {
 	private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReader.class);
 
 	private final RMQConnectionConfig rmqConnectionConfig;
@@ -45,7 +45,7 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 	private final RMQDeserializationSchema<T> deliveryDeserializer;
 	protected transient boolean autoAck = false;
 	private final boolean usesCorrelationId = false;
-	protected transient List<Long> sessionIds = new ArrayList<Long>(64);
+	protected transient List<Long> sessionIds = new ArrayList<>(64);
 
 	public RabbitMQSourceReader(
 		RMQConnectionConfig rmqConnectionConfig,
@@ -53,7 +53,7 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 		RMQDeserializationSchema<T> deliveryDeserializer) {
 		this.rmqConnectionConfig = rmqConnectionConfig;
 		this.rmqQueueName = rmqQueueName;
-		this.queue = new LinkedList<T>();
+		this.queue = new LinkedList<>();
 		this.emittedAndUnacknowledgedMessageIds = new ArrayList<>();
 		this.deliveryDeserializer = deliveryDeserializer;
 	}
@@ -91,10 +91,11 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 
 	@Override
 	public InputStatus pollNext(ReaderOutput<T> output) throws Exception {
-		T element = queue.poll();
-		if (element == null) {
+		if (queue.size() == 0) {
 			return InputStatus.NOTHING_AVAILABLE;
 		}
+		T element = queue.poll();
+
 		output.collect(element); //TODO: maybe we want to emit a timestamp as well?
 		//emittedAndUnacknowledgedMessageIds.add(element.id);
 		return queue.size() > 0 ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
@@ -188,7 +189,7 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 	}
 
 	@Override
-	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
+	public List<EmptyPartitionSplit> snapshotState(long checkpointId) {
 		return null;
 	}
 
@@ -198,7 +199,7 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, RabbitMQPartitio
 	}
 
 	@Override
-	public void addSplits(List<RabbitMQPartitionSplit> splits) {
+	public void addSplits(List<EmptyPartitionSplit> list) {
 
 	}
 

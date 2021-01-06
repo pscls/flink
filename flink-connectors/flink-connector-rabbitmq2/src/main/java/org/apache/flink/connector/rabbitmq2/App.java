@@ -47,16 +47,14 @@ public class App {
 			.setParallelism(1);
 
 
-//		DataStream<String> mappedMessages = stream
-//			.map(new MapFunction<String, String>() {
-//				public String map(String message) {
-//					System.out.println(message);
-//					return message;
-//				}
-//			});
+		DataStream<String> mappedMessages = stream
+			.map((MapFunction<String, String>) message -> {
+				System.out.println(message);
+				return "Mapped: " + message;
+			});
 
 		// ====================== SINK ========================
-		stream.addSink(new RMQSink<String>(
+		mappedMessages.addSink(new RMQSink<>(
 			connectionConfig,            // config for the RabbitMQ connection
 			"sub",                 // name of the RabbitMQ queue to send messages to
 			new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
