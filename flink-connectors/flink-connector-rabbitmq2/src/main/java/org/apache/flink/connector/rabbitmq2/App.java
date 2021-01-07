@@ -18,6 +18,7 @@ public class App {
 		System.out.println("Starting");
 
     	//final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//		PropertyConfigurator.configure("log4j.properties");
 
 		final Configuration conf = new Configuration();
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);

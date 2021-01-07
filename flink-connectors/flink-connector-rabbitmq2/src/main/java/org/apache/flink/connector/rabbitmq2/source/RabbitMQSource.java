@@ -16,6 +16,7 @@ import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 //import org.apache.flink.connector.rabbitmq2.source.reader.KafkaRecordEmitter;
 //import org.apache.flink.connector.rabbitmq2.source.reader.KafkaSourceReader;
 //import org.apache.flink.connector.rabbitmq2.source.reader.deserializer.KafkaRecordDeserializer;
+import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumCheckpointSerializer;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumState;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumerator;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyPartitionSplit;
@@ -85,7 +86,7 @@ public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, Emp
 	@Override
 	public SimpleVersionedSerializer<EmptyEnumState> getEnumeratorCheckpointSerializer() {
 		System.out.println("getEnumeratorCheckpointSerializer");
-		return null;
+		return new EmptyEnumCheckpointSerializer();
 	}
 
 	@Override
