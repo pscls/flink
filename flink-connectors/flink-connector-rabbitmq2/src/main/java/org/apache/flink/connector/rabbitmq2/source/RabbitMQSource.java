@@ -8,40 +8,29 @@ import org.apache.flink.api.connector.source.SourceReader;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
-//import org.apache.flink.connector.rabbitmq2.source.enumerator.KafkaSourceEnumStateSerializer;
-//import org.apache.flink.connector.rabbitmq2.source.enumerator.KafkaSourceEnumerator;
-//import org.apache.flink.connector.rabbitmq2.source.enumerator.initializer.OffsetsInitializer;
-//import org.apache.flink.connector.rabbitmq2.source.enumerator.subscriber.KafkaSubscriber;
-//import org.apache.flink.connector.rabbitmq2.source.reader.KafkaPartitionSplitReader;
-//import org.apache.flink.connector.rabbitmq2.source.reader.KafkaRecordEmitter;
-//import org.apache.flink.connector.rabbitmq2.source.reader.KafkaSourceReader;
-//import org.apache.flink.connector.rabbitmq2.source.reader.deserializer.KafkaRecordDeserializer;
-import org.apache.flink.connector.rabbitmq2.source.common.AcknowledgeMode;
-import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumCheckpointSerializer;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumState;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumerator;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptyPartitionSplit;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptySplitSerializer;
-import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
-//import org.apache.flink.connector.rabbitmq2.source.split.KafkaPartitionSplitSerializer;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumState;
+import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumStateSerializer;
+import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
+import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtLeastOnceAfterCheckpoint;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtMostOnce;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderExactlyOnce;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, EmptyEnumState>, ResultTypeQueryable<OUT> {
+public class RabbitMQSource<OUT> implements Source<OUT, RabbitMQPartitionSplit, RabbitMQSourceEnumState>, ResultTypeQueryable<OUT> {
 	private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
 	private final RMQConnectionConfig connectionConfig;
 	private final String queueName;
-//	private final AcknowledgeMode acknowledgeMode;
 	private final ConsistencyMode consistencyMode;
 	protected DeserializationSchema<OUT> deliveryDeserializer;
 
@@ -49,7 +38,6 @@ public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, Emp
 		this.connectionConfig = connectionConfig;
 		this.queueName = queueName;
 		this.deliveryDeserializer = deserializationSchema;
-//		this.acknowledgeMode = AcknowledgeMode.POLLING;
 		this.consistencyMode = consistencyMode;
 
 		System.out.println("Create SOURCE");
@@ -59,55 +47,50 @@ public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, Emp
 		this(connectionConfig, queueName, deserializationSchema, ConsistencyMode.AT_LEAST_ONCE);
 	}
 
-	public static <OUT> RabbitMQSourceBuilder<OUT> builder() {
-		return new RabbitMQSourceBuilder<>();
-	}
-
 	@Override
 	public Boundedness getBoundedness() {
 		return Boundedness.CONTINUOUS_UNBOUNDED;
 	}
 
 	@Override
-	public SourceReader<OUT, EmptyPartitionSplit> createReader(SourceReaderContext sourceReaderContext) throws Exception {
+	public SourceReader<OUT, RabbitMQPartitionSplit> createReader(SourceReaderContext sourceReaderContext) {
 		System.out.println("Create READER");
 		switch (consistencyMode) {
 			case AT_MOST_ONCE:
-				return new RabbitMQSourceReaderAtMostOnce<>(connectionConfig, queueName, deliveryDeserializer);
+				return new RabbitMQSourceReaderAtMostOnce<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
 			case AT_LEAST_ONCE_AFTER_CHECKPOINTING:
-				return new RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<>(connectionConfig, queueName, deliveryDeserializer);
+				return new RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
 			case EXACTLY_ONCE:
-				return new RabbitMQSourceReaderExactlyOnce<>(connectionConfig, queueName, deliveryDeserializer);
+				return new RabbitMQSourceReaderExactlyOnce<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
 			default:
 				// AT_LEAST_ONCE
-				return new RabbitMQSourceReaderAtLeastOnce<>(connectionConfig, queueName, deliveryDeserializer);
+				return new RabbitMQSourceReaderAtLeastOnce<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
 		}
-//		return new RabbitMQSourceReaderBase<>(connectionConfig, queueName, deliveryDeserializer);
 	}
 
 	@Override
-	public SplitEnumerator<EmptyPartitionSplit, EmptyEnumState> createEnumerator(
-		SplitEnumeratorContext<EmptyPartitionSplit> splitEnumeratorContext) throws Exception {
+	public SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> createEnumerator(
+		SplitEnumeratorContext<RabbitMQPartitionSplit> splitEnumeratorContext) {
 		System.out.println("Create ENUMERATOR");
-		return new EmptyEnumerator();
+		return new RabbitMQSourceEnumerator(splitEnumeratorContext, consistencyMode, queueName);
 	}
 
 	@Override
-	public SplitEnumerator<EmptyPartitionSplit, EmptyEnumState> restoreEnumerator(
-		SplitEnumeratorContext<EmptyPartitionSplit> splitEnumeratorContext,
-		EmptyEnumState emptyEnumState) throws Exception {
-		return new EmptyEnumerator();
+	public SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> restoreEnumerator(
+		SplitEnumeratorContext<RabbitMQPartitionSplit> splitEnumeratorContext,
+		RabbitMQSourceEnumState enumState) {
+		return new RabbitMQSourceEnumerator(splitEnumeratorContext, consistencyMode, queueName, enumState);
 	}
 
 	@Override
-	public SimpleVersionedSerializer<EmptyPartitionSplit> getSplitSerializer() {
-		return new EmptySplitSerializer();
+	public SimpleVersionedSerializer<RabbitMQPartitionSplit> getSplitSerializer() {
+		return new RabbitMQPartitionSplitSerializer();
 	}
 
 	@Override
-	public SimpleVersionedSerializer<EmptyEnumState> getEnumeratorCheckpointSerializer() {
+	public SimpleVersionedSerializer<RabbitMQSourceEnumState> getEnumeratorCheckpointSerializer() {
 		System.out.println("getEnumeratorCheckpointSerializer");
-		return new EmptyEnumCheckpointSerializer();
+		return new RabbitMQSourceEnumStateSerializer();
 	}
 
 	@Override

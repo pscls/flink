@@ -1,10 +1,11 @@
 package org.apache.flink.connector.rabbitmq2.source.reader.specialized;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptyPartitionSplit;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import java.util.ArrayDeque;
@@ -18,10 +19,10 @@ public class RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<T> extends RabbitMQS
 	private final Deque<Tuple2<Long, List<Long>>> polledAndUnacknowledgedMessageIdsPerCheckpoint;
 
 	public RabbitMQSourceReaderAtLeastOnceAfterCheckpoint(
+		SourceReaderContext sourceReaderContext,
 		RMQConnectionConfig rmqConnectionConfig,
-		String rmqQueueName,
 		DeserializationSchema<T> deliveryDeserializer) {
-		super(rmqConnectionConfig, rmqQueueName, deliveryDeserializer);
+		super(sourceReaderContext, rmqConnectionConfig, deliveryDeserializer);
 		this.polledAndUnacknowledgedMessageIds = new ArrayList<>();
 		this.polledAndUnacknowledgedMessageIdsPerCheckpoint = new ArrayDeque<>();
 	}
@@ -37,16 +38,16 @@ public class RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<T> extends RabbitMQS
 	}
 
 	@Override
-	public List<EmptyPartitionSplit> snapshotState(long checkpointId) {
+	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
 		Tuple2<Long, List<Long>> tuple = new Tuple2<>(checkpointId, polledAndUnacknowledgedMessageIds);
 		polledAndUnacknowledgedMessageIdsPerCheckpoint.add(tuple);
 		polledAndUnacknowledgedMessageIds = new ArrayList<>();
 
-		return new ArrayList<>();
+		return super.snapshotState(checkpointId);
 	}
 
 	@Override
-	public void notifyCheckpointComplete(long checkpointId) throws Exception {
+	public void notifyCheckpointComplete(long checkpointId) {
 		Iterator<Tuple2<Long, List<Long>>> checkpointIterator = polledAndUnacknowledgedMessageIdsPerCheckpoint.iterator();
 		while (checkpointIterator.hasNext()) {
 			final Tuple2<Long, List<Long>> nextCheckpoint = checkpointIterator.next();

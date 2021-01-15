@@ -50,7 +50,7 @@ public class RabbitMQCollector<T> {
 		unpolledMessageQueue.add(new Message<>(message, deliveryTag, correlationId));
 	}
 
-	public Message<T> getMessage() {
+	public Message<T> pollMessage() {
 		return unpolledMessageQueue.poll();
 	}
 }

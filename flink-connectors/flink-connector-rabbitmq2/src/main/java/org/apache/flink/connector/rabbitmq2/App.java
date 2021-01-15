@@ -3,7 +3,6 @@ package org.apache.flink.connector.rabbitmq2;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.rabbitmq2.source.common.AcknowledgeMode;
 import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -12,12 +11,14 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.configuration.Configuration;
 
+import org.apache.log4j.PropertyConfigurator;
+
 public class App {
 	public static void main(String[] args) throws Exception {
 		System.out.println("Starting");
 
-    	//final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-//		PropertyConfigurator.configure("log4j.properties");
+//    	final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		PropertyConfigurator.configure("log4j.properties");
 
 		final Configuration conf = new Configuration();
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);

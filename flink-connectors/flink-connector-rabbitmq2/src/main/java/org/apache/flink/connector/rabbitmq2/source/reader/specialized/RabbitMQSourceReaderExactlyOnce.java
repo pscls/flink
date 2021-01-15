@@ -1,10 +1,11 @@
 package org.apache.flink.connector.rabbitmq2.source.reader.specialized;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.rabbitmq2.source.common.EmptyPartitionSplit;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.Preconditions;
 
@@ -27,13 +28,13 @@ import java.util.stream.Collectors;
 public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase<T> {
 	private List<Message<T>> polledAndUnacknowledgedMessagesSinceLastCheckpoint;
 	private final Deque<Tuple2<Long, List<Message<T>>>> polledAndUnacknowledgedMessagesPerCheckpoint;
-	private final Set<String> correlationIds;
+	private Set<String> correlationIds;
 
 	public RabbitMQSourceReaderExactlyOnce(
+		SourceReaderContext sourceReaderContext,
 		RMQConnectionConfig rmqConnectionConfig,
-		String rmqQueueName,
 		DeserializationSchema<T> deliveryDeserializer) {
-		super(rmqConnectionConfig, rmqQueueName, deliveryDeserializer);
+		super(sourceReaderContext, rmqConnectionConfig, deliveryDeserializer);
 		this.polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
 		this.polledAndUnacknowledgedMessagesPerCheckpoint = new ArrayDeque<>();
 		this.correlationIds = new HashSet<>();
@@ -57,10 +58,11 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 		Preconditions.checkNotNull(correlationId, "RabbitMQ source was instantiated " +
 			"with consistencyMode set EXACTLY_ONCE yet we couldn't extract the correlation id from it !");
 
-		// handle this message only if we haven't seen the correlation id before
-		// otherwise, store the new delivery-tag for later acknowledgments
 		Envelope envelope = delivery.getEnvelope();
 		long deliveryTag = envelope.getDeliveryTag();
+
+		// handle this message only if we haven't seen the correlation id before
+		// otherwise, store the new delivery-tag for later acknowledgments
 		if (correlationIds.contains(correlationId)) {
 			polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(new Message<>(deliveryTag, correlationId));
 		} else {
@@ -70,18 +72,25 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 	}
 
 	@Override
-	public List<EmptyPartitionSplit> snapshotState(long checkpointId) {
+	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
 		Tuple2<Long, List<Message<T>>> tuple = new Tuple2<>(checkpointId,
 			polledAndUnacknowledgedMessagesSinceLastCheckpoint);
 		polledAndUnacknowledgedMessagesPerCheckpoint.add(tuple);
+
 		polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
 
-		// return a split of correlationIds
-		return new ArrayList<>();
+		getSplit().setCorrelationIds(correlationIds);
+		return super.snapshotState(checkpointId);
 	}
 
 	@Override
-	public void notifyCheckpointComplete(long checkpointId) throws Exception {
+	public void addSplits(List<RabbitMQPartitionSplit> list) {
+		super.addSplits(list);
+		correlationIds = getSplit().getCorrelationIds();
+	}
+
+	@Override
+	public void notifyCheckpointComplete(long checkpointId) {
 		System.out.println("Checkpoint Complete: " + checkpointId);
 		Iterator<Tuple2<Long, List<Message<T>>>> checkpointIterator = polledAndUnacknowledgedMessagesPerCheckpoint
 			.iterator();

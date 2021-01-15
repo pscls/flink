@@ -16,7 +16,7 @@ public class Message<T> {
 	}
 
 	public Message(long deliveryTag, String correlationId) {
-		this(null, deliveryTag, null);
+		this(null, deliveryTag, correlationId);
 	}
 
 	public long getDeliveryTag() {
