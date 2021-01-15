@@ -3,14 +3,11 @@ package org.apache.flink.connector.rabbitmq2;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.configuration.ConfigConstants;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSourceBuilder;
 import org.apache.flink.connector.rabbitmq2.source.common.AcknowledgeMode;
-import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReader;
+import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.RMQSink;
-import org.apache.flink.streaming.connectors.rabbitmq.RMQSource;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.configuration.Configuration;
@@ -26,7 +23,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-//		env.enableCheckpointing(5000);
+		env.enableCheckpointing(5000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -61,7 +58,7 @@ public class App {
 			connectionConfig,
 			"pub",
 			new SimpleStringSchema(),
-			AcknowledgeMode.CHECKPOINT
+			ConsistencyMode.EXACTLY_ONCE
 		);
 
 		final DataStream<String> stream = env

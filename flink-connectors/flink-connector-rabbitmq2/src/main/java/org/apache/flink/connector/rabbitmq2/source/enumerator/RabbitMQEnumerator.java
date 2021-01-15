@@ -5,6 +5,7 @@ import org.apache.commons.compress.utils.Lists;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
+import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
@@ -22,20 +23,26 @@ public class RabbitMQEnumerator implements SplitEnumerator<RabbitMQPartitionSpli
 
 //	private final RMQConnectionConfig connectionConfig;
 	private final SplitEnumeratorContext<RabbitMQPartitionSplit> context;
-	private final HashMap<Integer, List<RabbitMQPartitionSplit>> splitAssignments;
-	private final RabbitMQPartitionSplit masterSplit;
+	private final ConsistencyMode consistencyMode;
 
-	public RabbitMQEnumerator(RMQConnectionConfig connectionConfig,
-							  SplitEnumeratorContext<RabbitMQPartitionSplit> context) {
-		this(connectionConfig, context, new HashMap<>());
-	}
-	public RabbitMQEnumerator(RMQConnectionConfig connectionConfig,
-							  SplitEnumeratorContext<RabbitMQPartitionSplit> context, Map<Integer, List<RabbitMQPartitionSplit>> currentSplitsAssignments) {
-//		this.connectionConfig = connectionConfig;
+	private final HashMap<Integer, List<RabbitMQPartitionSplit>> splitAssignments;
+//	private final RabbitMQPartitionSplit masterSplit;
+
+	public RabbitMQEnumerator(SplitEnumeratorContext<RabbitMQPartitionSplit> context,
+							  ConsistencyMode consistencyMode) {
 		this.context = context;
-		this.splitAssignments = new HashMap<>(currentSplitsAssignments);
-		this.masterSplit = new RabbitMQPartitionSplit(connectionConfig);
+		this.consistencyMode = consistencyMode;
+		this.splitAssignments = new HashMap<>();
+//		this(context, new HashMap<>());
 	}
+
+//	public RabbitMQEnumerator(RMQConnectionConfig connectionConfig,
+//							  SplitEnumeratorContext<RabbitMQPartitionSplit> context, Map<Integer, List<RabbitMQPartitionSplit>> currentSplitsAssignments) {
+//		this.connectionConfig = connectionConfig;
+//		this.context = context;
+//		this.splitAssignments = new HashMap<>(currentSplitsAssignments);
+//		this.masterSplit = new RabbitMQPartitionSplit(connectionConfig);
+//	}
 
 	@Override
 	public void start() {
@@ -75,7 +82,7 @@ public class RabbitMQEnumerator implements SplitEnumerator<RabbitMQPartitionSpli
 		System.out.println("Num of registered readers: " + context.registeredReaders().keySet().size());
 		for (int readerId : context.registeredReaders().keySet()) {
 			if (!splitAssignments.containsKey(readerId)) { //TODO: split assignment could be a simple hashset of reader ids to make it easier
-				pendingAssignments.put(readerId, Arrays.asList(masterSplit));
+//				pendingAssignments.put(readerId, Arrays.asList(masterSplit));
 			}
 		}
 		context.assignSplits(new SplitsAssignment(pendingAssignments));

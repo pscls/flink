@@ -7,6 +7,7 @@ import com.rabbitmq.client.Envelope;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.util.Preconditions;
 
 import java.io.IOException;
@@ -19,25 +20,13 @@ import java.util.Set;
 
 
 public class RabbitMQCollector<T> {
-	private final Queue<Tuple2<Long, T>> unpolledMessageQueue;
+	private final Queue<Message<T>> unpolledMessageQueue;
 	private final DeserializationSchema<T> deliveryDeserializer;
-	private final boolean useCorrelationIds;
 
-	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer, boolean useCorrelationIds) {
+	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer) {
 		this.deliveryDeserializer = deliveryDeserializer;
 		this.unpolledMessageQueue = new LinkedList<>();
-		this.useCorrelationIds = useCorrelationIds;
 	}
-
-	private class MessageID {
-		public final long deliveryTag;
-		public final Optional<String> correlationId;
-		public MessageID(long deliveryTag, Optional<String> correlationId) {
-			this.deliveryTag = deliveryTag;
-			this.correlationId = correlationId;
-		}
-	}
-
 
 	public boolean hasUnpolledMessages() {
 		return !unpolledMessageQueue.isEmpty();
@@ -48,31 +37,20 @@ public class RabbitMQCollector<T> {
 	}
 
 	// copied from old rmq connector
-	public boolean processMessage(Delivery delivery, Set<String> correlationIds)
-		throws IOException {
-		AMQP.BasicProperties properties = delivery.getProperties();
-
-
+	public void processMessage(Delivery delivery) throws IOException {
+//		AMQP.BasicProperties properties = delivery.getProperties();
 		byte[] body = delivery.getBody();
 		Envelope envelope = delivery.getEnvelope();
 		long deliveryTag = envelope.getDeliveryTag();
-		String correlationId = properties.getCorrelationId();
-		// check for acknowledge mode, only execute if its not auto ack
-		if (useCorrelationIds) {
-			Preconditions.checkNotNull(correlationId, "RabbitMQ source was instantiated " +
-				"with usesCorrelationId set to true yet we couldn't extract the correlation id from it !");
-			if (!correlationIds.add(correlationId)) {
-				return false;
-			}
-		}
-//		collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
 		T message = deliveryDeserializer.deserialize(body);
+		AMQP.BasicProperties properties = delivery.getProperties();
+		String correlationId = properties.getCorrelationId();
+
 		System.out.println("[Tag: "+ deliveryTag + "] " + message);
-		unpolledMessageQueue.add(new Tuple2<>(deliveryTag, message));
-		return true;
+		unpolledMessageQueue.add(new Message<>(message, deliveryTag, correlationId));
 	}
 
-	public Tuple2<Long, T> getMessage() {
+	public Message<T> getMessage() {
 		return unpolledMessageQueue.poll();
 	}
 }

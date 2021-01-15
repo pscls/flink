@@ -1,6 +1,8 @@
 import os
 import pika
 import time
+import uuid
+import random
 
 def main():
     """Main entry point to the program."""
@@ -23,9 +25,12 @@ def main():
     while(True):
         msg = 'Message %d' % (message_id,)
         message_id += 1
+        correlation_id = random.choice(["uuid1", "uuid2"]) # str(uuid.uuid4())
+        properties = pika.BasicProperties(correlation_id=correlation_id)
         channel.basic_publish(exchange='',
                         routing_key=queue_name,
-                        body=msg)
+                        body=msg,
+                        properties=properties)
         time.sleep(delay)
                         
     connection.close()

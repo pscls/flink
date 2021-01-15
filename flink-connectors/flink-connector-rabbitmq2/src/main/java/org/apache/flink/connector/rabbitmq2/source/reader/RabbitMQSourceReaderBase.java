@@ -1,80 +1,50 @@
 package org.apache.flink.connector.rabbitmq2.source.reader;
 
-import akka.remote.Ack;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Delivery;
-import com.rabbitmq.client.Envelope;
-
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SourceReader;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
-import org.apache.flink.connector.rabbitmq2.source.common.AcknowledgeMode;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyPartitionSplit;
+import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.core.io.InputStatus;
-import org.apache.flink.runtime.messages.Acknowledge;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
-import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-
-import org.apache.flink.util.Preconditions;
+import com.rabbitmq.client.Delivery;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
-import org.eclipse.jetty.util.ArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSplit> {
-	private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReader.class);
+public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, EmptyPartitionSplit> {
+	private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
 	private final RMQConnectionConfig rmqConnectionConfig;
 	private final String rmqQueueName;
-	private final RabbitMQCollector collector;
+	private final RabbitMQCollector<T> collector;
 	private Connection rmqConnection;
 	private Channel rmqChannel;
-	private final AcknowledgeMode acknowledgeMode;
-	private List<Long> polledAndUnacknowledgedMessageIds;
-	private Deque<Tuple2<Long, List<Long>>> polledAndUnacknowledgedMessageIdsPerCheckpoint;
-	private Set<String> polledAndUnacknowledgedCorrelationIds;
 
-	protected transient boolean autoAck = false;
-	private final boolean usesCorrelationId = false;
-	protected transient List<Long> sessionIds = new ArrayList<>(64);
-
-	public RabbitMQSourceReader(
+	public RabbitMQSourceReaderBase(
 		RMQConnectionConfig rmqConnectionConfig,
 		String rmqQueueName,
-		DeserializationSchema<T> deliveryDeserializer,
-		AcknowledgeMode acknowledgeMode) {
+		DeserializationSchema<T> deliveryDeserializer) {
 		this.rmqConnectionConfig = rmqConnectionConfig;
 		this.rmqQueueName = rmqQueueName;
-//		this.deliveryDeserializer = deliveryDeserializer;
-		this.collector = new RabbitMQCollector<>(deliveryDeserializer, usesCorrelationId);
-		this.acknowledgeMode = acknowledgeMode;
-		this.polledAndUnacknowledgedMessageIds = new ArrayList<>();
-		this.polledAndUnacknowledgedMessageIdsPerCheckpoint = new ArrayDeque<>();
-		this.polledAndUnacknowledgedCorrelationIds = new HashSet<>();
+		this.collector = new RabbitMQCollector<>(deliveryDeserializer);
 	}
 
 	@Override
@@ -82,6 +52,8 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 		System.out.println("Starting Source Reader");
 		setupRabbitMQ();
 	}
+
+	protected abstract boolean isAutoAck();
 
 	private void setupRabbitMQ () {
 		try {
@@ -93,6 +65,14 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 		}
 	}
 
+	protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) throws IOException {
+		collector.processMessage(delivery);
+	}
+
+	protected void handleMessagePolled(Message<T> message) {
+
+	}
+
 	private Connection setupConnection() throws IOException, TimeoutException{
 		final ConnectionFactory connectionFactory = new ConnectionFactory();
 		connectionFactory.setHost(rmqConnectionConfig.getHost());
@@ -100,7 +80,7 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 		return connectionFactory.newConnection();
 	}
 
-	private Channel setupChannel(Connection rmqConnection) throws IOException {
+	protected Channel setupChannel(Connection rmqConnection) throws IOException {
 		final Channel rmqChannel = rmqConnection.createChannel();
 		rmqChannel.queueDeclare(rmqQueueName, true, false, false, null);
 
@@ -110,37 +90,24 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 			rmqChannel.basicQos(rmqConnectionConfig.getPrefetchCount().get(), false);
 		}
 
-		if (acknowledgeMode == AcknowledgeMode.CHECKPOINT) {
-			// enable channel commit mode if acknowledging happens after checkpoint
-			rmqChannel.txSelect();
-		}
-
 		// if masterSplit.hasIds()
 		// ack all ids from masterSplit
 
-		final DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-			boolean addedToQueue = collector.processMessage(delivery, polledAndUnacknowledgedCorrelationIds);
-			if (!addedToQueue) polledAndUnacknowledgedMessageIds.add(delivery.getEnvelope().getDeliveryTag());
-		};
-		rmqChannel.basicConsume(rmqQueueName, acknowledgeMode == AcknowledgeMode.AUTO, deliverCallback, consumerTag -> {});
+		final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
+		rmqChannel.basicConsume(rmqQueueName, isAutoAck(), deliverCallback, consumerTag -> {});
 		return rmqChannel;
 	}
 
 	@Override
 	public InputStatus pollNext(ReaderOutput<T> output) throws Exception {
-		Tuple2<Long, T> message = collector.getMessage();
+		Message<T> message = collector.getMessage();
 
 		if (message == null) {
 			return InputStatus.NOTHING_AVAILABLE;
 		}
 
-		output.collect(message.f1); //TODO: maybe we want to emit a timestamp as well?
-
-		if (acknowledgeMode == AcknowledgeMode.POLLING) {
-			rmqChannel.basicAck(message.f0, false);
-		} else if (acknowledgeMode == AcknowledgeMode.CHECKPOINT) {
-			polledAndUnacknowledgedMessageIds.add(message.f0);
-		}
+		output.collect(message.message); //TODO: maybe we want to emit a timestamp as well?
+		handleMessagePolled(message);
 
 		return collector.hasUnpolledMessages() ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
 	}
@@ -227,15 +194,6 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 
 	@Override
 	public List<EmptyPartitionSplit> snapshotState(long checkpointId) {
-
-		// DO STUFF FOR AT-LEAST ONCE
-		Tuple2<Long, List<Long>> tuple = new Tuple2<>(checkpointId, polledAndUnacknowledgedMessageIds);
-		polledAndUnacknowledgedMessageIdsPerCheckpoint.add(tuple);
-		polledAndUnacknowledgedMessageIds = new ArrayList<>();
-		System.out.println("Create Checkpoint: " + checkpointId);
-
-		// DO STUFF FOR EXACTLY ONCE
-		// we only need to checkpoint correlation ids
 		return new ArrayList<>();
 	}
 
@@ -260,29 +218,22 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 
 	@Override
 	public void notifyCheckpointComplete(long checkpointId) throws Exception {
-		if (acknowledgeMode != AcknowledgeMode.CHECKPOINT) {
-			return;
-		}
 
-		LOG.debug("Acknowledging ids for checkpoint {}", checkpointId);
-		Iterator<Tuple2<Long, List<Long>>> checkpointIterator = polledAndUnacknowledgedMessageIdsPerCheckpoint.iterator();
-		while (checkpointIterator.hasNext()) {
-			final Tuple2<Long, List<Long>> nextCheckpoint = checkpointIterator.next();
-			long nextCheckpointId = nextCheckpoint.f0;
-			if (nextCheckpointId <= checkpointId) {
-				acknowledgeSessionIDs(nextCheckpoint.f1);
-				// remove correlation ids from global correlation ids by nextCheckpoint.f1
-				checkpointIterator.remove();
-			}
-		}
 	}
 
-	protected void acknowledgeSessionIDs(List<Long> sessionIds) {
+	protected void acknowledgeMessageIds(List<Long> sessionIds) {
 		try {
 			for (long id : sessionIds) {
 				rmqChannel.basicAck(id, false);
 			}
-			rmqChannel.txCommit();
+		} catch (IOException e) {
+			throw new RuntimeException("Messages could not be acknowledged during checkpoint creation.", e);
+		}
+	}
+
+	protected void acknowledgeMessageId(long id) {
+		try {
+			rmqChannel.basicAck(id, false);
 		} catch (IOException e) {
 			throw new RuntimeException("Messages could not be acknowledged during checkpoint creation.", e);
 		}
@@ -297,5 +248,9 @@ public class RabbitMQSourceReader<T> implements SourceReader<T, EmptyPartitionSp
 	@Override
 	public void close() throws Exception {
 
+	}
+
+	protected Channel getRmqChannel() {
+		return rmqChannel;
 	}
 }
