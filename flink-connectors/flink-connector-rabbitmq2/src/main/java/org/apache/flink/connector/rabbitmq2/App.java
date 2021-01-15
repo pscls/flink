@@ -5,6 +5,8 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSourceBuilder;
+import org.apache.flink.connector.rabbitmq2.source.common.AcknowledgeMode;
+import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReader;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.RMQSink;
@@ -24,7 +26,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-		env.enableCheckpointing(5000);
+//		env.enableCheckpointing(5000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -33,6 +35,7 @@ public class App {
 			.setUserName("guest")
 			.setPassword("guest")
 			.setPort(5672)
+			.setPrefetchCount(10)
     		.build();
 
 //		final DataStream<String> stream = env
@@ -44,14 +47,22 @@ public class App {
 //				true,
 //				// use correlation ids; can be false if only at-least-once is required
 //				new SimpleStringSchema()))   // deserialization schema to turn messages into Java objects
-//			.setParallelism(1);
-		RabbitMQSource<String> rabbitMQSource = RabbitMQSource.
-			<String>builder()
-			.build(
-				connectionConfig,
-				"pub",
-				new SimpleStringSchema()
-			);
+////			.setParallelism(1);
+//		RabbitMQSource<String> rabbitMQSource = RabbitMQSource.
+//			<String>builder()
+//			.build(
+//				connectionConfig,
+//				"pub",
+//				new SimpleStringSchema(),
+//				AcknowledgeMode.AUTO
+//			);
+
+		RabbitMQSource<String> rabbitMQSource = new RabbitMQSource<>(
+			connectionConfig,
+			"pub",
+			new SimpleStringSchema(),
+			AcknowledgeMode.CHECKPOINT
+		);
 
 		final DataStream<String> stream = env
 			.fromSource(rabbitMQSource,
@@ -62,7 +73,7 @@ public class App {
 
 		DataStream<String> mappedMessages = stream
 			.map((MapFunction<String, String>) message -> {
-				System.out.println(message);
+//				System.out.println(message);
 				return "Mapped: " + message;
 			});
 

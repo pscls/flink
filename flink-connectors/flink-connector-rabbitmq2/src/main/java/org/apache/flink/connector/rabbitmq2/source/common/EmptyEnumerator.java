@@ -20,7 +20,6 @@ public class EmptyEnumerator implements SplitEnumerator<EmptyPartitionSplit, Emp
 
 	@Override
 	public void addReader(int i) {
-
 	}
 
 	@Override

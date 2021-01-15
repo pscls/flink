@@ -16,6 +16,7 @@ import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 //import org.apache.flink.connector.rabbitmq2.source.reader.KafkaRecordEmitter;
 //import org.apache.flink.connector.rabbitmq2.source.reader.KafkaSourceReader;
 //import org.apache.flink.connector.rabbitmq2.source.reader.deserializer.KafkaRecordDeserializer;
+import org.apache.flink.connector.rabbitmq2.source.common.AcknowledgeMode;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumCheckpointSerializer;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumState;
 import org.apache.flink.connector.rabbitmq2.source.common.EmptyEnumerator;
@@ -40,13 +41,20 @@ public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, Emp
 
 	private final RMQConnectionConfig connectionConfig;
 	private final String queueName;
+	private final AcknowledgeMode acknowledgeMode;
+
 	protected DeserializationSchema<OUT> deliveryDeserializer;
 
-	public RabbitMQSource (RMQConnectionConfig connectionConfig, String queueName, DeserializationSchema<OUT> deserializationSchema) {
+	public RabbitMQSource (RMQConnectionConfig connectionConfig, String queueName, DeserializationSchema<OUT> deserializationSchema, AcknowledgeMode acknowledgeMode) {
 		this.connectionConfig = connectionConfig;
 		this.queueName = queueName;
 		this.deliveryDeserializer = deserializationSchema;
+		this.acknowledgeMode = acknowledgeMode;
 		System.out.println("Create SOURCE");
+	}
+
+	public RabbitMQSource (RMQConnectionConfig connectionConfig, String queueName, DeserializationSchema<OUT> deserializationSchema) {
+		this(connectionConfig, queueName, deserializationSchema, AcknowledgeMode.POLLING);
 	}
 
 	public static <OUT> RabbitMQSourceBuilder<OUT> builder() {
@@ -61,7 +69,7 @@ public class RabbitMQSource<OUT> implements Source<OUT, EmptyPartitionSplit, Emp
 	@Override
 	public SourceReader<OUT, EmptyPartitionSplit> createReader(SourceReaderContext sourceReaderContext) throws Exception {
 		System.out.println("Create READER");
-		return new RabbitMQSourceReader<>(connectionConfig, queueName, deliveryDeserializer);
+		return new RabbitMQSourceReader<>(connectionConfig, queueName, deliveryDeserializer, acknowledgeMode);
 	}
 
 	@Override
