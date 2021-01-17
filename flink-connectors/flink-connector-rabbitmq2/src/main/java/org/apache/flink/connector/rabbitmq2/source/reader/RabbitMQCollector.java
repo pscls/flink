@@ -17,15 +17,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class RabbitMQCollector<T> {
-	private final Queue<Message<T>> unpolledMessageQueue;
+	private final BlockingQueue<Message<T>> unpolledMessageQueue;
 	private final DeserializationSchema<T> deliveryDeserializer;
 
-	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer) {
+	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer, int capacity) {
 		this.deliveryDeserializer = deliveryDeserializer;
-		this.unpolledMessageQueue = new LinkedList<>();
+		this.unpolledMessageQueue = new LinkedBlockingQueue<>(capacity);
+	}
+
+	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer) {
+		this(deliveryDeserializer, Integer.MAX_VALUE);
 	}
 
 	public boolean hasUnpolledMessages() {
