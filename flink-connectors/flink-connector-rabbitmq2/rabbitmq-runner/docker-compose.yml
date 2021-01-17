@@ -16,14 +16,22 @@ services:
     networks:
       - network
 
-  publisher:
+  publisher1:
     build: publisher
     environment:
       AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
       QUEUE: 'pub'
-      DELAY: 1
+      DELAY: 0.001
     networks:
       - network
+  publisher2:
+    build: publisher
+    environment:
+        AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+        QUEUE: 'pub'
+        DELAY: 0.001
+    networks:
+        - network
 
 networks:
   # Declare our private network.  We must declare one for the magic

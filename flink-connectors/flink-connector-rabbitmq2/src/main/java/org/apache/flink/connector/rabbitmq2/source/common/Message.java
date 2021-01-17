@@ -1,27 +1,29 @@
 package org.apache.flink.connector.rabbitmq2.source.common;
 
 public class Message<T> {
-	public final long deliveryTag;
-	public final String correlationId;
-	public final T message;
+	private final long deliveryTag;
+	private final String correlationId;
+	private final T message;
 
-	public Message(T message, long deliveryTag, String correlationId) {
+	public Message(long deliveryTag, String correlationId, T message) {
 		this.deliveryTag = deliveryTag;
 		this.correlationId = correlationId;
 		this.message = message;
 	}
 
 	public Message(T message, long deliveryTag) {
-		this(message, deliveryTag, null);
+		this(deliveryTag, null, message);
 	}
 
 	public Message(long deliveryTag, String correlationId) {
-		this(null, deliveryTag, correlationId);
+		this(deliveryTag, correlationId, null);
 	}
 
 	public long getDeliveryTag() {
 		return deliveryTag;
 	}
+
+	public T getMessage() { return message; }
 
 	public String getCorrelationId() {
 		return correlationId;

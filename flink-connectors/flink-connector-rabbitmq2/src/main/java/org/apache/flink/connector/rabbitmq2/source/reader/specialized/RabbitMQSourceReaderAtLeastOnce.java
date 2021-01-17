@@ -22,6 +22,6 @@ public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase
 
 	@Override
 	protected void handleMessagePolled(Message<T> message) {
-		acknowledgeMessageId(message.deliveryTag);
+		acknowledgeMessageId(message.getDeliveryTag());
 	}
 }

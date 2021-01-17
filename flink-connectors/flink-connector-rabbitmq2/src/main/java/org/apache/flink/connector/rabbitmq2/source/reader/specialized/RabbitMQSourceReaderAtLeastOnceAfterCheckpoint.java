@@ -34,7 +34,7 @@ public class RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<T> extends RabbitMQS
 
 	@Override
 	protected void handleMessagePolled(Message<T> message) {
-		this.polledAndUnacknowledgedMessageIds.add(message.deliveryTag);
+		this.polledAndUnacknowledgedMessageIds.add(message.getDeliveryTag());
 	}
 
 	@Override

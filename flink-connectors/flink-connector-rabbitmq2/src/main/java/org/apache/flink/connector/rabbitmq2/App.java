@@ -18,13 +18,13 @@ public class App {
 		System.out.println("Starting");
 
 //    	final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		PropertyConfigurator.configure("log4j.properties");
+//		PropertyConfigurator.configure("log4j.properties");
 
 		final Configuration conf = new Configuration();
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-		env.enableCheckpointing(5000);
+//		env.enableCheckpointing(50);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -33,7 +33,7 @@ public class App {
 			.setUserName("guest")
 			.setPassword("guest")
 			.setPort(5672)
-			.setPrefetchCount(10)
+			.setPrefetchCount(1000)
     		.build();
 
 //		final DataStream<String> stream = env
@@ -59,14 +59,14 @@ public class App {
 			connectionConfig,
 			"pub",
 			new SimpleStringSchema(),
-			ConsistencyMode.EXACTLY_ONCE
+			ConsistencyMode.AT_LEAST_ONCE
 		);
 
 		final DataStream<String> stream = env
 			.fromSource(rabbitMQSource,
 				WatermarkStrategy.noWatermarks(),
 				"RabbitMQSource")
-			.setParallelism(1);
+			.setParallelism(10);
 
 
 		DataStream<String> mappedMessages = stream
@@ -76,10 +76,10 @@ public class App {
 			});
 
 		// ====================== SINK ========================
-		mappedMessages.addSink(new RMQSink<>(
-			connectionConfig,            // config for the RabbitMQ connection
-			"sub",                 // name of the RabbitMQ queue to send messages to
-			new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
+//		mappedMessages.addSink(new RMQSink<>(
+//			connectionConfig,            // config for the RabbitMQ connection
+//			"sub",                 // name of the RabbitMQ queue to send messages to
+//			new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
 
 
 		env.execute("RabbitMQ");

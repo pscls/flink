@@ -99,7 +99,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 			return InputStatus.NOTHING_AVAILABLE;
 		}
 
-		output.collect(message.message); //TODO: maybe we want to emit a timestamp as well?
+		output.collect(message.getMessage()); //TODO: maybe we want to emit a timestamp as well?
 		handleMessagePolled(message);
 
 		return collector.hasUnpolledMessages() ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
