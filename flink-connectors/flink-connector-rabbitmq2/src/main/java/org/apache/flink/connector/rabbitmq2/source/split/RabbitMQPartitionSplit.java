@@ -34,4 +34,17 @@ public class RabbitMQPartitionSplit implements SourceSplit, Serializable {
 	public String splitId() {
 		return correlationIds.toString(); // TODO: find something better
 	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (this == other)
+			return true;
+		if (other == null)
+			return false;
+		if (getClass() != other.getClass())
+			return false;
+		RabbitMQPartitionSplit otherSplit = (RabbitMQPartitionSplit) other;
+		return this.getQueueName().equals(otherSplit.getQueueName()) &&
+			this.getCorrelationIds().equals(otherSplit.getCorrelationIds());
+	}
 }

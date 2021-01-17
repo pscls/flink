@@ -8,13 +8,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+
 public class MessageTest {
 
 	@Test
-	public void getAttributes() {
+	public void testGetAttributes() {
 		String correlationId = "correlationId";
 		long deliveryTag = 1;
-		Message m = new Message(1, correlationId);
-		assertEquals(m.getCorrelationId(), correlationId);
+		String body = "";
+		Message<String> m = new Message<>(1, correlationId, body);
+		assertEquals(correlationId, m.getCorrelationId());
+		assertEquals(deliveryTag, m.getDeliveryTag());
+		assertEquals(body, m.getMessage());
 	}
 }

@@ -53,7 +53,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	protected abstract boolean isAutoAck();
 
-	private void setupRabbitMQ () {
+	protected void setupRabbitMQ () {
 		try {
 			rmqConnection = setupConnection();
 			rmqChannel = setupChannel(rmqConnection);
@@ -69,7 +69,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	protected void handleMessagePolled(Message<T> message) {}
 
-	private Connection setupConnection() throws IOException, TimeoutException{
+	protected Connection setupConnection() throws IOException, TimeoutException{
 		final ConnectionFactory connectionFactory = new ConnectionFactory();
 		connectionFactory.setHost(rmqConnectionConfig.getHost());
 

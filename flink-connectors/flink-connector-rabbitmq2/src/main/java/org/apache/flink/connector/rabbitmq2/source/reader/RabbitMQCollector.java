@@ -4,6 +4,9 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import jdk.nashorn.internal.ir.Block;
+
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 
@@ -16,9 +19,9 @@ public class RabbitMQCollector<T> {
 	private final BlockingQueue<Message<T>> unpolledMessageQueue;
 	private final DeserializationSchema<T> deliveryDeserializer;
 
-	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer, int capacity) {
+	private RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer, int capacity) {
 		this.deliveryDeserializer = deliveryDeserializer;
-		this.unpolledMessageQueue = new LinkedBlockingQueue<>(capacity);
+		this.unpolledMessageQueue = new LinkedBlockingQueue<>();
 	}
 
 	public RabbitMQCollector(DeserializationSchema<T> deliveryDeserializer) {
@@ -36,6 +39,9 @@ public class RabbitMQCollector<T> {
 	// copied from old rmq connector
 	public void processMessage(Delivery delivery) throws IOException {
 //		AMQP.BasicProperties properties = delivery.getProperties();
+		if (unpolledMessageQueue.remainingCapacity() == 0) {
+			return;
+		}
 		byte[] body = delivery.getBody();
 		Envelope envelope = delivery.getEnvelope();
 		long deliveryTag = envelope.getDeliveryTag();
@@ -49,5 +55,10 @@ public class RabbitMQCollector<T> {
 
 	public Message<T> pollMessage() {
 		return unpolledMessageQueue.poll();
+	}
+
+	@VisibleForTesting
+	public BlockingQueue<Message<T>> getMessageQueue() {
+		return unpolledMessageQueue;
 	}
 }
