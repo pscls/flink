@@ -36,12 +36,14 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	private Connection rmqConnection;
 	private Channel rmqChannel;
 	private final SourceReaderContext sourceReaderContext;
+	private final DeserializationSchema<T> deliveryDeserializer;
 
 	public RabbitMQSourceReaderBase(
 		SourceReaderContext sourceReaderContext,
 		DeserializationSchema<T> deliveryDeserializer) {
 		this.sourceReaderContext = sourceReaderContext;
-		this.collector = new RabbitMQCollector<>(deliveryDeserializer);
+		this.deliveryDeserializer = deliveryDeserializer;
+		this.collector = new RabbitMQCollector<>();
 	}
 
 	@Override
@@ -63,7 +65,11 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) throws IOException {
-		collector.processMessage(delivery);
+		AMQP.BasicProperties properties = delivery.getProperties();
+		byte[] body = delivery.getBody();
+		Envelope envelope = delivery.getEnvelope();
+		collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
+		deliveryDeserializer.deserialize(body, collector);
 	}
 
 	protected void handleMessagePolled(Message<T> message) {}
