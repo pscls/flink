@@ -57,14 +57,15 @@ public class RabbitMQSource<OUT> implements Source<OUT, RabbitMQPartitionSplit, 
 		System.out.println("Create READER");
 		switch (consistencyMode) {
 			case AT_MOST_ONCE:
-				return new RabbitMQSourceReaderAtMostOnce<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
+				return new RabbitMQSourceReaderAtMostOnce<>(sourceReaderContext, deliveryDeserializer);
+			case AT_LEAST_ONCE:
+				return new RabbitMQSourceReaderAtLeastOnce<>(sourceReaderContext, deliveryDeserializer);
 			case AT_LEAST_ONCE_AFTER_CHECKPOINTING:
-				return new RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
+				return new RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<>(sourceReaderContext, deliveryDeserializer);
 			case EXACTLY_ONCE:
-				return new RabbitMQSourceReaderExactlyOnce<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
+				return new RabbitMQSourceReaderExactlyOnce<>(sourceReaderContext, deliveryDeserializer);
 			default:
-				// AT_LEAST_ONCE
-				return new RabbitMQSourceReaderAtLeastOnce<>(sourceReaderContext, connectionConfig, deliveryDeserializer);
+				return null;
 		}
 	}
 
@@ -72,14 +73,14 @@ public class RabbitMQSource<OUT> implements Source<OUT, RabbitMQPartitionSplit, 
 	public SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> createEnumerator(
 		SplitEnumeratorContext<RabbitMQPartitionSplit> splitEnumeratorContext) {
 		System.out.println("Create ENUMERATOR");
-		return new RabbitMQSourceEnumerator(splitEnumeratorContext, consistencyMode, queueName);
+		return new RabbitMQSourceEnumerator(splitEnumeratorContext, consistencyMode, connectionConfig, queueName);
 	}
 
 	@Override
 	public SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> restoreEnumerator(
 		SplitEnumeratorContext<RabbitMQPartitionSplit> splitEnumeratorContext,
 		RabbitMQSourceEnumState enumState) {
-		return new RabbitMQSourceEnumerator(splitEnumeratorContext, consistencyMode, queueName, enumState);
+		return new RabbitMQSourceEnumerator(splitEnumeratorContext, consistencyMode, connectionConfig, queueName, enumState);
 	}
 
 	@Override

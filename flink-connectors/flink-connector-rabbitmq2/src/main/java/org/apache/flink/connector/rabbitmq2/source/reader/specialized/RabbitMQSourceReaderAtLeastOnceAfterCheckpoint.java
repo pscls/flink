@@ -6,6 +6,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import java.util.ArrayDeque;
@@ -20,9 +21,8 @@ public class RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<T> extends RabbitMQS
 
 	public RabbitMQSourceReaderAtLeastOnceAfterCheckpoint(
 		SourceReaderContext sourceReaderContext,
-		RMQConnectionConfig rmqConnectionConfig,
 		DeserializationSchema<T> deliveryDeserializer) {
-		super(sourceReaderContext, rmqConnectionConfig, deliveryDeserializer);
+		super(sourceReaderContext, deliveryDeserializer);
 		this.polledAndUnacknowledgedMessageIds = new ArrayList<>();
 		this.polledAndUnacknowledgedMessageIdsPerCheckpoint = new ArrayDeque<>();
 	}

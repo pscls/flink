@@ -6,6 +6,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.Preconditions;
 
@@ -32,9 +33,8 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
 	public RabbitMQSourceReaderExactlyOnce(
 		SourceReaderContext sourceReaderContext,
-		RMQConnectionConfig rmqConnectionConfig,
 		DeserializationSchema<T> deliveryDeserializer) {
-		super(sourceReaderContext, rmqConnectionConfig, deliveryDeserializer);
+		super(sourceReaderContext, deliveryDeserializer);
 		this.polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
 		this.polledAndUnacknowledgedMessagesPerCheckpoint = new ArrayDeque<>();
 		this.correlationIds = new HashSet<>();

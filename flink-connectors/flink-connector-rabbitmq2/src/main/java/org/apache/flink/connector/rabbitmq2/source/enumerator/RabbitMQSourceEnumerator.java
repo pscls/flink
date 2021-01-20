@@ -5,6 +5,8 @@ import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.util.FlinkRuntimeException;
 
 import javax.annotation.Nullable;
 
@@ -18,20 +20,22 @@ public class RabbitMQSourceEnumerator implements SplitEnumerator<RabbitMQPartiti
 	public RabbitMQSourceEnumerator(
 		SplitEnumeratorContext<RabbitMQPartitionSplit> context,
 		ConsistencyMode consistencyMode,
+		RMQConnectionConfig connectionConfig,
 		String rmqQueueName,
 		RabbitMQSourceEnumState enumState // this is not used since the enumerator has no state in this architecture
 		) {
-		this(context, consistencyMode, rmqQueueName);
+		this(context, consistencyMode, connectionConfig, rmqQueueName);
 	}
 
 	public RabbitMQSourceEnumerator(
 		SplitEnumeratorContext<RabbitMQPartitionSplit> context,
 		ConsistencyMode consistencyMode,
+		RMQConnectionConfig connectionConfig,
 		String rmqQueueName
 		) {
 		this.context = context;
 		this.consistencyMode = consistencyMode;
-		this.split = new RabbitMQPartitionSplit(rmqQueueName);
+		this.split = new RabbitMQPartitionSplit(connectionConfig, rmqQueueName);
 	}
 
 	@Override
@@ -53,7 +57,7 @@ public class RabbitMQSourceEnumerator implements SplitEnumerator<RabbitMQPartiti
 	@Override
 	public void addReader(int i) {
 		if (consistencyMode == ConsistencyMode.EXACTLY_ONCE && context.currentParallelism() > 1) {
-			throw new RuntimeException("The consistency mode is exactly-once and more than one source reader was created. "
+			throw new FlinkRuntimeException("The consistency mode is exactly-once and more than one source reader was created. "
 				+ "For exactly once a parallelism higher than one is forbidden.");
 		}
 	}

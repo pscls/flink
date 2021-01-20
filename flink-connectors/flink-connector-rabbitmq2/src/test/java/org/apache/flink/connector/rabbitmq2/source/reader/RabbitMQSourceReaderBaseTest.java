@@ -25,6 +25,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
 import org.mockito.Mockito;
+import org.mockito.internal.creation.bytebuddy.MockAccess;
 
 import java.io.IOException;
 import java.util.*;
@@ -40,9 +41,8 @@ public class RabbitMQSourceReaderBaseTest {
  	private static class MockSourceReaderBase<T> extends RabbitMQSourceReaderBase<T> {
  		public MockSourceReaderBase(
 			SourceReaderContext sourceReaderContext,
-			RMQConnectionConfig rmqConnectionConfig,
 			DeserializationSchema<T> deliveryDeserializer) {
-			super(sourceReaderContext, rmqConnectionConfig, deliveryDeserializer);
+			super(sourceReaderContext, deliveryDeserializer);
 		}
 
 		@Override
@@ -88,20 +88,20 @@ public class RabbitMQSourceReaderBaseTest {
 		SourceReaderContext context = Mockito.mock(SourceReaderContext.class);
 		this.reader = new MockSourceReaderBase<>(
 			context,
-			connectionConfig,
 			new SimpleStringSchema());
 		this.reader.setupRabbitMQConnection();
 	}
 
 	@Test
 	public void testAddSplitOverwrite() {
-		RabbitMQPartitionSplit split = new RabbitMQPartitionSplit("queue");
+		RMQConnectionConfig connectionConfig = Mockito.mock(RMQConnectionConfig.class);
+		RabbitMQPartitionSplit split = new RabbitMQPartitionSplit(connectionConfig, "queue");
 
 		List<RabbitMQPartitionSplit> splits = Collections.singletonList(split);
 		reader.addSplits(splits);
 		assertEquals(split, reader.getSplit());
 
-		RabbitMQPartitionSplit newSplit = new RabbitMQPartitionSplit("queue2",
+		RabbitMQPartitionSplit newSplit = new RabbitMQPartitionSplit(connectionConfig, "queue2",
 			new HashSet<>(Arrays.asList("1", "2", "3")));
 		reader.addSplits(Collections.singletonList(newSplit));
 		assertEquals(newSplit, reader.getSplit());
@@ -109,7 +109,8 @@ public class RabbitMQSourceReaderBaseTest {
 
 	@Test(expected = AssertionError.class)
 	public void testAddMultipleSplitsException() {
-		RabbitMQPartitionSplit split = new RabbitMQPartitionSplit("queue");
+		RMQConnectionConfig connectionConfig = Mockito.mock(RMQConnectionConfig.class);
+		RabbitMQPartitionSplit split = new RabbitMQPartitionSplit(connectionConfig, "queue");
 
 		List<RabbitMQPartitionSplit> splits = Arrays.asList(split, split);
 		reader.addSplits(splits);

@@ -66,14 +66,14 @@ public class App {
 			.fromSource(rabbitMQSource,
 				WatermarkStrategy.noWatermarks(),
 				"RabbitMQSource")
-			.setParallelism(10);
+			.setParallelism(1);
 
 
 		DataStream<String> mappedMessages = stream
 			.map((MapFunction<String, String>) message -> {
-//				System.out.println(message);
+				System.out.println("Mapped" + message);
 				return "Mapped: " + message;
-			});
+			}).setParallelism(10);
 
 		// ====================== SINK ========================
 //		mappedMessages.addSink(new RMQSink<>(

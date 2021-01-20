@@ -1,7 +1,7 @@
 version: '3'
 services:
   rabbitmq:
-    image: rabbitmq:3.8.9-management-alpine
+    image: rabbitmq:3.8-management-alpine
     ports:
       - 5672:5672 #AMQP
       - 8080:15672 # UI
@@ -21,17 +21,17 @@ services:
     environment:
       AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
       QUEUE: 'pub'
-      DELAY: 0.001
+      DELAY: 0.1
     networks:
       - network
-  publisher2:
-    build: publisher
-    environment:
-        AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
-        QUEUE: 'pub'
-        DELAY: 0.001
-    networks:
-        - network
+#  publisher2:
+#    build: publisher
+#    environment:
+#        AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
+#        QUEUE: 'pub'
+#        DELAY: 0.001
+#    networks:
+#        - network
 
 networks:
   # Declare our private network.  We must declare one for the magic

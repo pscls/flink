@@ -1,5 +1,8 @@
 package org.apache.flink.connector.rabbitmq2.source.reader;
 
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
+
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceEvent;
@@ -9,7 +12,7 @@ import org.apache.flink.connector.base.source.reader.synchronization.FutureCompl
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.core.io.InputStatus;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -28,20 +31,16 @@ import org.slf4j.LoggerFactory;
 public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, RabbitMQPartitionSplit> {
 	private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
-	private final RMQConnectionConfig rmqConnectionConfig;
 	private RabbitMQPartitionSplit split;
 	private final RabbitMQCollector<T> collector;
 	private Connection rmqConnection;
 	private Channel rmqChannel;
 	private final SourceReaderContext sourceReaderContext;
 
-
 	public RabbitMQSourceReaderBase(
 		SourceReaderContext sourceReaderContext,
-		RMQConnectionConfig rmqConnectionConfig,
 		DeserializationSchema<T> deliveryDeserializer) {
 		this.sourceReaderContext = sourceReaderContext;
-		this.rmqConnectionConfig = rmqConnectionConfig;
 		this.collector = new RabbitMQCollector<>(deliveryDeserializer);
 	}
 
@@ -71,7 +70,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	protected Connection setupConnection() throws IOException, TimeoutException{
 		final ConnectionFactory connectionFactory = new ConnectionFactory();
-		connectionFactory.setHost(rmqConnectionConfig.getHost());
+		connectionFactory.setHost(getSplit().getConnectionConfig().getHost());
 
 		return connectionFactory.newConnection();
 	}
@@ -81,9 +80,9 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 		rmqChannel.queueDeclare(split.getQueueName(), true, false, false, null);
 
 		// Set maximum of unacknowledged messages
-		if (rmqConnectionConfig.getPrefetchCount().isPresent()) {
+		if (getSplit().getConnectionConfig().getPrefetchCount().isPresent()) {
 			// global: false - the prefetch count is set per consumer, not per rabbitmq channel
-			rmqChannel.basicQos(rmqConnectionConfig.getPrefetchCount().get(), false);
+			rmqChannel.basicQos(getSplit().getConnectionConfig().getPrefetchCount().get(), false);
 		}
 
 		final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
@@ -157,13 +156,17 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	@Override
 	public void close() throws Exception {
+		if (getSplit() == null) {
+			return;
+		}
+
 		try {
 			if (rmqChannel != null) {
 				rmqChannel.close();
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error while closing RMQ channel with " + split.getQueueName()
-				+ " at " + rmqConnectionConfig.getHost(), e);
+				+ " at " + getSplit().getConnectionConfig().getHost(), e);
 		}
 
 		try {
@@ -172,7 +175,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Error while closing RMQ connection with " + split.getQueueName()
-				+ " at " + rmqConnectionConfig.getHost(), e);
+				+ " at " + getSplit().getConnectionConfig().getHost(), e);
 		}
 	}
 
