@@ -227,7 +227,7 @@ public static class SumFunction extends ScalarFunction {
   }
 
   public Integer eval(String a, String b) {
-    return Integer.valueOf(a) + Integer.valueOf();
+    return Integer.valueOf(a) + Integer.valueOf(b);
   }
 
   public Integer eval(Double... d) {
@@ -407,15 +407,15 @@ public static class OverloadedFunction extends TableFunction<Row> {
 // decouples the type inference from evaluation methods,
 // the type inference is entirely determined by the function hints
 @FunctionHint(
-  input = [@DataTypeHint("INT"), @DataTypeHint("INT")],
+  input = {@DataTypeHint("INT"), @DataTypeHint("INT")},
   output = @DataTypeHint("INT")
 )
 @FunctionHint(
-  input = [@DataTypeHint("BIGINT"), @DataTypeHint("BIGINT")],
+  input = {@DataTypeHint("BIGINT"), @DataTypeHint("BIGINT")},
   output = @DataTypeHint("BIGINT")
 )
 @FunctionHint(
-  input = [],
+  input = {},
   output = @DataTypeHint("BOOLEAN")
 )
 public static class OverloadedFunction extends TableFunction<Object> {

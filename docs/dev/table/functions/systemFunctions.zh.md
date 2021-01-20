@@ -3759,7 +3759,7 @@ FROM_UNIXTIME(numeric[, string])
 {% endhighlight %}
       </td>
       <td>
-        <p>Returns a representation of the <i>numeric</i> argument as a value in <i>string</i> format (default is 'YYYY-MM-DD hh:mm:ss'). <i>numeric</i> is an internal timestamp value representing seconds since '1970-01-01 00:00:00' UTC, such as produced by the UNIX_TIMESTAMP() function. The return value is expressed in the session time zone (specified in TableConfig).</p>
+        <p>Returns a representation of the <i>numeric</i> argument as a value in <i>string</i> format (default is 'yyyy-MM-dd HH:mm:ss'). <i>numeric</i> is an internal timestamp value representing seconds since '1970-01-01 00:00:00' UTC, such as produced by the UNIX_TIMESTAMP() function. The return value is expressed in the session time zone (specified in TableConfig).</p>
         <p>E.g., <code>FROM_UNIXTIME(44)</code> returns '1970-01-01 00:00:44' if in UTC time zone, but returns '1970-01-01 09:00:44' if in 'Asia/Tokyo' time zone.</p>
         <p>Only supported in blink planner.</p>
       </td>
@@ -5533,6 +5533,21 @@ STRING.sha2(INT)
   </thead>
 
   <tbody>
+    <tr>
+      <td>
+{% highlight java %}
+callSql(STRING)
+{% endhighlight %}
+      </td>
+      <td>
+        <p>A call to a SQL expression.</p>
+        <p>The given string is parsed and translated into a Table API expression during planning. Only
+        the translated expression is evaluated during runtime.</p>
+        <p>Note: Currently, calls are limited to simple scalar expressions. Calls to aggregate or
+        table-valued functions are not supported. Sub-queries are also not allowed.</p>
+        <p>Example: <code>table.select(callSql("UPPER(myColumn)").substring(3))</code></p>
+      </td>
+    </tr>
     <tr>
       <td>
 {% highlight java %}
