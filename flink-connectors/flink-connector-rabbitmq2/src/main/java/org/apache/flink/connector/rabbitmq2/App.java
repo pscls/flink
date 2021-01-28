@@ -25,7 +25,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-//		env.enableCheckpointing(50);
+
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -41,7 +41,7 @@ public class App {
 			connectionConfig,
 			"pub",
 			new SimpleStringSchema(),
-			ConsistencyMode.AT_LEAST_ONCE
+			ConsistencyMode.AT_LEAST_ONCE_AFTER_CHECKPOINTING
 		);
 
 		final DataStream<String> stream = env
@@ -58,16 +58,20 @@ public class App {
 			}).setParallelism(1);
 
 		// ====================== SINK ========================
-        mappedMessages.sinkTo(new RabbitMQSink<>(
-			connectionConfig,            // config for the RabbitMQ connection
-			"sub",                 // name of the RabbitMQ queue to send messages to
-			new SimpleStringSchema())).setParallelism(1);  // serialization schema to turn Java objects to messages
+        RabbitMQSink<String> sink = new RabbitMQSink<>(
+                connectionConfig,            // config for the RabbitMQ connection
+                "sub",                 // name of the RabbitMQ queue to send messages to
+                new SimpleStringSchema(), // serialization schema to turn Java objects to messages
+                ConsistencyMode.AT_MOST_ONCE);
+
+        mappedMessages.sinkTo(sink).setParallelism(1);
 
 //		mappedMessages.addSink(new RMQSink<>(
 //			connectionConfig,            // config for the RabbitMQ connection
 //			"sub",                 // name of the RabbitMQ queue to send messages to
 //			new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
 
+        env.enableCheckpointing(1000);
 
 		env.execute("RabbitMQ");
 	}
