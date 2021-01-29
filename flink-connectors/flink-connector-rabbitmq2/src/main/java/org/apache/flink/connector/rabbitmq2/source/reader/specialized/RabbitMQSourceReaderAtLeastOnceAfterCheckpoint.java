@@ -39,7 +39,6 @@ public class RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<T> extends RabbitMQS
 
 	@Override
 	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
-	    System.out.println("Source Checkpoint: " + checkpointId);
 		Tuple2<Long, List<Long>> tuple = new Tuple2<>(checkpointId, polledAndUnacknowledgedMessageIds);
 		polledAndUnacknowledgedMessageIdsPerCheckpoint.add(tuple);
 		polledAndUnacknowledgedMessageIds = new ArrayList<>();

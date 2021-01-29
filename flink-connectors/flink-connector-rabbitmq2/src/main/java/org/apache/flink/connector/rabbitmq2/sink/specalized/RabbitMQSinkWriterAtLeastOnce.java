@@ -33,10 +33,10 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             List<RabbitMQSinkState> states) {
         super(connectionConfig, queueName, serializationSchema);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
-        this.timer = new Timer();
-
         initWithState(states);
-        setupSendingTask();
+        this.timer = new Timer();
+        timer.scheduleAtFixedRate(new SendMessagesTask(), 1000,5000);
+//        setupSendingTask();
     }
 
     private void initWithState(List<RabbitMQSinkState> states) {
@@ -52,7 +52,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     private void setupSendingTask () {
-        timer.scheduleAtFixedRate(new SendMessagesTask(), 1000,5000);
+
     }
 
     class SendMessagesTask extends TimerTask {
@@ -64,8 +64,8 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         }
 
         public void run() {
-            System.out.println("Run Send Messages Task");
             counter++;
+            System.out.println("Run Send Messages Task " + counter);
             Set<Long> temp = outstandingConfirms.keySet();
             Set<Long> messagesToResend = new HashSet<>(temp);
             messagesToResend.retainAll(lastSeenMessageIds);
@@ -79,20 +79,27 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     @Override
+    public void write(T element, Context context) throws IOException {
+        // TODO: Remove from here after finishing testing
+        if (counter > 2) {
+            throw new FlinkRuntimeException("Failed successfully");
+        }
+        byte[] msg = serializationSchema.serialize(element);
+        send(msg);
+    }
+
+    @Override
     protected boolean send(byte[] msg) {
 //        if (msg == null) return false;
 
         SimpleStringSchema schema = new SimpleStringSchema();
         String message = schema.deserialize(msg);
-        System.out.println("Try to send:" + message);
+//        System.out.println("Try to send:" + message);
 //        System.out.println(outstandingConfirms);
-        if (counter > 2) {
-            throw new FlinkRuntimeException("Failed successfully");
-        }
+
         long sequenceNumber = rmqChannel.getNextPublishSeqNo();
         outstandingConfirms.put(sequenceNumber, msg);
         return super.send(msg);
-
     }
 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
@@ -139,6 +146,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public void close() throws Exception {
+        System.out.println("Closing");
         super.close();
         if (timer != null) {
             timer.cancel();

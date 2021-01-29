@@ -62,7 +62,7 @@ public class App {
                 connectionConfig,            // config for the RabbitMQ connection
                 "sub",                 // name of the RabbitMQ queue to send messages to
                 new SimpleStringSchema(), // serialization schema to turn Java objects to messages
-                ConsistencyMode.AT_MOST_ONCE);
+                ConsistencyMode.AT_LEAST_ONCE);
 
         mappedMessages.sinkTo(sink).setParallelism(1);
 
@@ -71,7 +71,7 @@ public class App {
 //			"sub",                 // name of the RabbitMQ queue to send messages to
 //			new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
 
-        env.enableCheckpointing(1000);
+        env.enableCheckpointing(3000);
 
 		env.execute("RabbitMQ");
 	}

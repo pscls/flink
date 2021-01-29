@@ -21,7 +21,7 @@ services:
     environment:
       AMQP_URL: 'amqp://rabbitmq?connection_attempts=5&retry_delay=5'
       QUEUE: 'pub'
-      DELAY: 0.5
+      DELAY: 2
     networks:
       - network
 #  publisher2:

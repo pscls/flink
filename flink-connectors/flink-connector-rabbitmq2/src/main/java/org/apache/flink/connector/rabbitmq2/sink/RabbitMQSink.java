@@ -47,31 +47,31 @@ public class RabbitMQSink<T> implements Sink<T, RabbitMQSinkCommittable, RabbitM
 
     @Override
     public Optional<Committer<RabbitMQSinkCommittable>> createCommitter() throws IOException {
-        System.out.println("Create Commiter");
+//        System.out.println("Create Commiter");
         return Optional.of(new RabbitMQSinkCommitter());
     }
 
     @Override
     public Optional<GlobalCommitter<RabbitMQSinkCommittable, Void>> createGlobalCommitter() throws IOException {
-        System.out.println("Create GLOBAL Commiter");
+//        System.out.println("Create GLOBAL Commiter");
         return Optional.empty();
     }
 
     @Override
     public Optional<SimpleVersionedSerializer<RabbitMQSinkCommittable>> getCommittableSerializer() {
-        System.out.println("Create Commiter Serializer");
+//        System.out.println("Create Commiter Serializer");
         return Optional.of(new RabbitMQSinkCommittableSerializer());
     }
 
     @Override
     public Optional<SimpleVersionedSerializer<Void>> getGlobalCommittableSerializer() {
-        System.out.println("Create GLOBAL Commiter Serializer");
+//        System.out.println("Create GLOBAL Commiter Serializer");
         return Optional.empty();
     }
 
     @Override
     public Optional<SimpleVersionedSerializer<RabbitMQSinkState>> getWriterStateSerializer() {
-        System.out.println("Create Writer Serializer");
-        return Optional.empty();
+//        System.out.println("Create Writer Serializer");
+        return Optional.of(new RabbitMQSinkWriterStateSerializer());
     }
 }
