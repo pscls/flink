@@ -133,7 +133,6 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         };
 
         channel.addConfirmListener(cleanOutstandingConfirms, nackedConfirms);
-
         channel.confirmSelect();
         return channel;
     }
