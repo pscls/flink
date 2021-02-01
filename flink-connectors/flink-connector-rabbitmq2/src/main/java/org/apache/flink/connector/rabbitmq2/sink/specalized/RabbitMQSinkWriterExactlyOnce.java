@@ -30,9 +30,11 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     private void initWithState(List<RabbitMQSinkState> states) {
         System.out.println("Init with state");
+        List<byte[]> messages = new ArrayList<>();
         for (RabbitMQSinkState state : states) {
-            // TODO: assign messages
+            messages.addAll(state.getOutstandingMessages());
         }
+        this.messages = messages;
     }
 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
@@ -54,7 +56,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
         return Collections.singletonList(new RabbitMQSinkState(messages));
     }
 
-    private boolean commitMessages() {
+    private void commitMessages() {
         try {
             List<byte[]> messagesToSend = new ArrayList<>(messages);
             for (byte[] msg : messagesToSend) {
@@ -62,10 +64,8 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
             }
             rmqChannel.txCommit();
             messages.subList(0, messagesToSend.size()).clear();
-            return true;
         } catch (IOException e) {
             e.printStackTrace();
-            return false;
         }
     }
 }

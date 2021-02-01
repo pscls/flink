@@ -1,30 +1,26 @@
 package org.apache.flink.connector.rabbitmq2.sink.specalized;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConfirmCallback;
-import com.rabbitmq.client.Connection;
-
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkState;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkWriterBase;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
-import org.apache.flink.util.FlinkRuntimeException;
+
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConfirmCallback;
+import com.rabbitmq.client.Connection;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> {
     protected final ConcurrentNavigableMap<Long, byte[]> outstandingConfirms;
-    private final Timer timer;
-    private int counter = 0;
+    private Set<Long> lastSeenMessageIds;
 
     public RabbitMQSinkWriterAtLeastOnce(
             RMQConnectionConfig connectionConfig,
@@ -33,10 +29,8 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             List<RabbitMQSinkState> states) {
         super(connectionConfig, queueName, serializationSchema);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
+        this.lastSeenMessageIds = new HashSet<>();
         initWithState(states);
-        this.timer = new Timer();
-        timer.scheduleAtFixedRate(new SendMessagesTask(), 1000,5000);
-//        setupSendingTask();
     }
 
     private void initWithState(List<RabbitMQSinkState> states) {
@@ -51,55 +45,34 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         }
     }
 
-    private void setupSendingTask () {
-
-    }
-
-    class SendMessagesTask extends TimerTask {
-        private Set<Long> lastSeenMessageIds;
-
-        public SendMessagesTask() {
-            super();
-            this.lastSeenMessageIds = new HashSet<>();
+    private void resendMessages() {
+        Set<Long> temp = outstandingConfirms.keySet();
+        Set<Long> messagesToResend = new HashSet<>(temp);
+        messagesToResend.retainAll(lastSeenMessageIds);
+        for (Long id : messagesToResend) {
+            // remove the old message from the map, since the message was added a second time
+            // under a new id or is put into the list of messages to resend
+            send(outstandingConfirms.remove(id));
         }
-
-        public void run() {
-            counter++;
-            System.out.println("Run Send Messages Task " + counter);
-            Set<Long> temp = outstandingConfirms.keySet();
-            Set<Long> messagesToResend = new HashSet<>(temp);
-            messagesToResend.retainAll(lastSeenMessageIds);
-            for (Long id : messagesToResend) {
-                if (send(outstandingConfirms.get(id))) {
-                    outstandingConfirms.remove(id);
-                }
-            }
-            lastSeenMessageIds = temp;
-        }
+        lastSeenMessageIds = temp;
     }
 
     @Override
     public void write(T element, Context context) throws IOException {
-        // TODO: Remove from here after finishing testing
-        if (counter > 2) {
-            throw new FlinkRuntimeException("Failed successfully");
-        }
         byte[] msg = serializationSchema.serialize(element);
         send(msg);
     }
 
     @Override
     protected boolean send(byte[] msg) {
-//        if (msg == null) return false;
-
-        SimpleStringSchema schema = new SimpleStringSchema();
-        String message = schema.deserialize(msg);
-//        System.out.println("Try to send:" + message);
-//        System.out.println(outstandingConfirms);
-
         long sequenceNumber = rmqChannel.getNextPublishSeqNo();
-        outstandingConfirms.put(sequenceNumber, msg);
-        return super.send(msg);
+        if (super.send(msg)) {
+            outstandingConfirms.put(sequenceNumber, msg);
+            return true;
+        } else {
+            // TODO: put in resend list
+            return false;
+        }
     }
 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
@@ -129,7 +102,8 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
                     "Message with body %s has been nack-ed. Sequence number: %d, multiple: %b",
                     body, sequenceNumber, multiple
             );
-            cleanOutstandingConfirms.handle(sequenceNumber, multiple);
+            // TODO: Decide what to do here, e.g. put in messages to resend list
+//            cleanOutstandingConfirms.handle(sequenceNumber, multiple);
         };
 
         channel.addConfirmListener(cleanOutstandingConfirms, nackedConfirms);
@@ -139,17 +113,11 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public List<RabbitMQSinkState> snapshotState() throws IOException {
+        // TODO: think about minimizing the resent loop by using the process time and check when the last
+        // resend was executed (time difference)
+        System.out.println("Outstanding confirms before resend: " + outstandingConfirms.values().stream().toArray().length);
+        resendMessages();
         System.out.println("Store " + outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
         return Collections.singletonList(new RabbitMQSinkState(outstandingConfirms.values()));
-    }
-
-    @Override
-    public void close() throws Exception {
-        System.out.println("Closing");
-        super.close();
-        if (timer != null) {
-            timer.cancel();
-            timer.purge();
-        }
     }
 }
