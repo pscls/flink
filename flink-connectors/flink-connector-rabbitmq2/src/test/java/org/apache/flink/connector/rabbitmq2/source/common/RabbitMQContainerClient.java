@@ -71,7 +71,9 @@ public class RabbitMQContainerClient {
 
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) throws IOException {
 //        AMQP.BasicProperties properties = delivery.getProperties();
+
         byte[] body = delivery.getBody();
+        System.out.println("Received message: " + body);
 //        Envelope envelope = delivery.getEnvelope();
         messages.add(body);
     }

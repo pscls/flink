@@ -6,19 +6,22 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import org.junit.BeforeClass;
+
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQContainerClient;
+
 import org.junit.ClassRule;
 import org.junit.Test;
+import static org.junit.Assert.*;
 import org.rnorth.ducttape.unreliables.Unreliables;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.sql.Time;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -29,7 +32,6 @@ import static org.rnorth.visibleassertions.VisibleAssertions.assertTrue;
  */
 public class RabbitMQSourceTest {
 
-    private static final int REDIS_PORT = 6379;
     private static final String RABBIQMQ_TEST_EXCHANGE = "TestExchange";
     private static final String RABBITMQ_TEST_ROUTING_KEY = "TestRoutingKey";
     private static final String RABBITMQ_TEST_MESSAGE = "Hello world";
@@ -39,9 +41,19 @@ public class RabbitMQSourceTest {
      * RabbitMQ
      */
     @ClassRule
-    public static GenericContainer<?> rabbitMq = new GenericContainer<>(DockerImageName.parse("rabbitmq"))
+    public static RabbitMQContainer rabbitMq = new RabbitMQContainer(DockerImageName.parse("rabbitmq").withTag("3.7.25-management-alpine"))
             .withExposedPorts(RABBITMQ_PORT);
 
+    @Test
+    public void simpleContainerClientSendReceiveTest() throws IOException, TimeoutException, InterruptedException {
+        RabbitMQContainerClient client = new RabbitMQContainerClient(rabbitMq);
+        client.createQueue("Test");
+
+        client.sendMessages(new SimpleStringSchema(), "test message");
+        TimeUnit.SECONDS.sleep(2);
+        List<String> messages = client.readMessages(1, new SimpleStringSchema());
+        assertEquals(messages.size(), 1);
+    }
 
     @Test
     public void simpleRabbitMqTest() throws IOException, TimeoutException {
