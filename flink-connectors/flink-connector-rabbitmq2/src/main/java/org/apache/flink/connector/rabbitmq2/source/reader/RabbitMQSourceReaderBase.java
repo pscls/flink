@@ -20,6 +20,7 @@ import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -112,7 +113,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	@Override
 	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
-		return Collections.singletonList(split);
+		return split != null ? Collections.singletonList(split) : new ArrayList<>();
 	}
 
 	@Override
