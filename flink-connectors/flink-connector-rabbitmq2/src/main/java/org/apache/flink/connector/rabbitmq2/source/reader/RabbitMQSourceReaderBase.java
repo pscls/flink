@@ -20,6 +20,9 @@ import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -59,7 +62,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 			rmqConnection = setupConnection();
 			rmqChannel = setupChannel(rmqConnection);
 			LOG.info("RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
-		} catch (IOException | TimeoutException e) {
+		} catch (Exception e) {
 			LOG.error(e.getMessage());
 		}
 	}
@@ -74,11 +77,12 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	protected void handleMessagePolled(Message<T> message) {}
 
-	protected Connection setupConnection() throws IOException, TimeoutException{
-		final ConnectionFactory connectionFactory = new ConnectionFactory();
-		connectionFactory.setHost(getSplit().getConnectionConfig().getHost());
+    protected ConnectionFactory setupConnectionFactory() throws Exception {
+        return split.getConnectionConfig().getConnectionFactory();
+    }
 
-		return connectionFactory.newConnection();
+	protected Connection setupConnection() throws Exception {
+        return setupConnectionFactory().newConnection();
 	}
 
 	protected Channel setupChannel(Connection rmqConnection) throws IOException {
@@ -104,7 +108,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 			return InputStatus.NOTHING_AVAILABLE;
 		}
 
-		output.collect(message.getMessage()); //TODO: maybe we want to emit a timestamp as well?
+		output.collect(message.getMessage());
 		handleMessagePolled(message);
 
 		return collector.hasUnpolledMessages() ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
@@ -128,18 +132,13 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	@Override
-	public void notifyNoMoreSplits() {
-	}
+	public void notifyNoMoreSplits() {}
 
 	@Override
-	public void handleSourceEvents(SourceEvent sourceEvent) {
-
-	}
+	public void handleSourceEvents(SourceEvent sourceEvent) {}
 
 	@Override
-	public void notifyCheckpointComplete(long checkpointId) {
-
-	}
+	public void notifyCheckpointComplete(long checkpointId) {}
 
 	protected void acknowledgeMessageIds(List<Long> sessionIds) {
 		try {
@@ -156,9 +155,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	@Override
-	public void notifyCheckpointAborted(long checkpointId) {
-
-	}
+	public void notifyCheckpointAborted(long checkpointId) {}
 
 	@Override
 	public void close() throws Exception {

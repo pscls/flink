@@ -9,13 +9,12 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
-import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumState;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumStateSerializer;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtLeastOnce;
-import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtLeastOnceAfterCheckpoint;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtMostOnce;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderExactlyOnce;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
@@ -43,10 +42,6 @@ public class RabbitMQSource<OUT> implements Source<OUT, RabbitMQPartitionSplit, 
 		System.out.println("Create SOURCE");
 	}
 
-	public RabbitMQSource (RMQConnectionConfig connectionConfig, String queueName, DeserializationSchema<OUT> deserializationSchema) {
-		this(connectionConfig, queueName, deserializationSchema, ConsistencyMode.AT_LEAST_ONCE);
-	}
-
 	@Override
 	public Boundedness getBoundedness() {
 		return Boundedness.CONTINUOUS_UNBOUNDED;
@@ -60,8 +55,6 @@ public class RabbitMQSource<OUT> implements Source<OUT, RabbitMQPartitionSplit, 
 				return new RabbitMQSourceReaderAtMostOnce<>(sourceReaderContext, deliveryDeserializer);
 			case AT_LEAST_ONCE:
 				return new RabbitMQSourceReaderAtLeastOnce<>(sourceReaderContext, deliveryDeserializer);
-			case AT_LEAST_ONCE_AFTER_CHECKPOINTING:
-				return new RabbitMQSourceReaderAtLeastOnceAfterCheckpoint<>(sourceReaderContext, deliveryDeserializer);
 			case EXACTLY_ONCE:
 				return new RabbitMQSourceReaderExactlyOnce<>(sourceReaderContext, deliveryDeserializer);
 			default:
