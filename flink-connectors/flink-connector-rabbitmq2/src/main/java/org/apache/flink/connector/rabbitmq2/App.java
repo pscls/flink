@@ -3,15 +3,11 @@ package org.apache.flink.connector.rabbitmq2;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.rabbitmq2.source.common.ConsistencyMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.connectors.rabbitmq.RMQSink;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.configuration.Configuration;
-
-import org.apache.log4j.PropertyConfigurator;
 
 public class App {
 	public static void main(String[] args) throws Exception {
@@ -24,7 +20,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-//		env.enableCheckpointing(50);
+//		env.enableCheckpointing(2000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -33,7 +29,7 @@ public class App {
 			.setUserName("guest")
 			.setPassword("guest")
 			.setPort(5672)
-			.setPrefetchCount(1000)
+//			.setPrefetchCount(1000)
     		.build();
 
 //		final DataStream<String> stream = env
@@ -59,7 +55,7 @@ public class App {
 			connectionConfig,
 			"pub",
 			new SimpleStringSchema(),
-			ConsistencyMode.AT_LEAST_ONCE
+			ConsistencyMode.EXACTLY_ONCE
 		);
 
 		final DataStream<String> stream = env
