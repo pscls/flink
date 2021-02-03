@@ -1,23 +1,33 @@
-package org.apache.flink.connector.rabbitmq2.sink;
+package org.apache.flink.connector.rabbitmq2.sink.writer;
+
+import akka.stream.javadsl.Sink;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
+import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
+import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+
+import org.apache.flink.util.Preconditions;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, RabbitMQSinkCommittable, RabbitMQSinkState> {
+public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
     protected final RMQConnectionConfig connectionConfig;
@@ -25,21 +35,49 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, RabbitM
     protected Connection rmqConnection;
     protected Channel rmqChannel;
     protected final SerializationSchema<T> serializationSchema;
+    protected final int maxRetry;
+
+    @Nullable private final RabbitMQSinkPublishOptions<T> publishOptions;
+
+    @Nullable private final SerializableReturnListener returnListener;
 
 
-    public RabbitMQSinkWriterBase(RMQConnectionConfig connectionConfig, String queueName, SerializationSchema<T> serializationSchema) {
+    public RabbitMQSinkWriterBase(RMQConnectionConfig connectionConfig, String queueName, SerializationSchema<T> serializationSchema, RabbitMQSinkPublishOptions<T> publishOptions, int maxRetry, SerializableReturnListener returnListener) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
-
+        this.publishOptions = publishOptions;
+        this.maxRetry = maxRetry;
+        this.returnListener = returnListener;
         setupRabbitMQ();
     }
 
-
-    protected boolean send(byte[] msg) {
-//        if (msg == null) return false;
+    protected boolean send(SinkMessage<T> message) {
         try {
-            rmqChannel.basicPublish("", queueName, null, msg);
+            message.addRetries();
+            byte[] value = message.getBytes(serializationSchema);
+            if (publishOptions == null) {
+                rmqChannel.basicPublish("", queueName, null, value);
+            } else {
+                T msg = message.getMessage(publishOptions.getDeserializationSchema());
+                boolean mandatory = publishOptions.computeMandatory(msg);
+                boolean immediate = publishOptions.computeImmediate(msg);
+
+                Preconditions.checkState(
+                        !(returnListener == null && (mandatory || immediate)),
+                        "Setting mandatory and/or immediate flags to true requires a ReturnListener.");
+
+                String rk = publishOptions.computeRoutingKey(msg);
+                String exchange = publishOptions.computeExchange(msg);
+
+                rmqChannel.basicPublish(
+                        exchange,
+                        rk,
+                        mandatory,
+                        immediate,
+                        publishOptions.computeProperties(msg),
+                        value);
+            }
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -49,8 +87,7 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, RabbitM
 
     @Override
     public void write(T element, Context context) throws IOException {
-        byte[] msg = serializationSchema.serialize(element);
-        send(msg);
+        send(new SinkMessage<>(element));
     }
 
     protected void setupRabbitMQ () {
@@ -76,13 +113,13 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, RabbitM
     }
 
     @Override
-    public List<RabbitMQSinkCommittable> prepareCommit(boolean flush) throws IOException {
+    public List<Void> prepareCommit(boolean flush) throws IOException {
         System.out.println("Prepare Commit");
-        return Collections.singletonList(new RabbitMQSinkCommittable());
+        return new ArrayList<>();
     }
 
     @Override
-    public List<RabbitMQSinkState> snapshotState() throws IOException {
+    public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
         System.out.println("Base Checkpointing!!!!");
         return new ArrayList<>();
     }

@@ -8,7 +8,10 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQContainerClient;
+
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -88,3 +91,4 @@ public class RabbitMQSourceTest {
         }));
     }
 }
+
