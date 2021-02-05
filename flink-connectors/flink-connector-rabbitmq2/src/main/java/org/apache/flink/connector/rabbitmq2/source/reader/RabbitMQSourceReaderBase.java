@@ -128,10 +128,19 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	@Override
-	public void notifyNoMoreSplits() {}
+	public void notifyNoMoreSplits() {
+        System.out.println("No more splits");
+        try {
+            close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 	@Override
-	public void handleSourceEvents(SourceEvent sourceEvent) {}
+	public void handleSourceEvents(SourceEvent sourceEvent) {
+        System.out.println("Source Event");
+    }
 
 	@Override
 	public void notifyCheckpointComplete(long checkpointId) {}
@@ -151,10 +160,13 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	@Override
-	public void notifyCheckpointAborted(long checkpointId) {}
+	public void notifyCheckpointAborted(long checkpointId) {
+	    System.out.println("Checkpoint Aborted");
+    }
 
 	@Override
 	public void close() throws Exception {
+	    System.out.println("CLOSE READER");
 		if (getSplit() == null) {
 			return;
 		}

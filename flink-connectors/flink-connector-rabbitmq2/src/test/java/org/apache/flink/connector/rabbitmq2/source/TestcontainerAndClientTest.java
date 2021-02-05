@@ -30,7 +30,7 @@ import static org.rnorth.visibleassertions.VisibleAssertions.assertTrue;
 /**
  * Tests for GenericContainerRules
  */
-public class RabbitMQSourceTest {
+public class TestcontainerAndClientTest {
 
     private static final String RABBIQMQ_TEST_EXCHANGE = "TestExchange";
     private static final String RABBITMQ_TEST_ROUTING_KEY = "TestRoutingKey";
@@ -51,7 +51,7 @@ public class RabbitMQSourceTest {
 
         client.sendMessages(new SimpleStringSchema(), "test message");
         TimeUnit.SECONDS.sleep(2);
-        List<String> messages = client.readMessages(1, new SimpleStringSchema());
+        List<String> messages = client.readMessages(new SimpleStringSchema());
         assertEquals(messages.size(), 1);
     }
 
