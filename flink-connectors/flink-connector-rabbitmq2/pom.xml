@@ -39,7 +39,7 @@
 			<version>5.9.0</version>
 		</dependency>
 
-		<!--	ONLY FOR TESTING THIS SHIT -->
+		<!--	ONLY FOR TESTING -->
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
