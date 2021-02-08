@@ -12,7 +12,6 @@ import org.apache.flink.connector.base.source.reader.synchronization.FutureCompl
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.core.io.InputStatus;
-import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -20,13 +19,10 @@ import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Delivery;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,7 +112,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	@Override
 	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
-		return Collections.singletonList(split);
+		return split != null ? Collections.singletonList(split) : new ArrayList<>();
 	}
 
 	@Override
@@ -132,10 +128,19 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	@Override
-	public void notifyNoMoreSplits() {}
+	public void notifyNoMoreSplits() {
+        System.out.println("No more splits");
+        try {
+            close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 	@Override
-	public void handleSourceEvents(SourceEvent sourceEvent) {}
+	public void handleSourceEvents(SourceEvent sourceEvent) {
+        System.out.println("Source Event");
+    }
 
 	@Override
 	public void notifyCheckpointComplete(long checkpointId) {}
@@ -155,10 +160,13 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	}
 
 	@Override
-	public void notifyCheckpointAborted(long checkpointId) {}
+	public void notifyCheckpointAborted(long checkpointId) {
+	    System.out.println("Checkpoint Aborted");
+    }
 
 	@Override
 	public void close() throws Exception {
+	    System.out.println("CLOSE READER");
 		if (getSplit() == null) {
 			return;
 		}

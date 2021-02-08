@@ -54,7 +54,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 	protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) throws IOException {
 		AMQP.BasicProperties properties = delivery.getProperties();
 		String correlationId = properties.getCorrelationId();
-		System.out.println("Correlation Id: " + correlationId);
+//		System.out.println("Correlation Id: " + correlationId);
 		Preconditions.checkNotNull(correlationId, "RabbitMQ source was instantiated " +
 			"with consistencyMode set EXACTLY_ONCE yet we couldn't extract the correlation id from it !");
 
@@ -73,6 +73,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
 	@Override
 	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
+	    System.out.println("Create Snapshot");
 		Tuple2<Long, List<Message<T>>> tuple = new Tuple2<>(checkpointId,
 			polledAndUnacknowledgedMessagesSinceLastCheckpoint);
 		polledAndUnacknowledgedMessagesPerCheckpoint.add(tuple);
@@ -115,6 +116,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 	private void acknowledgeMessages(List<Message<T>> messages) {
 		try {
 			List<Long> deliveryTags = messages.stream().map(Message::getDeliveryTag).collect(Collectors.toList());
+            System.out.println("Try ack " + deliveryTags.size());
 			acknowledgeMessageIds(deliveryTags);
 			getRmqChannel().txCommit();
 			List<String> correlationIds = messages.stream().map(Message::getCorrelationId).collect(Collectors.toList());

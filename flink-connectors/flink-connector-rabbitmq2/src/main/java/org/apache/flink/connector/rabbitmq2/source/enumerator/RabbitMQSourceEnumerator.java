@@ -1,5 +1,6 @@
 package org.apache.flink.connector.rabbitmq2.source.enumerator;
 
+import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
@@ -10,7 +11,9 @@ import org.apache.flink.util.FlinkRuntimeException;
 
 import javax.annotation.Nullable;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class RabbitMQSourceEnumerator implements SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> {
 	private final SplitEnumeratorContext<RabbitMQPartitionSplit> context;
@@ -69,6 +72,7 @@ public class RabbitMQSourceEnumerator implements SplitEnumerator<RabbitMQPartiti
 
 	@Override
 	public void close() {
+	    System.out.println("Close Enumerator");
 	}
 
 	private void assignSplitToReader(int readerId, RabbitMQPartitionSplit split) {

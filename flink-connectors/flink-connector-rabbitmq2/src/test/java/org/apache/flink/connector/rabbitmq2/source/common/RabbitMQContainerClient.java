@@ -31,11 +31,17 @@ public class RabbitMQContainerClient {
     private Channel channel;
     private final Queue<byte[]> messages;
     private String queueName;
+    private final boolean withConsumer;
 
-    public RabbitMQContainerClient(RabbitMQContainer container) throws IOException, TimeoutException {
+    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer) throws IOException, TimeoutException {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
         this.container = container;
         this.messages = new LinkedList<>();
+        this.withConsumer = withConsumer;
+    }
+
+    public RabbitMQContainerClient(RabbitMQContainer container) throws IOException, TimeoutException {
+      this(container, true);
     }
 
     public void createQueue(String queueName) throws IOException, TimeoutException {
@@ -43,8 +49,11 @@ public class RabbitMQContainerClient {
         Connection connection = getRabbitMQConnection();
         this.channel = connection.createChannel();
         channel.queueDeclare(queueName, true, false, false, null);
-        final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
-        channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {});
+        if (withConsumer) {
+            final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
+            channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
+            });
+        }
     }
 
     public <T> void sendMessages(
@@ -57,11 +66,10 @@ public class RabbitMQContainerClient {
     }
 
     public <T> List<T> readMessages(
-            int expectedNumMessages,
             DeserializationSchema<T> valueDeserializer)
             throws IOException {
         List<T> deserializedMessages = new ArrayList<>();
-        for (int i = 0; i < Math.min(expectedNumMessages, messages.size()); i++) {
+        for (int i = 0; i < messages.size(); i++) {
             T message = valueDeserializer.deserialize(messages.poll());
             deserializedMessages.add(message);
         }
