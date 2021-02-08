@@ -4,8 +4,6 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
-import jdk.nashorn.internal.ir.Block;
-
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
