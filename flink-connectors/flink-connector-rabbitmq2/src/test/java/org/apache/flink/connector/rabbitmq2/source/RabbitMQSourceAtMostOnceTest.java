@@ -40,7 +40,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AtMostOnceReader extends RabbitMQBaseTest {
+public class RabbitMQSourceAtMostOnceTest extends RabbitMQBaseTest {
 
     @Override
     public ConsistencyMode getConsistencyMode() {
