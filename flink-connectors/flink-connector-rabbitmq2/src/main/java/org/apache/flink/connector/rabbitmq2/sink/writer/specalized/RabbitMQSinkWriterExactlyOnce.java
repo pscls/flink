@@ -49,12 +49,12 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     @Override
-    public void write(T element, Context context) throws IOException {
-        messages.add(new SinkMessage<>(element));
+    public void write(T element, Context context) {
+        messages.add(new SinkMessage<>(element, serializationSchema.serialize(element)));
     }
 
     @Override
-    public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
+    public List<RabbitMQSinkWriterState<T>> snapshotState() {
 //        System.out.println("Store " + outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
         commitMessages();
         return Collections.singletonList(new RabbitMQSinkWriterState<T>(messages));

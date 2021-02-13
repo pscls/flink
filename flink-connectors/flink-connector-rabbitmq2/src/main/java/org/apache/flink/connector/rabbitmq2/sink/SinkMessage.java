@@ -13,11 +13,6 @@ public class SinkMessage<T> {
     private byte[] bytes;
     private int retries;
 
-    public SinkMessage(T message) {
-        this.message = message;
-        this.retries = 0;
-    }
-
     public SinkMessage(T message, byte[] bytes) {
         this(message, bytes, 0);
     }
