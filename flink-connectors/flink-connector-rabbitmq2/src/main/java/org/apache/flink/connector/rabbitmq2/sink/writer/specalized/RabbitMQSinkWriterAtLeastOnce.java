@@ -58,6 +58,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         Set<Long> messagesToResend = new HashSet<>(temp);
         messagesToResend.retainAll(lastSeenMessageIds);
         for (Long id : messagesToResend) {
+
             // remove the old message from the map, since the message was added a second time
             // under a new id or is put into the list of messages to resend
             send(outstandingConfirms.remove(id));
