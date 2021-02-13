@@ -53,6 +53,9 @@ public class RabbitMQSourceEnumerator implements SplitEnumerator<RabbitMQPartiti
 
 	@Override
 	public void addSplitsBack(List<RabbitMQPartitionSplit> list, int i) {
+	    if (list.size() == 0) {
+	        return;
+        }
 		assert list.size() == 1;
 		split = list.get(0);
 	}

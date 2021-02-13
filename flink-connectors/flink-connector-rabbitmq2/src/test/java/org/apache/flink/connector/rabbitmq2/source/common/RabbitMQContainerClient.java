@@ -65,6 +65,16 @@ public class RabbitMQContainerClient {
         }
     }
 
+    public <T> void sendMessages(
+            SerializationSchema<T> valueSerializer,
+            T message,
+            String correlationId) throws IOException {
+        AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
+        builder.correlationId(correlationId);
+        AMQP.BasicProperties properties = builder.build();
+        channel.basicPublish("", queueName, properties, valueSerializer.serialize(message));
+    }
+
     public <T> List<T> readMessages(
             DeserializationSchema<T> valueDeserializer)
             throws IOException {

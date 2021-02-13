@@ -32,7 +32,7 @@ public class ReaderNonClosingTest extends RabbitMQBaseTest {
     @Test
     public void simpleAtMostOnceTest() throws Exception {
 
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
 
         DataStream<String> stream = getSinkOn(env);
