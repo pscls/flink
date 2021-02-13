@@ -27,6 +27,10 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> {
     protected final ConcurrentNavigableMap<Long, SinkMessage<T>> outstandingConfirms;
     private Set<Long> lastSeenMessageIds;
+    private long lastResendTimestampMilliseconds;
+    private final long resendIntervalMilliseconds;
+
+    public static final long defaultMinimalResendInterval = 5000L;
 
     public RabbitMQSinkWriterAtLeastOnce(
             RMQConnectionConfig connectionConfig,
@@ -41,6 +45,10 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         super(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
+        this.lastResendTimestampMilliseconds = System.currentTimeMillis();
+        this.resendIntervalMilliseconds = minimalResendIntervalMilliseconds != null
+                ? minimalResendIntervalMilliseconds
+                : defaultMinimalResendInterval;
         initWithState(states);
     }
 
@@ -118,9 +126,12 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
         // TODO: think about minimizing the resent loop by using the process time and check when the last
         // resend was executed (time difference)
-        System.out.println("Outstanding confirms before resend: " + outstandingConfirms.values().stream().toArray().length);
-        resendMessages();
-        System.out.println("Store " + outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
+        System.out.println("Outstanding confirms before resend: " + outstandingConfirms.size());
+        if (System.currentTimeMillis() - lastResendTimestampMilliseconds > resendIntervalMilliseconds) {
+            resendMessages();
+            lastResendTimestampMilliseconds = System.currentTimeMillis();
+        }
+        System.out.println("Store " + outstandingConfirms.size() + " message into checkpoint.");
         return Collections.singletonList(new RabbitMQSinkWriterState<>(new ArrayList<>(outstandingConfirms.values())));
     }
 }

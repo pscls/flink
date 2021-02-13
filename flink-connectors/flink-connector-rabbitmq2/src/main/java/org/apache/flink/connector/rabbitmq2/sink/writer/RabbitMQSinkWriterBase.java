@@ -51,6 +51,7 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
         setupRabbitMQ();
     }
 
+    // Only used by at-least-once and exactly-once
     protected boolean send(SinkMessage<T> message) {
         message.addRetries();
         if (message.getRetries() >= maxRetry) {
@@ -64,12 +65,9 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
 
     protected boolean send(T msg, byte[] value) {
         try {
-            message.addRetries();
-            byte[] value = message.getBytes(serializationSchema);
             if (publishOptions == null) {
                 rmqChannel.basicPublish("", queueName, null, value);
             } else {
-                T msg = message.getMessage(publishOptions.getDeserializationSchema());
                 boolean mandatory = publishOptions.computeMandatory(msg);
                 boolean immediate = publishOptions.computeImmediate(msg);
 

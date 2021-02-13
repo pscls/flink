@@ -4,6 +4,8 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
+import javax.annotation.Nullable;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -49,11 +51,13 @@ public class RabbitMQSinkWriterStateSerializer<T> implements SimpleVersionedSeri
         final int numberOfMessages = in.readInt();
         List<SinkMessage<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
-            messages.add(new SinkMessage<T>(
-                in.readNBytes(in.readInt()),
-                in.readInt(),
-                deserializationSchema
-            ));
+            byte[] bytes = in.readNBytes(in.readInt());
+            int retries = in.readInt();
+            if (deserializationSchema != null) {
+                messages.add(new SinkMessage<>(deserializationSchema.deserialize(bytes), bytes, retries));
+            } else {
+                messages.add(new SinkMessage<>(bytes, retries));
+            }
         }
         return messages;
     }

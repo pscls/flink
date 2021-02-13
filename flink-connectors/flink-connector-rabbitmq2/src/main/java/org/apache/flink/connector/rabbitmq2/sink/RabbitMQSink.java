@@ -17,6 +17,8 @@ import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.Preconditions;
 
+import javax.annotation.Nullable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -29,19 +31,34 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final ConsistencyMode consistencyMode;
     private final int maxRetry;
     private final SerializableReturnListener returnListener;
+    private final Long minimalResendIntervalMilliseconds;
 
     public static final int defaultMaxRetry = 5;
     public static final ConsistencyMode defaultConsistencyMode = ConsistencyMode.AT_MOST_ONCE;
 
-    public RabbitMQSink(RMQConnectionConfig connectionConfig, String queueName, SerializationSchema<T> serializationSchema, ConsistencyMode consistencyMode, RabbitMQSinkPublishOptions<T> publishOptions, int maxRetry, SerializableReturnListener returnListener) {
+    public RabbitMQSink(
+            RMQConnectionConfig connectionConfig,
+            String queueName,
+            SerializationSchema<T> serializationSchema,
+            ConsistencyMode consistencyMode,
+            SerializableReturnListener returnListener,
+            @Nullable RabbitMQSinkPublishOptions<T> publishOptions,
+            @Nullable Integer maxRetry,
+            @Nullable Long minimalResendIntervalMilliseconds) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
+        this.consistencyMode = consistencyMode;
+        this.returnListener = returnListener;
         this.publishOptions = publishOptions;
         this.maxRetry = maxRetry != null ? maxRetry : defaultMaxRetry;
         this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
 
-        Preconditions.checkState(verifyPublishOptions(), "");
+        Preconditions.checkState(
+                verifyPublishOptions(),
+                "If consistency mode is stronger than at-most-once and publish options are defined"
+                        + "then publish options need a deserialization schema"
+        );
     }
 
     private boolean verifyPublishOptions() {
@@ -87,7 +104,15 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         states
                 );
             case EXACTLY_ONCE:
-                return new RabbitMQSinkWriterExactlyOnce<>(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener, states);
+                return new RabbitMQSinkWriterExactlyOnce<>(
+                        connectionConfig,
+                        queueName,
+                        serializationSchema,
+                        publishOptions,
+                        maxRetry,
+                        returnListener,
+                        states
+                );
         }
         return null;
     }
