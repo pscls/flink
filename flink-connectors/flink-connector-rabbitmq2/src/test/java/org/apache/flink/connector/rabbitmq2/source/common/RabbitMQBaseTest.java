@@ -91,4 +91,33 @@ public abstract class RabbitMQBaseTest {
         }
         return messages;
     }
+
+    public List<String> getSequentialMessages(int numberOfMessages) {
+        List<String> messages = new ArrayList<>();
+        for (int i = 0; i < numberOfMessages; i++) {
+            messages.add("Message " + i);
+        }
+        return messages;
+    }
+
+    public List<String> getCollectedSinkMessages() {
+        List<String> messages = new ArrayList<>(CollectSink.values);
+        CollectSink.values.clear();
+        return messages;
+    }
+
+    public void addCollectorSink(DataStream<String> stream) {
+        stream.addSink(new CollectSink());
+    }
+
+    private static class CollectSink implements SinkFunction<String> {
+
+        // must be static
+        public static final List<String> values = Collections.synchronizedList(new ArrayList<>());
+
+        @Override
+        public void invoke(String value) throws Exception {
+            values.add(value);
+        }
+    }
 }
