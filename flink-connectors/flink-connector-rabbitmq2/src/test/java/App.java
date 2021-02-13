@@ -10,17 +10,15 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.configuration.Configuration;
 
-import org.apache.log4j.PropertyConfigurator;
-
 public class App {
 	public static void main(String[] args) throws Exception {
 		System.out.println("Starting");
 
-    	final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		PropertyConfigurator.configure("log4j.properties");
+//    	final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//		PropertyConfigurator.configure("log4j.properties");
 
-//		final Configuration conf = new Configuration();
-//    	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+		final Configuration conf = new Configuration();
+    	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
 //		env.enableCheckpointing(2000);
@@ -54,13 +52,13 @@ public class App {
 //				AcknowledgeMode.AUTO
 //			);
 
-        ConsistencyMode consistencyMode = ConsistencyMode.AT_LEAST_ONCE;
-		RabbitMQSource<String> rabbitMQSource = new RabbitMQSource<>(
-			connectionConfig,
-			"pub",
-			new SimpleStringSchema(),
-                consistencyMode
-		);
+		RabbitMQSource<String> rabbitMQSource = RabbitMQSource
+            .<String>builder()
+            .setConnectionConfig(connectionConfig)
+            .setQueueName("pub")
+            .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
+            .setDeliveryDeserializer(new SimpleStringSchema())
+            .build();
 
 		final DataStream<String> stream = env
 			.fromSource(rabbitMQSource,
@@ -80,7 +78,7 @@ public class App {
                 .setConnectionConfig(connectionConfig)
                 .setQueueName("sub")
                 .setSerializationSchema(new SimpleStringSchema())
-                .setConsistencyMode(consistencyMode)
+                .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
                 .build();
 		mappedMessages.sinkTo(sink);  // serialization schema to turn Java objects to messages
 
