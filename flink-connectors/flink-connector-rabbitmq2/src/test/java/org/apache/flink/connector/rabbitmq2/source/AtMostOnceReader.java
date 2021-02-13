@@ -1,7 +1,10 @@
 package org.apache.flink.connector.rabbitmq2.source;
 
+import org.apache.commons.collections.CollectionUtils;
+
 import org.apache.flink.api.common.JobExecutionResult;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
@@ -10,8 +13,9 @@ import org.apache.flink.core.execution.JobClient;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamUtils;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-
 import org.apache.flink.streaming.api.functions.ProcessFunction;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.apache.flink.streaming.experimental.CollectSink;
 import org.apache.flink.util.CloseableIterator;
 
 import org.apache.flink.util.CollectionUtil;
@@ -43,51 +47,41 @@ public class AtMostOnceReader extends RabbitMQBaseTest {
         return ConsistencyMode.AT_MOST_ONCE;
     }
 
-    public static class MessageCollector extends ProcessFunction<String, String> {
-
-        public final List<String> receivedMessages = new ArrayList<>();
-
-        public void print() {
-            System.out.println(receivedMessages);
-        }
-
-        private void checkMessage(String message) {
-            receivedMessages.add(message);
-//            print();
-        }
-
-        @Override
-        public void processElement(
-                String value,
-                Context ctx,
-                Collector<String> out) throws Exception {
-            checkMessage(value);
-            out.collect(value);
-        }
-    }
-
     @Test
     public void simpleAtMostOnceTest() throws Exception {
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(new Configuration());
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         DataStream<String> stream = getSinkOn(env);
-
-        List<String> messages = getRandomMessages(5);
-
-        List<String> receivedMessages = new ArrayList<>();
-        MessageCollector c = new MessageCollector();
-        stream.process(c);
-//        stream.map((MapFunction<String, String>) message -> {
-//            System.out.println(message);
-//            receivedMessages.add(message);
-//            return message;
-//        }).setParallelism(1);
-
+        addCollectorSink(stream);
         env.executeAsync("RabbitMQ");
 
+        List<String> messages = getRandomMessages(5);
         sendToRabbit(messages);
-        c.receivedMessages
+
+        assertEquals(CollectionUtils.getCardinalityMap(getCollectedSinkMessages()), CollectionUtils.getCardinalityMap(messages));
     }
 
+//    @Test
+//    public void simpleAtMostOnceTestWithException() throws Exception {
+//        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
+//
+//        DataStream<String> stream = getSinkOn(env);
+//
+//        List<String> messages = getSequentialMessages(5);
+//        System.out.println(messages);
+//        DataStream<String> outstream = stream.map((MapFunction<String, String>) message -> {
+//            System.out.println(message);
+//            if (message.equals("Message 3")) throw new Exception();
+//            return message;
+//        }).setParallelism(1);
+//        outstream.addSink(new CollectSink());
+//
+//        env.executeAsync("RabbitMQ");
+//
+//        sendToRabbit(messages);
+//        System.out.println(CollectSink.values);
+//        assertFalse(CollectSink.values.contains("Message 3"));
+//    }
 
 }

@@ -4,9 +4,13 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
+import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+
+import org.apache.flink.test.util.MiniClusterWithClientResource;
 
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -14,6 +18,7 @@ import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.UUID;
 import java.io.IOException;
 import java.util.List;
@@ -72,7 +77,7 @@ public abstract class RabbitMQBaseTest {
             client.sendMessages(new SimpleStringSchema(), message);
         }
 
-        TimeUnit.SECONDS.sleep(3);
+        TimeUnit.SECONDS.sleep(5);
     }
 
     public void sendToRabbit(int numberOfMessage) throws IOException, InterruptedException {
