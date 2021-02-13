@@ -1,5 +1,7 @@
 package org.apache.flink.connector.rabbitmq2.sink.state;
 
+import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import java.io.ByteArrayInputStream;
@@ -7,11 +9,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RabbitMQSinkWriterStateSerializer<T> implements SimpleVersionedSerializer<RabbitMQSinkWriterState<T>> {
-    // TODO: Figure out a way to serialize
+    private final DeserializationSchema<T> deserializationSchema;
+
+    public RabbitMQSinkWriterStateSerializer(@Nullable DeserializationSchema<T> deserializationSchema) {
+        this.deserializationSchema = deserializationSchema;
+    }
+    public RabbitMQSinkWriterStateSerializer() {
+        this(null);
+    }
 
     @Override
     public int getVersion() {
@@ -20,23 +29,39 @@ public class RabbitMQSinkWriterStateSerializer<T> implements SimpleVersionedSeri
 
     @Override
     public byte[] serialize(RabbitMQSinkWriterState<T> rabbitMQSinkWriterState) throws IOException {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(baos);
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(out)) {
-            objectOutputStream.writeObject(rabbitMQSinkWriterState);
-            out.flush();
-            return baos.toByteArray();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(baos);
+        writeSinkMessages(out, rabbitMQSinkWriterState.getOutstandingMessages());
+        out.flush();
+        return baos.toByteArray();
+    }
+
+    private void writeSinkMessages(DataOutputStream out, List<SinkMessage<T>> messages) throws IOException {
+        out.writeInt(messages.size());
+        for (SinkMessage<T> message : messages) {
+            out.writeInt(message.getBytes().length);
+            out.write(message.getBytes());
+            out.writeInt(message.getRetries());
         }
-}
+    }
+
+    private List<SinkMessage<T>> readSinkMessages(DataInputStream in) throws IOException {
+        final int numberOfMessages = in.readInt();
+        List<SinkMessage<T>> messages = new ArrayList<>();
+        for (int i = 0; i < numberOfMessages; i++) {
+            messages.add(new SinkMessage<T>(
+                in.readNBytes(in.readInt()),
+                in.readInt(),
+                deserializationSchema
+            ));
+        }
+        return messages;
+    }
 
     @Override
     public RabbitMQSinkWriterState<T> deserialize(int i, byte[] bytes) throws IOException {
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-             DataInputStream in = new DataInputStream(bais);
-             ObjectInputStream objectInputStream = new ObjectInputStream(in)) {
-            return (RabbitMQSinkWriterState<T>) objectInputStream.readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IOException(e.getException());
-        }
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        DataInputStream in = new DataInputStream(bais);
+        return new RabbitMQSinkWriterState<>(readSinkMessages(in));
     }
 }

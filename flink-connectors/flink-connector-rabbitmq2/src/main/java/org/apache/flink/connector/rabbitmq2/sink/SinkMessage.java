@@ -9,7 +9,7 @@ import java.util.Optional;
 
 
 public class SinkMessage<T> {
-    private transient T message;
+    private T message;
     private byte[] bytes;
     private int retries;
 
@@ -18,9 +18,20 @@ public class SinkMessage<T> {
         this.retries = 0;
     }
 
-    public SinkMessage(byte[] bytes) {
+    public SinkMessage(T message, byte[] bytes) {
+        this(message, bytes, 0);
+    }
+
+    public SinkMessage(T message, byte[] bytes, int retries) {
+        this.message = message;
         this.bytes = bytes;
-        this.retries = 0;
+        this.retries = retries;
+    }
+
+    public SinkMessage(byte[] bytes, int retries, DeserializationSchema<T> deserializationSchema) throws IOException {
+        this.bytes = bytes;
+        this.retries = retries;
+        this.message = deserializationSchema.deserialize(bytes);
     }
 
     public int getRetries() { return retries; }
@@ -30,17 +41,11 @@ public class SinkMessage<T> {
         return retries;
     }
 
-    public byte[] getBytes(SerializationSchema<T> serializationSchema) {
-        if (bytes == null) {
-            bytes = serializationSchema.serialize(message);
-        }
+    public byte[] getBytes() {
         return bytes;
     }
 
-    public T getMessage(Optional<DeserializationSchema<T>> deserializationSchema) throws IOException {
-        if (message == null && deserializationSchema.isPresent()) {
-            message = deserializationSchema.get().deserialize(bytes);
-        }
+    public T getMessage() {
         return message;
     }
 }

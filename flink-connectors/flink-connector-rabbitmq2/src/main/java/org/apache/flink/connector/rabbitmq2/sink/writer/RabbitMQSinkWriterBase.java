@@ -1,7 +1,5 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer;
 
-import akka.stream.javadsl.Sink;
-
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
@@ -15,6 +13,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
+import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 
 import org.slf4j.Logger;
@@ -53,6 +52,17 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
     }
 
     protected boolean send(SinkMessage<T> message) {
+        message.addRetries();
+        if (message.getRetries() >= maxRetry) {
+            throw new FlinkRuntimeException(
+                    "A message was not acknowledged or rejected " + message.getRetries()
+                    + " times by RabbitMQ."
+            );
+        }
+        return send(message.getMessage(), message.getBytes());
+    }
+
+    protected boolean send(T msg, byte[] value) {
         try {
             message.addRetries();
             byte[] value = message.getBytes(serializationSchema);
@@ -87,7 +97,7 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
 
     @Override
     public void write(T element, Context context) throws IOException {
-        send(new SinkMessage<>(element));
+        send(new SinkMessage<>(element, serializationSchema.serialize(element)));
     }
 
     protected void setupRabbitMQ () {

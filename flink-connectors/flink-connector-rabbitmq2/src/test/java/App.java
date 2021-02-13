@@ -21,7 +21,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-//		env.enableCheckpointing(2000);
+		env.enableCheckpointing(2000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()

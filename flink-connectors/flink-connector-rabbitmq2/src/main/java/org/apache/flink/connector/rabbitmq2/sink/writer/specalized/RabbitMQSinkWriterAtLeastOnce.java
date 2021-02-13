@@ -13,6 +13,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmCallback;
 import com.rabbitmq.client.Connection;
 
+import javax.annotation.Nullable;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +35,9 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             RabbitMQSinkPublishOptions<T> publishOptions,
             int maxRetry,
             SerializableReturnListener returnListener,
-            List<RabbitMQSinkWriterState<T>> states) {
+            Long minimalResendIntervalMilliseconds,
+            List<RabbitMQSinkWriterState<T>> states
+    ) {
         super(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();

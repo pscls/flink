@@ -12,8 +12,10 @@ public class RabbitMQSinkBuilder<T> {
     private SerializationSchema<T> serializationSchema;
     private ConsistencyMode consistencyMode;
     private RabbitMQSinkPublishOptions<T> publishOptions;
-    private int maxRetry;
+    private Integer maxRetry;
+    private Long minimalResendIntervalMilliseconds;
     private SerializableReturnListener returnListener;
+
 
     public RabbitMQSinkBuilder() {
         this.consistencyMode = RabbitMQSink.defaultConsistencyMode;
@@ -21,7 +23,16 @@ public class RabbitMQSinkBuilder<T> {
     }
 
     public RabbitMQSink<T> build() {
-        return new RabbitMQSink<>(connectionConfig, queueName, serializationSchema, consistencyMode, publishOptions, maxRetry, returnListener);
+        return new RabbitMQSink<>(
+                connectionConfig,
+                queueName,
+                serializationSchema,
+                consistencyMode,
+                returnListener,
+                publishOptions,
+                maxRetry,
+                minimalResendIntervalMilliseconds
+        );
     }
 
     public RabbitMQSinkBuilder<T> setConnectionConfig(RMQConnectionConfig connectionConfig) {
@@ -51,6 +62,11 @@ public class RabbitMQSinkBuilder<T> {
 
     public RabbitMQSinkBuilder<T> setMaxRetry(int maxRetry) {
         this.maxRetry = maxRetry;
+        return this;
+    }
+
+    public RabbitMQSinkBuilder<T> setMinimalResendInterval (Long minimalResendIntervalMilliseconds) {
+        this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
         return this;
     }
 

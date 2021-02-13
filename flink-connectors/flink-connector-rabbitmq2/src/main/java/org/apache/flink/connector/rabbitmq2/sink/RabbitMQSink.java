@@ -38,9 +38,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
         this.publishOptions = publishOptions;
-        this.consistencyMode = consistencyMode;
-        this.maxRetry = maxRetry;
-        this.returnListener = returnListener;
+        this.maxRetry = maxRetry != null ? maxRetry : defaultMaxRetry;
+        this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
 
         Preconditions.checkState(verifyPublishOptions(), "");
     }
@@ -68,9 +67,25 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
             List<RabbitMQSinkWriterState<T>> states) {
         switch (consistencyMode) {
             case AT_MOST_ONCE:
-                return new RabbitMQSinkWriterAtMostOnce<>(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener, states);
+                return new RabbitMQSinkWriterAtMostOnce<>(
+                        connectionConfig,
+                        queueName,
+                        serializationSchema,
+                        publishOptions,
+                        returnListener,
+                        states
+                );
             case AT_LEAST_ONCE:
-                return new RabbitMQSinkWriterAtLeastOnce<>(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener, states);
+                return new RabbitMQSinkWriterAtLeastOnce<>(
+                        connectionConfig,
+                        queueName,
+                        serializationSchema,
+                        publishOptions,
+                        maxRetry,
+                        returnListener,
+                        minimalResendIntervalMilliseconds,
+                        states
+                );
             case EXACTLY_ONCE:
                 return new RabbitMQSinkWriterExactlyOnce<>(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener, states);
         }
@@ -101,6 +116,10 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     @Override
     public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>> getWriterStateSerializer() {
 //        System.out.println("Create Writer Serializer");
-        return Optional.of(new RabbitMQSinkWriterStateSerializer<>());
+        if (publishOptions != null && publishOptions.getDeserializationSchema().isPresent()) {
+            return Optional.of(new RabbitMQSinkWriterStateSerializer<>(publishOptions.getDeserializationSchema().get()));
+        } else {
+            return Optional.of(new RabbitMQSinkWriterStateSerializer<>());
+        }
     }
 }
