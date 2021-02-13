@@ -1,12 +1,20 @@
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.avro.shaded.org.apache.avro.Schema;
+import org.apache.flink.avro.shaded.org.apache.avro.SchemaBuilder;
+import org.apache.flink.avro.shaded.org.apache.avro.generic.GenericRecord;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.source.avro.User;
+import org.apache.flink.formats.avro.AvroDeserializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.avro.shaded.org.apache.avro.SchemaBuilder;
+import org.apache.flink.avro.shaded.org.apache.avro.specific.SpecificRecord;
 
 public class App {
 	public static void main(String[] args) throws Exception {
@@ -19,7 +27,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-		env.enableCheckpointing(2000);
+//		env.enableCheckpointing(2000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -50,26 +58,30 @@ public class App {
 //				AcknowledgeMode.AUTO
 //			);
 
-		RabbitMQSource<String> rabbitMQSource = RabbitMQSource
-            .<String>builder()
+        Schema schema = SchemaBuilder.record("User").namespace("example.avro")
+                .fields()
+                .requiredString("name")
+                .requiredInt("age")
+                .endRecord();
+
+        AvroDeserializationSchema<GenericRecord> avro = AvroDeserializationSchema.forGeneric(schema);
+
+		RabbitMQSource<GenericRecord> rabbitMQSource = RabbitMQSource
+            .<GenericRecord>builder()
             .setConnectionConfig(connectionConfig)
             .setQueueName("pub")
-            .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
-            .setDeliveryDeserializer(new SimpleStringSchema())
+            .setConsistencyMode(ConsistencyMode.AT_MOST_ONCE)
+            .setDeliveryDeserializer(avro)
             .build();
 
-		final DataStream<String> stream = env
+		final DataStream<GenericRecord> stream = env
 			.fromSource(rabbitMQSource,
 				WatermarkStrategy.noWatermarks(),
 				"RabbitMQSource")
 			.setParallelism(1);
 
 
-		DataStream<String> mappedMessages = stream
-			.map((MapFunction<String, String>) message -> {
-				System.out.println("Mapped" + message);
-				return "Mapped: " + message;
-			}).setParallelism(10);
+		stream.map(message -> System.currentTimeMillis()).writeAsText("benchmarks/avro").setParallelism(4);
 
 		// ====================== SINK ========================
 //		mappedMessages.addSink(new RMQSink<>(
