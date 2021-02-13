@@ -7,7 +7,7 @@ import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-public class RabbitMQPartitionSplit implements SourceSplit, Serializable {
+public class RabbitMQPartitionSplit implements SourceSplit {
 
 	private final RMQConnectionConfig connectionConfig;
 	private final String rmqQueueName;
@@ -46,20 +46,4 @@ public class RabbitMQPartitionSplit implements SourceSplit, Serializable {
 	public String splitId() {
 		return correlationIds.toString(); // TODO: find something better
 	}
-
-	@Override
-	public boolean equals(Object other) {
-		if (this == other)
-			return true;
-		if (other == null)
-			return false;
-		if (getClass() != other.getClass())
-			return false;
-		RabbitMQPartitionSplit otherSplit = (RabbitMQPartitionSplit) other;
-		return this.rmqQueueName.equals(otherSplit.getQueueName()) &&
-			this.correlationIds.equals(otherSplit.getCorrelationIds()) &&
-			this.connectionConfig.equals(otherSplit.getConnectionConfig());
-	}
-
-
 }
