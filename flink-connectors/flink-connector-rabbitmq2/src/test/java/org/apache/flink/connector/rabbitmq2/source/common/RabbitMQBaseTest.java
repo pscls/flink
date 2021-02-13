@@ -30,6 +30,14 @@ public abstract class RabbitMQBaseTest {
     protected static final int RABBITMQ_PORT = 5672;
     protected RabbitMQContainerClient client;
     protected String queueName;
+
+    @ClassRule
+    public static MiniClusterWithClientResource flinkCluster =
+            new MiniClusterWithClientResource(
+                    new MiniClusterResourceConfiguration.Builder()
+                            .setNumberSlotsPerTaskManager(1)
+                            .setNumberTaskManagers(1)
+                            .build());
     /**
      * RabbitMQ
      */
