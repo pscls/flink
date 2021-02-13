@@ -42,6 +42,10 @@ public class RabbitMQSource<OUT> implements Source<OUT, RabbitMQPartitionSplit, 
 		System.out.println("Create SOURCE");
 	}
 
+	public static <T> RabbitMQSourceBuilder<T> builder() {
+	    return new RabbitMQSourceBuilder<>();
+    }
+
 	@Override
 	public Boundedness getBoundedness() {
 		return Boundedness.CONTINUOUS_UNBOUNDED;

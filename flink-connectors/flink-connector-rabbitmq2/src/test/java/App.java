@@ -19,7 +19,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-//		env.enableCheckpointing(2000);
+		env.enableCheckpointing(2000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -50,12 +50,13 @@ public class App {
 //				AcknowledgeMode.AUTO
 //			);
 
-		RabbitMQSource<String> rabbitMQSource = new RabbitMQSource<>(
-			connectionConfig,
-			"pub",
-			new SimpleStringSchema(),
-			ConsistencyMode.EXACTLY_ONCE
-		);
+		RabbitMQSource<String> rabbitMQSource = RabbitMQSource
+            .<String>builder()
+            .setConnectionConfig(connectionConfig)
+            .setQueueName("pub")
+            .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
+            .setDeliveryDeserializer(new SimpleStringSchema())
+            .build();
 
 		final DataStream<String> stream = env
 			.fromSource(rabbitMQSource,
