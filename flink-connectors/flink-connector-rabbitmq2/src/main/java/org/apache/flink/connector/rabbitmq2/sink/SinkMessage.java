@@ -17,16 +17,15 @@ public class SinkMessage<T> {
         this(message, bytes, 0);
     }
 
-    public SinkMessage(T message, byte[] bytes, int retries) {
-        this.message = message;
+    public SinkMessage(byte[] bytes, int retries) {
         this.bytes = bytes;
         this.retries = retries;
     }
 
-    public SinkMessage(byte[] bytes, int retries, DeserializationSchema<T> deserializationSchema) throws IOException {
+    public SinkMessage(T message, byte[] bytes, int retries) {
+        this.message = message;
         this.bytes = bytes;
         this.retries = retries;
-        this.message = deserializationSchema.deserialize(bytes);
     }
 
     public int getRetries() { return retries; }
