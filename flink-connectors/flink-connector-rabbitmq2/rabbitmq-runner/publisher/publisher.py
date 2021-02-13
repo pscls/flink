@@ -3,6 +3,33 @@ import pika
 import time
 import uuid
 import random
+import io
+import avro.schema
+import avro.io
+
+def getAvroBytes():
+    test_schema = '''
+    {
+    "namespace": "example.avro",
+     "type": "record",
+     "name": "User",
+     "fields": [
+         {"name": "name", "type": "string"},
+         {"name": "age",  "type": "int"}
+     ]
+    }
+    '''
+
+    schema = avro.schema.parse(test_schema)
+    writer = avro.io.DatumWriter(schema)
+
+    bytes_writer = io.BytesIO()
+    encoder = avro.io.BinaryEncoder(bytes_writer)
+#     writer.write({"name": "Alyssa", "favorite_number": 256}, encoder)
+    writer.write({"name": "Ben", "age": 7}, encoder)
+
+    raw_bytes = bytes_writer.getvalue()
+    return raw_bytes
 
 def main():
     """Main entry point to the program."""
