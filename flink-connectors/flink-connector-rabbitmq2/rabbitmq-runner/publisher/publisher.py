@@ -44,10 +44,11 @@ def main():
 #     print(amqp_url)
 #     print(queue_name)
 #     print(delay)
-    n = 1000000
+    n = 200000
+    msg = getAvroBytes()
     while(message_id < n):
-#         if (message_id % 1 == 0):
-#             print(message_id)
+        if (message_id % 10000 == 0):
+            print(message_id)
         message_id += 1
         correlation_id = random.choice([str(uuid.uuid4()), str(uuid.uuid4())])
         properties = pika.BasicProperties(correlation_id=correlation_id)

@@ -55,12 +55,12 @@ public class App {
 //				AcknowledgeMode.AUTO
 //			);
 
-//        Schema schema = SchemaBuilder.record("User").namespace("example.avro")
-//                .fields()
-//                .requiredString("timestamps")
-//                .endRecord();
-//
-//        AvroDeserializationSchema<User> avro = AvroDeserializationSchema.forSpecific(User.class);
+        Schema schema = SchemaBuilder.record("User").namespace("example.avro")
+                .fields()
+                .requiredString("timestamps")
+                .endRecord();
+
+        AvroDeserializationSchema<GenericRecord> avro = AvroDeserializationSchema.forGeneric(schema);
 
         RabbitMQSource<String> rabbitMQSource = RabbitMQSource
             .<String>builder()
@@ -77,10 +77,10 @@ public class App {
 			.setParallelism(1);
 
         //throughput
-//		stream.map(message -> System.currentTimeMillis()).writeAsText("benchmarks/throughput").setParallelism(4);
+		stream.map(message -> System.currentTimeMillis()).writeAsText("benchmarks/throughputString").setParallelism(4);
 
 		//processing latency
-        stream.map(message -> message + "-" + System.currentTimeMillis()).writeAsText("benchmarks/processLatency").setParallelism(4);
+//        stream.map(message -> message + "-" + System.currentTimeMillis()).writeAsText("benchmarks/processLatency").setParallelism(4);
 
 
         // ====================== SINK ========================
