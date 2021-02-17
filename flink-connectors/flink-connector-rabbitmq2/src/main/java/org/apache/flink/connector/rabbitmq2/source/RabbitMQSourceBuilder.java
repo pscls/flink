@@ -1,6 +1,7 @@
 package org.apache.flink.connector.rabbitmq2.source;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 

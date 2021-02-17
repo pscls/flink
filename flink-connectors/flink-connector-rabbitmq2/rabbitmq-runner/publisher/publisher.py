@@ -7,27 +7,25 @@ import io
 import avro.schema
 import avro.io
 
+test_schema = '''
+{
+"namespace": "example.avro",
+ "type": "record",
+ "name": "User",
+ "fields": [
+     {"name": "timestamps", "type": "string"}
+ ]
+}
+'''
+
+schema = avro.schema.parse(test_schema)
+writer = avro.io.DatumWriter(schema)
+
+bytes_writer = io.BytesIO()
+encoder = avro.io.BinaryEncoder(bytes_writer)
+
 def getAvroBytes():
-    test_schema = '''
-    {
-    "namespace": "example.avro",
-     "type": "record",
-     "name": "User",
-     "fields": [
-         {"name": "name", "type": "string"},
-         {"name": "age",  "type": "int"}
-     ]
-    }
-    '''
-
-    schema = avro.schema.parse(test_schema)
-    writer = avro.io.DatumWriter(schema)
-
-    bytes_writer = io.BytesIO()
-    encoder = avro.io.BinaryEncoder(bytes_writer)
-#     writer.write({"name": "Alyssa", "favorite_number": 256}, encoder)
-    writer.write({"name": "Ben", "age": 7}, encoder)
-
+    writer.write({"timestamps": str(int(time.time() * 1000))}, encoder)
     raw_bytes = bytes_writer.getvalue()
     return raw_bytes
 
@@ -47,17 +45,16 @@ def main():
 #     print(queue_name)
 #     print(delay)
     n = 1000000
-    defaultMsg = getAvroBytes()
     while(message_id < n):
-        if (message_id % 10000 == 0):
-            print(message_id)
-        msg = 'Message %d' % (message_id,)
+#         if (message_id % 1 == 0):
+#             print(message_id)
         message_id += 1
-        correlation_id = random.choice(["uuid1", "uuid2"]) # str(uuid.uuid4())
+        correlation_id = random.choice([str(uuid.uuid4()), str(uuid.uuid4())])
         properties = pika.BasicProperties(correlation_id=correlation_id)
+        msg = str(int(time.time() * 1000))
         channel.basic_publish(exchange='',
                         routing_key="pub",
-                        body=defaultMsg,
+                        body=msg,
                         properties=properties)
 #         time.sleep(1)
 

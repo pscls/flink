@@ -3,7 +3,7 @@ package org.apache.flink.connector.rabbitmq2.source.common;
 public class Message<T> {
 	private final long deliveryTag;
 	private final String correlationId;
-	private final T message;
+	public T message;
 
 	public Message(long deliveryTag, String correlationId, T message) {
 		this.deliveryTag = deliveryTag;

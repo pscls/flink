@@ -24,6 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.flink.util.FlinkRuntimeException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +39,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 	private final SourceReaderContext sourceReaderContext;
 	private final DeserializationSchema<T> deliveryDeserializer;
 
-	public RabbitMQSourceReaderBase(
+    public RabbitMQSourceReaderBase(
 		SourceReaderContext sourceReaderContext,
 		DeserializationSchema<T> deliveryDeserializer) {
 		this.sourceReaderContext = sourceReaderContext;
@@ -57,18 +59,21 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 		try {
 			rmqConnection = setupConnection();
 			rmqChannel = setupChannel(rmqConnection);
+			System.out.println("Rabbit connection successful");
 			LOG.info("RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
 		} catch (Exception e) {
 			LOG.error(e.getMessage());
+			throw new FlinkRuntimeException("Unable to setup the RabbitMQ Connection.");
 		}
 	}
 
 	protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) throws IOException {
+	    byte[] timestamp = String.valueOf(System.currentTimeMillis()).getBytes();
 		AMQP.BasicProperties properties = delivery.getProperties();
 		byte[] body = delivery.getBody();
 		Envelope envelope = delivery.getEnvelope();
 		collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
-		deliveryDeserializer.deserialize(body, collector);
+		deliveryDeserializer.deserialize(timestamp, collector);
 	}
 
 	protected void handleMessagePolled(Message<T> message) {}
@@ -104,7 +109,8 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 			return InputStatus.NOTHING_AVAILABLE;
 		}
 
-		output.collect(message.getMessage());
+		output.collect((T)(message.getMessage() + "-" + System.currentTimeMillis()));
+
 		handleMessagePolled(message);
 
 		return collector.hasUnpolledMessages() ? InputStatus.MORE_AVAILABLE : InputStatus.NOTHING_AVAILABLE;
@@ -112,6 +118,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
 
 	@Override
 	public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
+	    System.out.println("Create Checkpoint: " + split != null);
 		return split != null ? Collections.singletonList(split) : new ArrayList<>();
 	}
 

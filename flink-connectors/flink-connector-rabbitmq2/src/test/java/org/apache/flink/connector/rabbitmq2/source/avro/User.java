@@ -5,12 +5,9 @@ import org.apache.flink.avro.shaded.org.apache.avro.SchemaBuilder;
 import org.apache.flink.avro.shaded.org.apache.avro.specific.SpecificRecord;
 
 public class User implements SpecificRecord {
-    private String name;
-    private int age;
+    public String timestamps;
 
-    public User(String name, int age) {
-        this.name = name;
-        this.age = age;
+    public User() {
     }
 
     @Override
@@ -27,9 +24,7 @@ public class User implements SpecificRecord {
     public Object get(int field) {
         switch (field) {
             case 0:
-                return this.name;
-            case 1:
-                return this.age;
+                return this.timestamps;
             default:
                 return null;
         }
@@ -39,9 +34,7 @@ public class User implements SpecificRecord {
     public void put(int field, Object value) {
         switch (field) {
             case 0:
-                name = (String) value;
-            case 1:
-                age = (int) value;
+                timestamps = (String) value;
             default:
         }
     }

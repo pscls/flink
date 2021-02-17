@@ -1,20 +1,17 @@
+import org.apache.flink.avro.shaded.org.apache.avro.generic.GenericRecord;
+
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.avro.shaded.org.apache.avro.Schema;
 import org.apache.flink.avro.shaded.org.apache.avro.SchemaBuilder;
-import org.apache.flink.avro.shaded.org.apache.avro.generic.GenericRecord;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.connector.rabbitmq2.source.avro.User;
 import org.apache.flink.formats.avro.AvroDeserializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSink;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.avro.shaded.org.apache.avro.SchemaBuilder;
-import org.apache.flink.avro.shaded.org.apache.avro.specific.SpecificRecord;
 
 public class App {
 	public static void main(String[] args) throws Exception {
@@ -27,7 +24,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-//		env.enableCheckpointing(2000);
+//		env.enableCheckpointing(1000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -58,32 +55,35 @@ public class App {
 //				AcknowledgeMode.AUTO
 //			);
 
-        Schema schema = SchemaBuilder.record("User").namespace("example.avro")
-                .fields()
-                .requiredString("name")
-                .requiredInt("age")
-                .endRecord();
+//        Schema schema = SchemaBuilder.record("User").namespace("example.avro")
+//                .fields()
+//                .requiredString("timestamps")
+//                .endRecord();
+//
+//        AvroDeserializationSchema<User> avro = AvroDeserializationSchema.forSpecific(User.class);
 
-        AvroDeserializationSchema<GenericRecord> avro = AvroDeserializationSchema.forGeneric(schema);
-
-		RabbitMQSource<GenericRecord> rabbitMQSource = RabbitMQSource
-            .<GenericRecord>builder()
+        RabbitMQSource<String> rabbitMQSource = RabbitMQSource
+            .<String>builder()
             .setConnectionConfig(connectionConfig)
             .setQueueName("pub")
             .setConsistencyMode(ConsistencyMode.AT_MOST_ONCE)
-            .setDeliveryDeserializer(avro)
+            .setDeliveryDeserializer(new SimpleStringSchema())
             .build();
 
-		final DataStream<GenericRecord> stream = env
+		final DataStream<String> stream = env
 			.fromSource(rabbitMQSource,
 				WatermarkStrategy.noWatermarks(),
 				"RabbitMQSource")
 			.setParallelism(1);
 
+        //throughput
+//		stream.map(message -> System.currentTimeMillis()).writeAsText("benchmarks/throughput").setParallelism(4);
 
-		stream.map(message -> System.currentTimeMillis()).writeAsText("benchmarks/avro").setParallelism(4);
+		//processing latency
+        stream.map(message -> message + "-" + System.currentTimeMillis()).writeAsText("benchmarks/processLatency").setParallelism(4);
 
-		// ====================== SINK ========================
+
+        // ====================== SINK ========================
 //		mappedMessages.addSink(new RMQSink<>(
 //			connectionConfig,            // config for the RabbitMQ connection
 //			"sub",                 // name of the RabbitMQ queue to send messages to
