@@ -66,6 +66,7 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
     protected boolean send(T msg, byte[] value) {
         try {
             if (publishOptions == null) {
+//                T el = (T)((String) msg + "-" + (String.valueOf(System.currentTimeMillis())));
                 rmqChannel.basicPublish("", queueName, null, value);
             } else {
                 boolean mandatory = publishOptions.computeMandatory(msg);

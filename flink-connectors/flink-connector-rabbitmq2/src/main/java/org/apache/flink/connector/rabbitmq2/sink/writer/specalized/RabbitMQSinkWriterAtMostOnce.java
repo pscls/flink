@@ -24,7 +24,9 @@ public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
 
     @Override
     public void write(T element, Context context) {
-        send(element, serializationSchema.serialize(element));
+        T timestamp = (T) ((String.valueOf(System.currentTimeMillis())));
+        send(timestamp, serializationSchema.serialize(timestamp));
+//        send(element, serializationSchema.serialize(element));
     }
 
 }

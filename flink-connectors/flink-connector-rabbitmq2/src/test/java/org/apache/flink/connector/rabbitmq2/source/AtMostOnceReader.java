@@ -86,7 +86,7 @@ public class AtMostOnceReader extends RabbitMQBaseTest {
         env.executeAsync("RabbitMQ");
 
         sendToRabbit(messages);
-        c.receivedMessages
+//        c.receivedMessages
     }
 
 

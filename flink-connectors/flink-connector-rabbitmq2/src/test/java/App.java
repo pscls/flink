@@ -1,14 +1,24 @@
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkBuilder;
+import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.functions.source.datagen.DataGenerator;
+import org.apache.flink.streaming.api.functions.source.datagen.DataGeneratorSource;
+import org.apache.flink.streaming.connectors.rabbitmq.RMQSink;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.configuration.Configuration;
+
 
 public class App {
 	public static void main(String[] args) throws Exception {
@@ -21,7 +31,7 @@ public class App {
     	final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 		// checkpointing is required for exactly-once or at-least-once guarantees
 
-		env.enableCheckpointing(2000);
+//		env.enableCheckpointing(2000);
 
 		// ====================== Source ========================
 		final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -52,36 +62,58 @@ public class App {
 //				AcknowledgeMode.AUTO
 //			);
 
-		RabbitMQSource<String> rabbitMQSource = RabbitMQSource
-            .<String>builder()
-            .setConnectionConfig(connectionConfig)
-            .setQueueName("pub")
-            .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
-            .setDeliveryDeserializer(new SimpleStringSchema())
-            .build();
+//		RabbitMQSource<String> rabbitMQSource = RabbitMQSource
+//            .<String>builder()
+//            .setConnectionConfig(connectionConfig)
+//            .setQueueName("pub")
+//            .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
+//            .setDeliveryDeserializer(new SimpleStringSchema())
+//            .build();
 
-		final DataStream<String> stream = env
-			.fromSource(rabbitMQSource,
-				WatermarkStrategy.noWatermarks(),
-				"RabbitMQSource")
-			.setParallelism(1);
+//		final DataStream<String> stream = env
+//			.fromSource(rabbitMQSource,
+//				WatermarkStrategy.noWatermarks(),
+//				"RabbitMQSource")
+//			.setParallelism(1);
 
+//
+//		DataStream<String> mappedMessages = stream
+//			.map((MapFunction<String, String>) message -> {
+//				System.out.println("Mapped" + message);
+//				return "Mapped: " + message;
+//			}).setParallelism(1);
 
-		DataStream<String> mappedMessages = stream
-			.map((MapFunction<String, String>) message -> {
-				System.out.println("Mapped" + message);
-				return "Mapped: " + message;
-			}).setParallelism(1);
+        // Data generator source
+        DataGenerator<String> generator = new DataGenerator<>() {
+            @Override
+            public void open(String s,
+                    FunctionInitializationContext functionInitializationContext,
+                    RuntimeContext runtimeContext) {
+            }
 
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public String next() {
+                return String.valueOf(System.currentTimeMillis());
+            }
+        };
+        DataGeneratorSource<String> source = new DataGeneratorSource<>(generator);
+        SingleOutputStreamOperator<String> stream = env.addSource(source).returns(String.class);
 		// ====================== SINK ========================
-        RabbitMQSink<String> sink = RabbitMQSink.<String>builder()
-                .setConnectionConfig(connectionConfig)
-                .setQueueName("sub")
-                .setSerializationSchema(new SimpleStringSchema())
-                .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
-                .build();
-		mappedMessages.sinkTo(sink);  // serialization schema to turn Java objects to messages
+//        RabbitMQSink<String> sink = RabbitMQSink.<String>builder()
+//                .setConnectionConfig(connectionConfig)
+//                .setQueueName("pub")
+//                .setSerializationSchema(new SimpleStringSchema())
+//                .setConsistencyMode(ConsistencyMode.AT_MOST_ONCE)
+//                .build();
+//		stream.sinkTo(sink);  // serialization schema to turn Java objects to messages
 
+        RMQSink<String> sink = new RMQSink<>(connectionConfig, "pub", new SimpleStringSchema());
+        stream.addSink(sink);
 
 		env.execute("RabbitMQ");
 	}
