@@ -1,7 +1,6 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
@@ -13,8 +12,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmCallback;
 import com.rabbitmq.client.Connection;
 
-import javax.annotation.Nullable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,13 +21,14 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+/** TODO. */
 public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> {
     protected final ConcurrentNavigableMap<Long, SinkMessage<T>> outstandingConfirms;
     private Set<Long> lastSeenMessageIds;
     private long lastResendTimestampMilliseconds;
     private final long resendIntervalMilliseconds;
 
-    public static final long defaultMinimalResendInterval = 5000L;
+    public static final long DEFAULT_MINIMAL_RESEND_INTERVAL = 5000L;
 
     public RabbitMQSinkWriterAtLeastOnce(
             RMQConnectionConfig connectionConfig,
@@ -40,15 +38,21 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             int maxRetry,
             SerializableReturnListener returnListener,
             Long minimalResendIntervalMilliseconds,
-            List<RabbitMQSinkWriterState<T>> states
-    ) {
-        super(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener);
+            List<RabbitMQSinkWriterState<T>> states) {
+        super(
+                connectionConfig,
+                queueName,
+                serializationSchema,
+                publishOptions,
+                maxRetry,
+                returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
         this.lastResendTimestampMilliseconds = System.currentTimeMillis();
-        this.resendIntervalMilliseconds = minimalResendIntervalMilliseconds != null
-                ? minimalResendIntervalMilliseconds
-                : defaultMinimalResendInterval;
+        this.resendIntervalMilliseconds =
+                minimalResendIntervalMilliseconds != null
+                        ? minimalResendIntervalMilliseconds
+                        : DEFAULT_MINIMAL_RESEND_INTERVAL;
         initWithState(states);
     }
 
@@ -89,33 +93,34 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
         Channel channel = super.setupChannel(rmqConnection);
 
-        ConfirmCallback cleanOutstandingConfirms = (sequenceNumber, multiple) -> {
-//            SimpleStringSchema schema = new SimpleStringSchema();
-//            String message = schema.deserialize(outstandingConfirms.get(sequenceNumber));
-//            if (message.equals("Mapped: Message 1")) {
-//                System.out.println("Skip Message");
-//                return;
-//            }
+        ConfirmCallback cleanOutstandingConfirms =
+                (sequenceNumber, multiple) -> {
+                    //            SimpleStringSchema schema = new SimpleStringSchema();
+                    //            String message =
+                    // schema.deserialize(outstandingConfirms.get(sequenceNumber));
+                    //            if (message.equals("Mapped: Message 1")) {
+                    //                System.out.println("Skip Message");
+                    //                return;
+                    //            }
 
-            if (multiple) {
-                ConcurrentNavigableMap<Long, SinkMessage<T>> confirmed = outstandingConfirms.headMap(
-                        sequenceNumber, true
-                );
-                confirmed.clear();
-            } else {
-                outstandingConfirms.remove(sequenceNumber);
-            }
-        };
+                    if (multiple) {
+                        ConcurrentNavigableMap<Long, SinkMessage<T>> confirmed =
+                                outstandingConfirms.headMap(sequenceNumber, true);
+                        confirmed.clear();
+                    } else {
+                        outstandingConfirms.remove(sequenceNumber);
+                    }
+                };
 
-        ConfirmCallback nackedConfirms = (sequenceNumber, multiple) -> {
-            SinkMessage<T> message = outstandingConfirms.get(sequenceNumber);
-            System.err.format(
-                    "Message with body %s has been nack-ed. Sequence number: %d, multiple: %b",
-                    message, sequenceNumber, multiple
-            );
-            // TODO: Decide what to do here, e.g. put in messages to resend list
-//            cleanOutstandingConfirms.handle(sequenceNumber, multiple);
-        };
+        ConfirmCallback nackedConfirms =
+                (sequenceNumber, multiple) -> {
+                    SinkMessage<T> message = outstandingConfirms.get(sequenceNumber);
+                    System.err.format(
+                            "Message with body %s has been nack-ed. Sequence number: %d, multiple: %b",
+                            message, sequenceNumber, multiple);
+                    // TODO: Decide what to do here, e.g. put in messages to resend list
+                    //            cleanOutstandingConfirms.handle(sequenceNumber, multiple);
+                };
 
         channel.addConfirmListener(cleanOutstandingConfirms, nackedConfirms);
         channel.confirmSelect();
@@ -124,14 +129,17 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
-        // TODO: think about minimizing the resent loop by using the process time and check when the last
+        // TODO: think about minimizing the resent loop by using the process time and check when the
+        // last
         // resend was executed (time difference)
         System.out.println("Outstanding confirms before resend: " + outstandingConfirms.size());
-        if (System.currentTimeMillis() - lastResendTimestampMilliseconds > resendIntervalMilliseconds) {
+        if (System.currentTimeMillis() - lastResendTimestampMilliseconds
+                > resendIntervalMilliseconds) {
             resendMessages();
             lastResendTimestampMilliseconds = System.currentTimeMillis();
         }
         System.out.println("Store " + outstandingConfirms.size() + " message into checkpoint.");
-        return Collections.singletonList(new RabbitMQSinkWriterState<>(new ArrayList<>(outstandingConfirms.values())));
+        return Collections.singletonList(
+                new RabbitMQSinkWriterState<>(new ArrayList<>(outstandingConfirms.values())));
     }
 }

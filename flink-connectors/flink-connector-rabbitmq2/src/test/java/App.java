@@ -2,9 +2,8 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
-import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkBuilder;
+import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
@@ -77,21 +76,23 @@ public class App {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
+        DataStream<String> mappedMessages =
+                stream.map(
+                                message -> {
+                                    System.out.println("Mapped" + message);
+                                    return "Mapped: " + message;
+                                })
+                        .setParallelism(1);
 
-		DataStream<String> mappedMessages = stream
-			.map((MapFunction<String, String>) message -> {
-				System.out.println("Mapped" + message);
-				return "Mapped: " + message;
-			}).setParallelism(1);
-
-		// ====================== SINK ========================
-        RabbitMQSink<String> sink = RabbitMQSink.<String>builder()
-                .setConnectionConfig(connectionConfig)
-                .setQueueName("sub")
-                .setSerializationSchema(new SimpleStringSchema())
-                .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
-                .build();
-		mappedMessages.sinkTo(sink);  // serialization schema to turn Java objects to messages
+        // ====================== SINK ========================
+        RabbitMQSink<String> sink =
+                RabbitMQSink.<String>builder()
+                        .setConnectionConfig(connectionConfig)
+                        .setQueueName("sub")
+                        .setSerializationSchema(new SimpleStringSchema())
+                        .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
+                        .build();
+        mappedMessages.sinkTo(sink); // serialization schema to turn Java objects to messages
 
         env.execute("RabbitMQ");
     }

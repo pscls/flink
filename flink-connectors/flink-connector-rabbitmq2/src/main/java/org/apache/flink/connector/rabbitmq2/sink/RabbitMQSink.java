@@ -5,14 +5,13 @@ import org.apache.flink.api.connector.sink.Committer;
 import org.apache.flink.api.connector.sink.GlobalCommitter;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
+import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterStateSerializer;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
-
 import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.Preconditions;
@@ -22,6 +21,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
+/** TODO. */
 public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>, Void> {
 
     private final RMQConnectionConfig connectionConfig;
@@ -33,8 +33,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final SerializableReturnListener returnListener;
     private final Long minimalResendIntervalMilliseconds;
 
-    public static final int defaultMaxRetry = 5;
-    public static final ConsistencyMode defaultConsistencyMode = ConsistencyMode.AT_MOST_ONCE;
+    public static final int DEFAULT_MAX_RETRY = 5;
+    public static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
 
     public RabbitMQSink(
             RMQConnectionConfig connectionConfig,
@@ -51,14 +51,13 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         this.consistencyMode = consistencyMode;
         this.returnListener = returnListener;
         this.publishOptions = publishOptions;
-        this.maxRetry = maxRetry != null ? maxRetry : defaultMaxRetry;
+        this.maxRetry = maxRetry != null ? maxRetry : DEFAULT_MAX_RETRY;
         this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
 
         Preconditions.checkState(
                 verifyPublishOptions(),
                 "If consistency mode is stronger than at-most-once and publish options are defined"
-                        + "then publish options need a deserialization schema"
-        );
+                        + "then publish options need a deserialization schema");
     }
 
     private boolean verifyPublishOptions() {
@@ -80,8 +79,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
 
     @Override
     public SinkWriter<T, Void, RabbitMQSinkWriterState<T>> createWriter(
-            InitContext context,
-            List<RabbitMQSinkWriterState<T>> states) {
+            InitContext context, List<RabbitMQSinkWriterState<T>> states) {
         switch (consistencyMode) {
             case AT_MOST_ONCE:
                 return new RabbitMQSinkWriterAtMostOnce<>(
@@ -90,8 +88,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         serializationSchema,
                         publishOptions,
                         returnListener,
-                        states
-                );
+                        states);
             case AT_LEAST_ONCE:
                 return new RabbitMQSinkWriterAtLeastOnce<>(
                         connectionConfig,
@@ -101,8 +98,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         maxRetry,
                         returnListener,
                         minimalResendIntervalMilliseconds,
-                        states
-                );
+                        states);
             case EXACTLY_ONCE:
                 return new RabbitMQSinkWriterExactlyOnce<>(
                         connectionConfig,
@@ -111,15 +107,14 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         publishOptions,
                         maxRetry,
                         returnListener,
-                        states
-                );
+                        states);
         }
         return null;
     }
 
     @Override
     public Optional<Committer<Void>> createCommitter() {
-//        System.out.println("Create Committer");
+        //        System.out.println("Create Committer");
         return Optional.empty();
     }
 
@@ -139,10 +134,13 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     }
 
     @Override
-    public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>> getWriterStateSerializer() {
-//        System.out.println("Create Writer Serializer");
+    public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>>
+            getWriterStateSerializer() {
+        //        System.out.println("Create Writer Serializer");
         if (publishOptions != null && publishOptions.getDeserializationSchema().isPresent()) {
-            return Optional.of(new RabbitMQSinkWriterStateSerializer<>(publishOptions.getDeserializationSchema().get()));
+            return Optional.of(
+                    new RabbitMQSinkWriterStateSerializer<>(
+                            publishOptions.getDeserializationSchema().get()));
         } else {
             return Optional.of(new RabbitMQSinkWriterStateSerializer<>());
         }

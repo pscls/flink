@@ -8,14 +8,12 @@ import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.util.FlinkRuntimeException;
+import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-
-import org.apache.flink.util.FlinkRuntimeException;
-import org.apache.flink.util.Preconditions;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
+/** TODO. */
+public abstract class RabbitMQSinkWriterBase<T>
+        implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
     protected final RMQConnectionConfig connectionConfig;
@@ -40,8 +40,13 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
 
     @Nullable private final SerializableReturnListener returnListener;
 
-
-    public RabbitMQSinkWriterBase(RMQConnectionConfig connectionConfig, String queueName, SerializationSchema<T> serializationSchema, RabbitMQSinkPublishOptions<T> publishOptions, int maxRetry, SerializableReturnListener returnListener) {
+    public RabbitMQSinkWriterBase(
+            RMQConnectionConfig connectionConfig,
+            String queueName,
+            SerializationSchema<T> serializationSchema,
+            RabbitMQSinkPublishOptions<T> publishOptions,
+            int maxRetry,
+            SerializableReturnListener returnListener) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
@@ -56,9 +61,9 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
         message.addRetries();
         if (message.getRetries() >= maxRetry) {
             throw new FlinkRuntimeException(
-                    "A message was not acknowledged or rejected " + message.getRetries()
-                    + " times by RabbitMQ."
-            );
+                    "A message was not acknowledged or rejected "
+                            + message.getRetries()
+                            + " times by RabbitMQ.");
         }
         return send(message.getMessage(), message.getBytes());
     }
@@ -98,11 +103,12 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
         send(new SinkMessage<>(element, serializationSchema.serialize(element)));
     }
 
-    protected void setupRabbitMQ () {
+    protected void setupRabbitMQ() {
         try {
             rmqConnection = setupConnection();
             rmqChannel = setupChannel(rmqConnection);
-            LOG.info("RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
+            LOG.info(
+                    "RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
         } catch (IOException | TimeoutException e) {
             LOG.error(e.getMessage());
         }
@@ -139,8 +145,12 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
                 rmqChannel.close();
             }
         } catch (IOException e) {
-            throw new RuntimeException("Error while closing RMQ channel with " + queueName
-                    + " at " + connectionConfig.getHost(), e);
+            throw new RuntimeException(
+                    "Error while closing RMQ channel with "
+                            + queueName
+                            + " at "
+                            + connectionConfig.getHost(),
+                    e);
         }
 
         try {
@@ -148,8 +158,12 @@ public abstract class RabbitMQSinkWriterBase<T> implements SinkWriter<T, Void, R
                 rmqConnection.close();
             }
         } catch (IOException e) {
-            throw new RuntimeException("Error while closing RMQ channel with " + queueName
-                    + " at " + connectionConfig.getHost(), e);
+            throw new RuntimeException(
+                    "Error while closing RMQ channel with "
+                            + queueName
+                            + " at "
+                            + connectionConfig.getHost(),
+                    e);
         }
     }
 }

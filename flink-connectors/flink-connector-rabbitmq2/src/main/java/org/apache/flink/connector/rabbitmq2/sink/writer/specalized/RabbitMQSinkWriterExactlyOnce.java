@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/** TODO. */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
 
     private List<SinkMessage<T>> messages;
@@ -28,7 +29,13 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
             int maxRetry,
             SerializableReturnListener returnListener,
             List<RabbitMQSinkWriterState<T>> states) {
-        super(connectionConfig, queueName, serializationSchema, publishOptions, maxRetry, returnListener);
+        super(
+                connectionConfig,
+                queueName,
+                serializationSchema,
+                publishOptions,
+                maxRetry,
+                returnListener);
         messages = new ArrayList<>();
         initWithState(states);
     }
@@ -55,7 +62,8 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-//        System.out.println("Store " + outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
+        //        System.out.println("Store " +
+        // outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
         commitMessages();
         return Collections.singletonList(new RabbitMQSinkWriterState<T>(messages));
     }

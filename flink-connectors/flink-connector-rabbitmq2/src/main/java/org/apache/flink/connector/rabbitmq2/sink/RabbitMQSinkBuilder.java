@@ -5,6 +5,7 @@ import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
+/** TODO. */
 public class RabbitMQSinkBuilder<T> {
 
     private String queueName;
@@ -16,10 +17,9 @@ public class RabbitMQSinkBuilder<T> {
     private Long minimalResendIntervalMilliseconds;
     private SerializableReturnListener returnListener;
 
-
     public RabbitMQSinkBuilder() {
-        this.consistencyMode = RabbitMQSink.defaultConsistencyMode;
-        this.maxRetry = RabbitMQSink.defaultMaxRetry;
+        this.consistencyMode = RabbitMQSink.DEFAULT_CONSISTENCY_MODE;
+        this.maxRetry = RabbitMQSink.DEFAULT_MAX_RETRY;
     }
 
     public RabbitMQSink<T> build() {
@@ -31,8 +31,7 @@ public class RabbitMQSinkBuilder<T> {
                 returnListener,
                 publishOptions,
                 maxRetry,
-                minimalResendIntervalMilliseconds
-        );
+                minimalResendIntervalMilliseconds);
     }
 
     public RabbitMQSinkBuilder<T> setConnectionConfig(RMQConnectionConfig connectionConfig) {
@@ -45,7 +44,8 @@ public class RabbitMQSinkBuilder<T> {
         return this;
     }
 
-    public RabbitMQSinkBuilder<T> setSerializationSchema(SerializationSchema<T> serializationSchema) {
+    public RabbitMQSinkBuilder<T> setSerializationSchema(
+            SerializationSchema<T> serializationSchema) {
         this.serializationSchema = serializationSchema;
         return this;
     }
@@ -65,7 +65,7 @@ public class RabbitMQSinkBuilder<T> {
         return this;
     }
 
-    public RabbitMQSinkBuilder<T> setMinimalResendInterval (Long minimalResendIntervalMilliseconds) {
+    public RabbitMQSinkBuilder<T> setMinimalResendInterval(Long minimalResendIntervalMilliseconds) {
         this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
         return this;
     }

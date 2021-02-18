@@ -1,13 +1,6 @@
 package org.apache.flink.connector.rabbitmq2.sink;
 
-import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.api.common.serialization.SerializationSchema;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.Optional;
-
-
+/** TODO. */
 public class SinkMessage<T> {
     private T message;
     private byte[] bytes;
@@ -28,7 +21,9 @@ public class SinkMessage<T> {
         this.retries = retries;
     }
 
-    public int getRetries() { return retries; }
+    public int getRetries() {
+        return retries;
+    }
 
     public int addRetries() {
         retries += 1;

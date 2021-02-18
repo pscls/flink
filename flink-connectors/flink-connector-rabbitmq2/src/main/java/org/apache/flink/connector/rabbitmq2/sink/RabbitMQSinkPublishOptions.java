@@ -5,10 +5,10 @@ import org.apache.flink.streaming.connectors.rabbitmq.RMQSinkPublishOptions;
 
 import java.util.Optional;
 
+/** TODO. */
 public interface RabbitMQSinkPublishOptions<T> extends RMQSinkPublishOptions<T> {
 
-    /**
-     * @return
-     */
-    default Optional<DeserializationSchema<T>> getDeserializationSchema() { return Optional.empty(); }
+    default Optional<DeserializationSchema<T>> getDeserializationSchema() {
+        return Optional.empty();
+    }
 }
