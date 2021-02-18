@@ -1,6 +1,4 @@
 package org.apache.flink.connector.rabbitmq2.source.enumerator;
 
-
-public class RabbitMQSourceEnumState {
-
-}
+/** TODO. */
+public class RabbitMQSourceEnumState {}

@@ -3,36 +3,64 @@ import pika
 import time
 import uuid
 import random
+import io
+import avro.schema
+import avro.io
+
+def getAvroBytes():
+    test_schema = '''
+    {
+    "namespace": "example.avro",
+     "type": "record",
+     "name": "User",
+     "fields": [
+         {"name": "name", "type": "string"},
+         {"name": "age",  "type": "int"}
+     ]
+    }
+    '''
+
+    schema = avro.schema.parse(test_schema)
+    writer = avro.io.DatumWriter(schema)
+
+    bytes_writer = io.BytesIO()
+    encoder = avro.io.BinaryEncoder(bytes_writer)
+#     writer.write({"name": "Alyssa", "favorite_number": 256}, encoder)
+    writer.write({"name": "Ben", "age": 7}, encoder)
+
+    raw_bytes = bytes_writer.getvalue()
+    return raw_bytes
 
 def main():
     """Main entry point to the program."""
 
     # Get the location of the AMQP broker (RabbitMQ server) from
     # an environment variable
-    amqp_url = os.environ['AMQP_URL']
-    queue_name = os.environ['QUEUE']
-    delay = float(os.environ['DELAY'])
-
-    connection = pika.BlockingConnection(pika.URLParameters(amqp_url))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+#     connection = pika.BlockingConnection(pika.URLParameters(amqp_url))
     channel = connection.channel()
-    channel.queue_declare(queue=queue_name, durable=True)
+    channel.queue_declare(queue="pub", durable=True)
 
     message_id = 0
     print("*** start sending messages ***")
-    print(amqp_url)
-    print(queue_name)
-    print(delay)
-    while(True):
+#     print(amqp_url)
+#     print(queue_name)
+#     print(delay)
+    n = 1000000
+    defaultMsg = getAvroBytes()
+    while(message_id < n):
+        if (message_id % 10000 == 0):
+            print(message_id)
         msg = 'Message %d' % (message_id,)
         message_id += 1
         correlation_id = random.choice(["uuid1", "uuid2"]) # str(uuid.uuid4())
         properties = pika.BasicProperties(correlation_id=correlation_id)
         channel.basic_publish(exchange='',
-                        routing_key=queue_name,
-                        body=msg,
+                        routing_key="pub",
+                        body=defaultMsg,
                         properties=properties)
-        time.sleep(delay)
-                        
+#         time.sleep(1)
+
     connection.close()
 
 

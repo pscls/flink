@@ -4,6 +4,7 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
+/** TODO. */
 public class RabbitMQSourceBuilder<T> {
     private RMQConnectionConfig connectionConfig;
     private String queueName;
@@ -11,7 +12,8 @@ public class RabbitMQSourceBuilder<T> {
     protected DeserializationSchema<T> deliveryDeserializer;
 
     public RabbitMQSource<T> build() {
-        return new RabbitMQSource<>(connectionConfig, queueName, deliveryDeserializer, consistencyMode);
+        return new RabbitMQSource<>(
+                connectionConfig, queueName, deliveryDeserializer, consistencyMode);
     }
 
     public RabbitMQSourceBuilder<T> setConnectionConfig(RMQConnectionConfig connectionConfig) {
@@ -19,7 +21,8 @@ public class RabbitMQSourceBuilder<T> {
         return this;
     }
 
-    public RabbitMQSourceBuilder<T> setDeliveryDeserializer(DeserializationSchema<T> deliveryDeserializer) {
+    public RabbitMQSourceBuilder<T> setDeliveryDeserializer(
+            DeserializationSchema<T> deliveryDeserializer) {
         this.deliveryDeserializer = deliveryDeserializer;
         return this;
     }
