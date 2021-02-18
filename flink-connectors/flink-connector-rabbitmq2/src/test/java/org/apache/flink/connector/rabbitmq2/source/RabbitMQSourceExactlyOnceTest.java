@@ -1,7 +1,5 @@
 package org.apache.flink.connector.rabbitmq2.source;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
@@ -11,13 +9,12 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
+/** TODO. */
 public class RabbitMQSourceExactlyOnceTest extends RabbitMQBaseTest {
     @Override
     public ConsistencyMode getConsistencyMode() {
@@ -43,6 +40,7 @@ public class RabbitMQSourceExactlyOnceTest extends RabbitMQBaseTest {
     }
 
     static boolean shouldFail = true;
+
     @Test
     public void exactlyOnceWithFailureTest() throws Exception {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -57,20 +55,24 @@ public class RabbitMQSourceExactlyOnceTest extends RabbitMQBaseTest {
 
         shouldFail = true;
 
-        DataStream<String> outstream = stream.map((MapFunction<String, String>) message -> {
-            System.out.println(message);
-            if (message.equals("Message 2") && shouldFail) {
-                shouldFail = false;
-                throw new Exception();
-            }
-            return message;
-        }).setParallelism(1);
+        DataStream<String> outstream =
+                stream.map(
+                                (MapFunction<String, String>)
+                                        message -> {
+                                            System.out.println(message);
+                                            if (message.equals("Message 2") && shouldFail) {
+                                                shouldFail = false;
+                                                throw new Exception();
+                                            }
+                                            return message;
+                                        })
+                        .setParallelism(1);
         outstream.addSink(new CollectSink());
 
         env.executeAsync("RabbitMQ");
 
         sendToRabbit(messages, correlationIds);
-        System.out.println(CollectSink.values);
+        System.out.println(CollectSink.VALUES);
         List<String> collectedMessages = getCollectedSinkMessages();
         assertEquals(messages, collectedMessages);
     }

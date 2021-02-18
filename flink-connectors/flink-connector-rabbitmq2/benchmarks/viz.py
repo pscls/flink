@@ -70,7 +70,7 @@ def readDir(dirname):
 
 
 # values = readFile('temp.txt')
-values = readDir('avro')
+values = readDir('throughputBenchmarkTest')
 
 values = [int(v) for v in values]
 values = [v - values[0] for v in values]
