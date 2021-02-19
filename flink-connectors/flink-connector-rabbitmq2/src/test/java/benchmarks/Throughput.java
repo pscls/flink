@@ -88,10 +88,9 @@ public class Throughput {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText("benchmarks/atmostThroughputBenchmarkSim");
+        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText("benchmarksEC2/atmostThroughputBenchmark");
 
         System.out.println("Start ENV");
         env.executeAsync();
-        sendToRabbit(5000000, queueName);
     }
 }
