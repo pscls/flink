@@ -60,7 +60,7 @@ public class Throughput {
     @Test
     public void simpleAtMostOnceTest() throws Exception {
         String queueName = "pub";
-        sendToRabbit(1000000, queueName);
+        sendToRabbit(10000000, queueName);
 
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
@@ -91,6 +91,6 @@ public class Throughput {
         stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText("benchmarksEC2/atmostThroughputBenchmark");
 
         System.out.println("Start ENV");
-        env.executeAsync();
+        env.execute();
     }
 }
