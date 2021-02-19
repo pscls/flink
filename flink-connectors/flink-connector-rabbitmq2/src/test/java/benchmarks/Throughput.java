@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/** TODO. */
 public class Throughput {
 
     public void sendToRabbit(int n, String queue) throws IOException, TimeoutException, InterruptedException {
@@ -55,6 +56,7 @@ public class Throughput {
 
         TimeUnit.SECONDS.sleep(2);
     }
+
     @Test
     public void simpleAtMostOnceTest() throws Exception {
         String queueName = "pub";
