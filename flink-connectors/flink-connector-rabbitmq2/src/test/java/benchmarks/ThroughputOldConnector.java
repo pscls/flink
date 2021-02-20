@@ -25,7 +25,8 @@ public class ThroughputOldConnector {
     int n = 5000000;
     String outputName = "benchmarksEC2_OldConnector/atmostThroughputBenchmark";
 
-    public void sendToRabbit(int n, String queue) throws IOException, TimeoutException, InterruptedException {
+    public void sendToRabbit(int n, String queue)
+            throws IOException, TimeoutException, InterruptedException {
         System.out.println("Start Connection");
         final RMQConnectionConfig connectionConfig =
                 new RMQConnectionConfig.Builder()
@@ -75,15 +76,15 @@ public class ThroughputOldConnector {
                         .setPort(5672)
                         .build();
 
-        RMQSource<String> rabbitMQSource = new RMQSource<>(connectionConfig, queue, new SimpleStringSchema());
+        RMQSource<String> rabbitMQSource =
+                new RMQSource<>(connectionConfig, queue, new SimpleStringSchema());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
         final DataStream<String> stream =
-                env.addSource(rabbitMQSource, "RabbitMQSource")
-                        .setParallelism(1);
+                env.addSource(rabbitMQSource, "RabbitMQSource").setParallelism(1);
 
         stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
 
