@@ -21,6 +21,11 @@ import java.util.concurrent.TimeoutException;
 /** TODO. */
 public class Throughput {
 
+    String queue = "pub";
+    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+    int n = 5000000;
+    String outputName = "benchmarksEC2/atmostThroughputBenchmark2";
+
     public void sendToRabbit(int n, String queue) throws IOException, TimeoutException, InterruptedException {
         System.out.println("Start Connection");
         final RMQConnectionConfig connectionConfig =
@@ -59,8 +64,7 @@ public class Throughput {
 
     @Test
     public void simpleAtMostOnceTest() throws Exception {
-        String queueName = "pub";
-        sendToRabbit(10000000, queueName);
+        sendToRabbit(n, queue);
 
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
@@ -75,8 +79,8 @@ public class Throughput {
         RabbitMQSource<String> rabbitMQSource =
                 RabbitMQSource.<String>builder()
                         .setConnectionConfig(connectionConfig)
-                        .setQueueName(queueName)
-                        .setConsistencyMode(ConsistencyMode.AT_MOST_ONCE)
+                        .setQueueName(queue)
+                        .setConsistencyMode(mode)
                         .setDeliveryDeserializer(new SimpleStringSchema())
                         .build();
 
@@ -88,7 +92,7 @@ public class Throughput {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText("benchmarksEC2/atmostThroughputBenchmark");
+        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
         env.execute();
