@@ -22,9 +22,9 @@ import java.util.concurrent.TimeoutException;
 public class Throughput {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
+    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atmostThroughputBenchmark";
+    String outputName = "benchmarksEC2/atmostThroughputBenchmark_Usable3";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -97,6 +97,8 @@ public class Throughput {
         stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
-        env.execute();
+        env.executeAsync();
+        TimeUnit.SECONDS.sleep(20);
+        sendToRabbit(n, queue);
     }
 }
