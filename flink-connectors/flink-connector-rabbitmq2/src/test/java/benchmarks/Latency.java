@@ -24,7 +24,7 @@ public class Latency {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atmostLatencyBenchmark";
+    String outputName = "benchmarksEC2/atmostProcessLatencyBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
