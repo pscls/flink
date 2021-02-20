@@ -75,7 +75,9 @@ public abstract class RabbitMQSourceReaderBase<T>
         byte[] body = delivery.getBody();
         Envelope envelope = delivery.getEnvelope();
         collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
-        deliveryDeserializer.deserialize(body, collector);
+
+        collector.collect(deliveryDeserializer.deserialize(String.valueOf(System.currentTimeMillis()).getBytes()));
+        //deliveryDeserializer.deserialize(body, collector);
     }
 
     protected void handleMessagePolled(Message<T> message) {}
