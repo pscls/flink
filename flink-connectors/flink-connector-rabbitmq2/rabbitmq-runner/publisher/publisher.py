@@ -57,7 +57,7 @@ def main():
         properties = pika.BasicProperties(correlation_id=correlation_id)
         channel.basic_publish(exchange='',
                         routing_key="pub",
-                        body=defaultMsg,
+                        body=msg,
                         properties=properties)
 #         time.sleep(1)
 

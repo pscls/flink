@@ -24,9 +24,10 @@ public class Throughput {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atmostThroughputBenchmark2";
+    String outputName = "benchmarksEC2/atmostThroughputBenchmark_Usable2";
 
-    public void sendToRabbit(int n, String queue) throws IOException, TimeoutException, InterruptedException {
+    public void sendToRabbit(int n, String queue)
+            throws IOException, TimeoutException, InterruptedException {
         System.out.println("Start Connection");
         final RMQConnectionConfig connectionConfig =
                 new RMQConnectionConfig.Builder()
@@ -48,7 +49,7 @@ public class Throughput {
 
         for (int i = 0; i < n; i++) {
             byte[] message = ("Message: " + i).getBytes();
-            if (i % 100000 == 0) {
+            if (i % 1000000 == 0) {
                 System.out.println("Send Message: " + i);
             }
             rmqChannel.basicPublish("", queue, null, message);
