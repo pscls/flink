@@ -24,7 +24,7 @@ public class Throughput {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atmostThroughputBenchmark_Usable3";
+    String outputName = "benchmarksEC2/atmostThroughputBenchmark_Usable4";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -98,7 +98,7 @@ public class Throughput {
 
         System.out.println("Start ENV");
         env.executeAsync();
-        TimeUnit.SECONDS.sleep(20);
+        TimeUnit.SECONDS.sleep(36);
         sendToRabbit(n, queue);
     }
 }
