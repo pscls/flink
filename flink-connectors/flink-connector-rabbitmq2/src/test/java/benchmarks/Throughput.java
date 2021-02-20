@@ -48,7 +48,7 @@ public class Throughput {
         System.out.println("Start Sending");
 
         for (int i = 0; i < n; i++) {
-            byte[] message = ("Message: " + i).getBytes();
+            byte[] message = String.valueOf(System.currentTimeMillis()).getBytes();
             if (i % 1000000 == 0) {
                 System.out.println("Send Message: " + i);
             }
