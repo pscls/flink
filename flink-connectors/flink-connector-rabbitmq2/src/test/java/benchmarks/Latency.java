@@ -19,12 +19,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /** TODO. */
-public class Throughput {
+public class Latency {
 
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atmostThroughputBenchmark";
+    String outputName = "benchmarksEC2/atmostLatencyBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -94,7 +94,7 @@ public class Throughput {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
+        stream.map(message -> message).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
         env.execute();
