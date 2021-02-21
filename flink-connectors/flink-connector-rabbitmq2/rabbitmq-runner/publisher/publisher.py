@@ -6,7 +6,7 @@ import random
 import io
 import avro.schema
 import avro.io
-
+import time
 def getAvroBytes():
     test_schema = '''
     {
@@ -46,19 +46,19 @@ def main():
 #     print(amqp_url)
 #     print(queue_name)
 #     print(delay)
-    n = 1000000
+    n = 10000000
     defaultMsg = getAvroBytes()
     while(message_id < n):
         if (message_id % 10000 == 0):
             print(message_id)
         msg = 'Message %d' % (message_id,)
         message_id += 1
-        correlation_id = random.choice(["uuid1", "uuid2"]) # str(uuid.uuid4())
-        properties = pika.BasicProperties(correlation_id=correlation_id)
+        #correlation_id = random.choice(["uuid1", "uuid2"]) # str(uuid.uuid4())
+        #properties = pika.BasicProperties(correlation_id=correlation_id)
         channel.basic_publish(exchange='',
                         routing_key="pub",
-                        body=msg,
-                        properties=properties)
+                        body=str(int(time.time()*1000)))
+                       # properties=properties)
 #         time.sleep(1)
 
     connection.close()
