@@ -25,7 +25,7 @@ public class ThroughputOldConnector {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2_OldConnector/atmostThroughputBenchmark";
+    String outputName = "benchmarksEC2_OldConnector/atleastThroughputBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -53,8 +53,10 @@ public class ThroughputOldConnector {
             if (i % 100000 == 0) {
                 System.out.println("Send Message: " + i);
             }
-            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(UUID
-                    .randomUUID().toString()).build();
+            AMQP.BasicProperties props =
+                    new AMQP.BasicProperties.Builder()
+                            .correlationId(UUID.randomUUID().toString())
+                            .build();
             rmqChannel.basicPublish("", queue, props, message);
         }
 
@@ -84,6 +86,7 @@ public class ThroughputOldConnector {
                 new RMQSource<>(connectionConfig, queue, new SimpleStringSchema());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
