@@ -1,7 +1,7 @@
 import os
 import pika
 
-file_name = "atmostThroughputSink"
+file_name = "exactlyThroughputSink"
 
 f = open(file_name,'a')
 
@@ -14,7 +14,7 @@ def main():
 
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
-    channel.queue_declare(queue=queue_name)
+   # channel.queue_declare(queue=queue_name)
 
     
     channel.basic_consume(queue=queue_name,

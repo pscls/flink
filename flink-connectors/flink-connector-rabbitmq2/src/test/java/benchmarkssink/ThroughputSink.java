@@ -22,56 +22,62 @@ public class ThroughputSink {
         System.out.println("Starting");
 
         String queue = "pub";
-        ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+        ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
 
         final Configuration conf = new Configuration();
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 
-//		env.enableCheckpointing(2000);
+        env.enableCheckpointing(10000);
+
+        //		env.enableCheckpointing(2000);
 
         // ====================== Source ========================
-        final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
-                .setHost("localhost")
-                .setVirtualHost("/")
-                .setUserName("guest")
-                .setPassword("guest")
-                .setPort(5672)
-                .build();
+        final RMQConnectionConfig connectionConfig =
+                new RMQConnectionConfig.Builder()
+                        .setHost("localhost")
+                        .setVirtualHost("/")
+                        .setUserName("guest")
+                        .setPassword("guest")
+                        .setPort(5672)
+                        .build();
 
         // Data generator source
-        DataGenerator<String> generator = new DataGenerator<>() {
-            @Override
-            public void open(String s,
-                             FunctionInitializationContext functionInitializationContext,
-                             RuntimeContext runtimeContext) {
-            }
+        DataGenerator<String> generator =
+                new DataGenerator<>() {
+                    @Override
+                    public void open(
+                            String s,
+                            FunctionInitializationContext functionInitializationContext,
+                            RuntimeContext runtimeContext) {}
 
-            @Override
-            public boolean hasNext() {
-                return true;
-            }
+                    @Override
+                    public boolean hasNext() {
+                        return true;
+                    }
 
-            @Override
-            public String next() {
-                return String.valueOf(System.currentTimeMillis());
-            }
-        };
+                    @Override
+                    public String next() {
+                        return String.valueOf(System.currentTimeMillis());
+                    }
+                };
         DataGeneratorSource<String> source = new DataGeneratorSource<>(generator);
         SingleOutputStreamOperator<String> stream = env.addSource(source).returns(String.class);
 
-//        RMQSink<String> sink = new RMQSink<>(connectionConfig, "pub", new SimpleStringSchema());
-//        stream.addSink(sink);
+        //        RMQSink<String> sink = new RMQSink<>(connectionConfig, "pub", new
+        // SimpleStringSchema());
+        //        stream.addSink(sink);
 
-        RabbitMQSink<String> sink = RabbitMQSink.<String>builder()
-                .setConnectionConfig(connectionConfig)
-                .setQueueName(queue)
-                .setConsistencyMode(mode)
-                .setSerializationSchema(new SimpleStringSchema())
-                .build();
+        RabbitMQSink<String> sink =
+                RabbitMQSink.<String>builder()
+                        .setConnectionConfig(connectionConfig)
+                        .setQueueName(queue)
+                        .setConsistencyMode(mode)
+                        .setSerializationSchema(new SimpleStringSchema())
+                        .build();
 
         stream.sinkTo(sink);
 
         env.execute("RabbitMQ");
     }
-
 }

@@ -62,8 +62,6 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        //        System.out.println("Store " +
-        // outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
         commitMessages();
         return Collections.singletonList(new RabbitMQSinkWriterState<T>(messages));
     }
@@ -71,6 +69,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     private void commitMessages() {
         try {
             List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
+            System.out.println("Commit messages: " + messagesToSend.size());
             for (SinkMessage<T> msg : messagesToSend) {
                 super.send(msg);
             }
