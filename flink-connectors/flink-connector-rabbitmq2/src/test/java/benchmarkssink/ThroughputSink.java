@@ -28,7 +28,7 @@ public class ThroughputSink {
         final StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 
-        env.enableCheckpointing(10000);
+        // env.enableCheckpointing(10000);
 
         //		env.enableCheckpointing(2000);
 
