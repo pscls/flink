@@ -1,4 +1,4 @@
-package benchmarks;
+package benchmarksSource;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;

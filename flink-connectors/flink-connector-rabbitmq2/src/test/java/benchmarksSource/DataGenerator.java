@@ -1,4 +1,4 @@
-package benchmarks;
+package benchmarksSource;
 
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 

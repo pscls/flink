@@ -1,4 +1,4 @@
-package benchmarks;
+package benchmarksSource;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -21,12 +21,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /** TODO. */
-public class Latency {
+public class Throughput {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
-    int n = 50000000;
-    String outputName = "benchmarksEC2/atmostEventLatencyBenchmark5";
+    ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
+    int n = 5000000;
+    String outputName = "benchmarksEC2/exactlyThroughputBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -71,7 +71,7 @@ public class Latency {
 
     @Test
     public void simpleAtMostOnceTest() throws Exception {
-        // sendToRabbit(n, queue);
+        sendToRabbit(n, queue);
 
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
@@ -92,7 +92,7 @@ public class Latency {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        // env.enableCheckpointing(10000);
+        env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
@@ -100,12 +100,11 @@ public class Latency {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        stream.map(message -> message).setParallelism(5).writeAsText(outputName);
+        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
         env.execute();
-        // TimeUnit.SECONDS.sleep(5);
+        // TimeUnit.SECONDS.sleep(36);
         // sendToRabbit(n, queue);
-        // TimeUnit.SECONDS.sleep(20);
     }
 }

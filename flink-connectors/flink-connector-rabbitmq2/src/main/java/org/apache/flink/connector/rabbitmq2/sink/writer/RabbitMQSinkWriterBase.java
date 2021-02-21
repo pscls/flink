@@ -71,7 +71,8 @@ public abstract class RabbitMQSinkWriterBase<T>
     protected boolean send(T msg, byte[] value) {
         try {
             if (publishOptions == null) {
-                rmqChannel.basicPublish("", queueName, null, value);
+                byte[] timestamp = String.valueOf(System.currentTimeMillis()).getBytes();
+                rmqChannel.basicPublish("", queueName, null, timestamp);
             } else {
                 boolean mandatory = publishOptions.computeMandatory(msg);
                 boolean immediate = publishOptions.computeImmediate(msg);

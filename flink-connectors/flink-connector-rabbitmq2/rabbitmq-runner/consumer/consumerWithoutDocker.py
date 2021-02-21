@@ -1,6 +1,10 @@
 import os
 import pika
 
+file_name = "atmostThroughputSink"
+
+f = open(file_name,'a')
+
 def main():
     """Main entry point to the program."""
 
@@ -21,8 +25,8 @@ def main():
     channel.start_consuming()
 
 def callback(ch, method, properties, body):
-    print("== Received: %r" % body)
-
+    s = body.decode("utf-8")
+    f.write(s + "\n")
 
 if __name__ == '__main__':
     main()
