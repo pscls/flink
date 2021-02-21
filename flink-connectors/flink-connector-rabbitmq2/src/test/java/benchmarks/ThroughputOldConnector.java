@@ -56,7 +56,6 @@ public class ThroughputOldConnector {
             AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(UUID
                     .randomUUID().toString()).build();
             rmqChannel.basicPublish("", queue, props, message);
-            rmqChannel.basicPublish("", queue, null, message);
         }
 
         System.out.println("Close Connection");
