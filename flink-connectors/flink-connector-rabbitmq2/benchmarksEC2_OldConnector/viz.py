@@ -49,7 +49,9 @@ def viz():
     # remove last entry == last second
     # the last second probably contains less messages and thus uglifies our viz
     throughput = throughput[:-1]
-
+    plt.xlabel("Time in Seconds")
+    plt.ylabel("Throughout in messages/second")
+    plt.gcf().subplots_adjust(left=0.15)
     # print(mapped_s[:20])
     plt.plot(throughput)
     plt.show()
@@ -76,6 +78,6 @@ values = [int(v) for v in values]
 values = [v - values[0] for v in values]
 
 print("#Messages: " + str(len(values)))
-throughput()
-windowThroughput()
+# throughput()
+# windowThroughput()
 viz()

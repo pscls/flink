@@ -9,12 +9,14 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -52,7 +54,9 @@ public class Throughput {
             if (i % 1000000 == 0) {
                 System.out.println("Send Message: " + i);
             }
-            rmqChannel.basicPublish("", queue, null, message);
+            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(UUID
+                    .randomUUID().toString()).build();
+            rmqChannel.basicPublish("", queue, props, message);
         }
 
         System.out.println("Close Connection");
