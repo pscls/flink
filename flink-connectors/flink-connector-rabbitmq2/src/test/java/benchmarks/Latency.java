@@ -26,7 +26,7 @@ public class Latency {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 50000000;
-    String outputName = "benchmarksEC2/atmostEventLatencyBenchmark4";
+    String outputName = "benchmarksEC2/atmostEventLatencyBenchmark5";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -54,8 +54,10 @@ public class Latency {
             if (i % 1000000 == 0) {
                 System.out.println("Send Message: " + i);
             }
-            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(UUID
-                    .randomUUID().toString()).build();
+            AMQP.BasicProperties props =
+                    new AMQP.BasicProperties.Builder()
+                            .correlationId(UUID.randomUUID().toString())
+                            .build();
             rmqChannel.basicPublish("", queue, props, message);
         }
 
@@ -101,9 +103,9 @@ public class Latency {
         stream.map(message -> message).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
-        env.executeAsync();
+        env.execute();
         // TimeUnit.SECONDS.sleep(5);
-        sendToRabbit(n, queue);
-        TimeUnit.SECONDS.sleep(20);
+        // sendToRabbit(n, queue);
+        // TimeUnit.SECONDS.sleep(20);
     }
 }
