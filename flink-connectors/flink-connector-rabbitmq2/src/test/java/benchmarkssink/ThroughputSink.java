@@ -22,7 +22,7 @@ public class ThroughputSink {
         System.out.println("Starting");
 
         String queue = "pub";
-        ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
+        ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
 
         final Configuration conf = new Configuration();
         final StreamExecutionEnvironment env =
