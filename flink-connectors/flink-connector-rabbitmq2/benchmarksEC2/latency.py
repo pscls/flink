@@ -72,11 +72,12 @@ def readDir(dirname):
 
 
 # values = readFile('temp.txt')
-values = readDir('atmostProcessLatencyBenchmark')
+values = readDir('atmostEventLatencyBenchmark4')
 
 # values = values[100000:]
 values = [v.split("-") for v in values]
 values = [int(v[1]) - int(v[0]) for v in values]
+values = [v for v in values if v < 250]
 
 print("#Messages: " + str(len(values)))
 viz()
