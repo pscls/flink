@@ -72,14 +72,14 @@ public abstract class RabbitMQSourceReaderBase<T>
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
             throws IOException {
 
-        byte[] m = String.valueOf(System.currentTimeMillis()).getBytes();
+        // byte[] m = String.valueOf(System.currentTimeMillis()).getBytes();
         AMQP.BasicProperties properties = delivery.getProperties();
         byte[] body = delivery.getBody();
         Envelope envelope = delivery.getEnvelope();
         collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
 
-        collector.collect(deliveryDeserializer.deserialize(m));
-        // deliveryDeserializer.deserialize(body, collector);
+        // collector.collect(deliveryDeserializer.deserialize(m));
+        deliveryDeserializer.deserialize(body, collector);
     }
 
     protected void handleMessagePolled(Message<T> message) {}
