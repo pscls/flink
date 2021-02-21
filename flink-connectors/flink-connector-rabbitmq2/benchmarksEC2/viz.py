@@ -73,7 +73,7 @@ def readDir(dirname):
 
 
 # values = readFile('temp.txt')
-values = readDir('atleastThroughputBenchmark')
+values = readDir('atleastThroughputBenchmark2')
 
 # values = values[:-1330000]
 values = [int(v) for v in values]
