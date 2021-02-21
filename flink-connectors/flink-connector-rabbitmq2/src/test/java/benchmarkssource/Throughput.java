@@ -1,4 +1,4 @@
-package benchmarksSource;
+package benchmarkssource;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;

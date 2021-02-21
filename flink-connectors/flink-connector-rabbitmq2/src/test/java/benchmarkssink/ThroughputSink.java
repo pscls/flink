@@ -1,4 +1,4 @@
-package benchmarksSink;
+package benchmarkssink;
 
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
@@ -73,6 +73,5 @@ public class ThroughputSink {
 
         env.execute("RabbitMQ");
     }
-
 
 }

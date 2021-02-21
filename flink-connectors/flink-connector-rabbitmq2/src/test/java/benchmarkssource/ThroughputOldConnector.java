@@ -1,12 +1,11 @@
-package benchmarksSource;
+package benchmarkssource;
 
 import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.rabbitmq.RMQSource;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import com.rabbitmq.client.AMQP;
@@ -21,12 +20,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /** TODO. */
-public class Latency {
+public class ThroughputOldConnector {
 
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
-    int n = 50000000;
-    String outputName = "benchmarksEC2/atmostEventLatencyBenchmark5";
+    int n = 5000000;
+    String outputName = "benchmarksEC2_OldConnector/atleastThroughputBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -50,8 +49,8 @@ public class Latency {
         System.out.println("Start Sending");
 
         for (int i = 0; i < n; i++) {
-            byte[] message = String.valueOf(System.currentTimeMillis()).getBytes();
-            if (i % 1000000 == 0) {
+            byte[] message = ("Message: " + i).getBytes();
+            if (i % 100000 == 0) {
                 System.out.println("Send Message: " + i);
             }
             AMQP.BasicProperties props =
@@ -71,7 +70,7 @@ public class Latency {
 
     @Test
     public void simpleAtMostOnceTest() throws Exception {
-        // sendToRabbit(n, queue);
+        sendToRabbit(n, queue);
 
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
@@ -83,29 +82,20 @@ public class Latency {
                         .setPort(5672)
                         .build();
 
-        RabbitMQSource<String> rabbitMQSource =
-                RabbitMQSource.<String>builder()
-                        .setConnectionConfig(connectionConfig)
-                        .setQueueName(queue)
-                        .setConsistencyMode(mode)
-                        .setDeliveryDeserializer(new SimpleStringSchema())
-                        .build();
+        RMQSource<String> rabbitMQSource =
+                new RMQSource<>(connectionConfig, queue, new SimpleStringSchema());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        // env.enableCheckpointing(10000);
+        env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
         final DataStream<String> stream =
-                env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
-                        .setParallelism(1);
+                env.addSource(rabbitMQSource, "RabbitMQSource").setParallelism(1);
 
-        stream.map(message -> message).setParallelism(5).writeAsText(outputName);
+        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
         env.execute();
-        // TimeUnit.SECONDS.sleep(5);
-        // sendToRabbit(n, queue);
-        // TimeUnit.SECONDS.sleep(20);
     }
 }
