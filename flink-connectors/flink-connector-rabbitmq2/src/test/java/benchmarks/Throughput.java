@@ -24,9 +24,9 @@ import java.util.concurrent.TimeoutException;
 public class Throughput {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
+    ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atleastThroughputBenchmark2";
+    String outputName = "benchmarksEC2/exactlyThroughputBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -54,8 +54,10 @@ public class Throughput {
             if (i % 1000000 == 0) {
                 System.out.println("Send Message: " + i);
             }
-            AMQP.BasicProperties props = new AMQP.BasicProperties.Builder().correlationId(UUID
-                    .randomUUID().toString()).build();
+            AMQP.BasicProperties props =
+                    new AMQP.BasicProperties.Builder()
+                            .correlationId(UUID.randomUUID().toString())
+                            .build();
             rmqChannel.basicPublish("", queue, props, message);
         }
 

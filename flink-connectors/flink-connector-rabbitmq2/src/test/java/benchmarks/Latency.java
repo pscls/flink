@@ -24,7 +24,7 @@ public class Latency {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 5000000;
-    String outputName = "benchmarksEC2/atmostProcessLatencyBenchmark2";
+    String outputName = "benchmarksEC2/atmostEventLatencyBenchmark";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -65,7 +65,7 @@ public class Latency {
 
     @Test
     public void simpleAtMostOnceTest() throws Exception {
-        sendToRabbit(n, queue);
+        //sendToRabbit(n, queue);
 
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
@@ -86,7 +86,7 @@ public class Latency {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(2000);
+        // env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
@@ -97,6 +97,8 @@ public class Latency {
         stream.map(message -> message).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
-        env.execute();
+        env.executeAsync();
+	TimeUnit.SECONDS.sleep(5);
+	sendToRabbit(n, queue);
     }
 }

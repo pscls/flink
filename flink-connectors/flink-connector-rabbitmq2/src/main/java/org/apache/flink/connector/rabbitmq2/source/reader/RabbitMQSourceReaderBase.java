@@ -78,8 +78,7 @@ public abstract class RabbitMQSourceReaderBase<T>
         Envelope envelope = delivery.getEnvelope();
         collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
 
-        collector.collect(
-                deliveryDeserializer.deserialize(m));
+        collector.collect(deliveryDeserializer.deserialize(m));
         // deliveryDeserializer.deserialize(body, collector);
     }
 
@@ -117,10 +116,9 @@ public abstract class RabbitMQSourceReaderBase<T>
             return InputStatus.NOTHING_AVAILABLE;
         }
 
-        //        output.collect(
-        //                (T) (message.getMessage() + "-" +
-        // String.valueOf(System.currentTimeMillis())));
-        output.collect(message.getMessage());
+        output.collect(
+                (T) (message.getMessage() + "-" + String.valueOf(System.currentTimeMillis())));
+        // output.collect(message.getMessage());
         handleMessagePolled(message);
 
         return collector.hasUnpolledMessages()
