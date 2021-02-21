@@ -24,9 +24,9 @@ import java.util.concurrent.TimeoutException;
 public class Latency {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
-    int n = 5000000;
-    String outputName = "benchmarksEC2/atleastEventLatencyBenchmark3";
+    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+    int n = 50000000;
+    String outputName = "benchmarksEC2/atmostEventLatencyBenchmark4";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -90,7 +90,7 @@ public class Latency {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(10000);
+        // env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
@@ -102,7 +102,7 @@ public class Latency {
 
         System.out.println("Start ENV");
         env.executeAsync();
-        TimeUnit.SECONDS.sleep(5);
+        // TimeUnit.SECONDS.sleep(5);
         sendToRabbit(n, queue);
         TimeUnit.SECONDS.sleep(20);
     }
