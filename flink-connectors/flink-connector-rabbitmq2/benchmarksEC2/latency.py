@@ -39,22 +39,21 @@ def windowThroughput():
 
 
 def viz():
-    mapped_ms = [v - values[0] for v in values]
-    mapped_s = [int(v / 1000)  for v in mapped_ms]
-    throughput = [0] * (mapped_s[-1] + 1)
-
-    for v in mapped_s:
-        throughput[v] += 1
-
-    # remove last entry == last second
-    # the last second probably contains less messages and thus uglifies our viz
-    throughput = throughput[:-1]
-
-    plt.xlabel("Time in Seconds")
-    plt.ylabel("Throughout in messages/second")
+#     mapped_ms = [v - values[0] for v in values]
+#     mapped_s = [int(v / 1000)  for v in mapped_ms]
+#     throughput = [0] * (mapped_s[-1] + 1)
+#
+#     for v in mapped_s:
+#         throughput[v] += 1
+#
+#     # remove last entry == last second
+#     # the last second probably contains less messages and thus uglifies our viz
+#     throughput = throughput[:-1]
+    plt.xlabel("Message")
+    plt.ylabel("Latency per Message in ms")
     plt.gcf().subplots_adjust(left=0.15)
     # print(mapped_s[:20])
-    plt.plot(throughput)
+    plt.plot(values)
     plt.show()
 
 
@@ -73,13 +72,11 @@ def readDir(dirname):
 
 
 # values = readFile('temp.txt')
-values = readDir('atleastThroughputBenchmark')
+values = readDir('atmostProcessLatencyBenchmark')
 
-# values = values[:-1330000]
-values = [int(v) for v in values]
-values = [v - values[0] for v in values]
+# values = values[100000:]
+values = [v.split("-") for v in values]
+values = [int(v[1]) - int(v[0]) for v in values]
 
 print("#Messages: " + str(len(values)))
-# throughput()
-# windowThroughput()
 viz()
