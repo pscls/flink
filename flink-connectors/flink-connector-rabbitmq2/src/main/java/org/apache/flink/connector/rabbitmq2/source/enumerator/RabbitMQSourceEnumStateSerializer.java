@@ -2,7 +2,7 @@ package org.apache.flink.connector.rabbitmq2.source.enumerator;
 
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
-/** TODO. */
+/** The EnumStateSerializer does nothing particular because the EnumState does not contain data. */
 public class RabbitMQSourceEnumStateSerializer
         implements SimpleVersionedSerializer<RabbitMQSourceEnumState> {
     @Override
