@@ -22,13 +22,13 @@ public class ThroughputSink {
         System.out.println("Starting");
 
         String queue = "pub";
-        ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+        ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
 
         final Configuration conf = new Configuration();
         final StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
 
-        // env.enableCheckpointing(10000);
+        env.enableCheckpointing(10000);
 
         //		env.enableCheckpointing(2000);
 
@@ -76,7 +76,7 @@ public class ThroughputSink {
                         .setSerializationSchema(new SimpleStringSchema())
                         .build();
 
-        stream.sinkTo(sink);
+        stream.sinkTo(sink).setParallelism(1);
 
         env.execute("RabbitMQ");
     }

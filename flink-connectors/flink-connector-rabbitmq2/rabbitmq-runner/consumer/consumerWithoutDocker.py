@@ -1,7 +1,7 @@
 import os
 import pika
 
-file_name = "atmostThroughputSink_Usable2"
+file_name = "atleastThroughputSink2"
 
 f = open(file_name,'a')
 

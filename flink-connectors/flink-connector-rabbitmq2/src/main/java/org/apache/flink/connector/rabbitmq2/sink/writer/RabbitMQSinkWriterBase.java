@@ -71,8 +71,8 @@ public abstract class RabbitMQSinkWriterBase<T>
     protected boolean send(T msg, byte[] value) {
         try {
             if (publishOptions == null) {
-                byte[] timestamp = String.valueOf(System.currentTimeMillis()).getBytes();
-                rmqChannel.basicPublish("", queueName, null, timestamp);
+                // byte[] timestamp = String.valueOf(System.currentTimeMillis()).getBytes();
+                rmqChannel.basicPublish("", queueName, null, value);
             } else {
                 boolean mandatory = publishOptions.computeMandatory(msg);
                 boolean immediate = publishOptions.computeImmediate(msg);
@@ -101,7 +101,8 @@ public abstract class RabbitMQSinkWriterBase<T>
 
     @Override
     public void write(T element, Context context) throws IOException {
-        send(new SinkMessage<>(element, serializationSchema.serialize(element)));
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        send(new SinkMessage<>((T) timestamp, serializationSchema.serialize((T) timestamp)));
     }
 
     protected void setupRabbitMQ() {
