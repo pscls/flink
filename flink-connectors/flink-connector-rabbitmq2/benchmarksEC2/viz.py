@@ -72,7 +72,7 @@ def readDir(dirname):
     return values
 
 
-values = readFile('atmostThroughputSink2')
+values = readFile('atmostThroughputSink_Usable5')
 # values = readDir('atleastThroughputBenchmark2')
 
 # values = values[:-1330000]
