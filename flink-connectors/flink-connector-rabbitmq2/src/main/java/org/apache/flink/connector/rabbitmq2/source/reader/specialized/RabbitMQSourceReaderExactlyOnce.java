@@ -6,6 +6,9 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+
+import org.apache.flink.shaded.netty4.io.netty.util.internal.ConcurrentSet;
+
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.AMQP;
@@ -22,6 +25,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 /**
@@ -33,7 +38,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     private List<Message<T>> polledAndUnacknowledgedMessagesSinceLastCheckpoint;
     private final Deque<Tuple2<Long, List<Message<T>>>>
             polledAndUnacknowledgedMessagesPerCheckpoint;
-    private Set<String> correlationIds;
+    private final ConcurrentHashMap.KeySetView<String, Boolean> correlationIds;
 
     public RabbitMQSourceReaderExactlyOnce(
             SourceReaderContext sourceReaderContext,
@@ -41,7 +46,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         super(sourceReaderContext, deliveryDeserializer);
         this.polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
         this.polledAndUnacknowledgedMessagesPerCheckpoint = new ArrayDeque<>();
-        this.correlationIds = new HashSet<>();
+        this.correlationIds = ConcurrentHashMap.newKeySet();
     }
 
     @Override
@@ -88,14 +93,16 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
         polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
 
-        getSplit().setCorrelationIds(correlationIds);
+        if (getSplit() != null) {
+            getSplit().setCorrelationIds(correlationIds);
+        }
         return super.snapshotState(checkpointId);
     }
 
     @Override
     public void addSplits(List<RabbitMQPartitionSplit> list) {
         super.addSplits(list);
-        correlationIds = getSplit().getCorrelationIds();
+        correlationIds.addAll(getSplit().getCorrelationIds());
     }
 
     @Override
@@ -122,16 +129,19 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     }
 
     private void acknowledgeMessages(List<Message<T>> messages) {
+        List<String> correlationIds =
+                messages.stream().map(Message::getCorrelationId).collect(Collectors.toList());
+        this.correlationIds.removeAll(correlationIds);
         try {
             List<Long> deliveryTags =
                     messages.stream().map(Message::getDeliveryTag).collect(Collectors.toList());
             System.out.println("Try ack " + deliveryTags.size());
             acknowledgeMessageIds(deliveryTags);
             getRmqChannel().txCommit();
-            List<String> correlationIds =
-                    messages.stream().map(Message::getCorrelationId).collect(Collectors.toList());
-            this.correlationIds.removeAll(correlationIds);
+            LOG.info("Successfully acknowledged " + deliveryTags.size() + " messages.");
         } catch (IOException e) {
+            LOG.error("Error during acknowledgement of " + correlationIds.size() + " messages. CorrelationIds will be rolled back. Error: " + e.getMessage());
+            this.correlationIds.addAll(correlationIds);
             e.printStackTrace();
         }
     }

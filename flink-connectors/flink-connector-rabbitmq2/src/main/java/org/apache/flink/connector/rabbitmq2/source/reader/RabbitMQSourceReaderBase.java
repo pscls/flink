@@ -33,7 +33,7 @@ import java.util.concurrent.CompletableFuture;
  */
 public abstract class RabbitMQSourceReaderBase<T>
         implements SourceReader<T, RabbitMQPartitionSplit> {
-    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
     private RabbitMQPartitionSplit split;
     private final RabbitMQCollector<T> collector;
@@ -69,6 +69,15 @@ public abstract class RabbitMQSourceReaderBase<T>
         }
     }
 
+    /**
+     * This function will be called when a new message from rabbitmq gets pushed to the source. The
+     * message will be deserialized and forwarded to our message collector where it's buffered until
+     * it can be processed.
+     *
+     * @param consumerTag
+     * @param delivery
+     * @throws IOException
+     */
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
             throws IOException {
         AMQP.BasicProperties properties = delivery.getProperties();
@@ -122,7 +131,7 @@ public abstract class RabbitMQSourceReaderBase<T>
 
     @Override
     public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
-        return split != null ? Collections.singletonList(split) : new ArrayList<>();
+        return split != null ? Collections.singletonList(split.clone()) : new ArrayList<>();
     }
 
     @Override
