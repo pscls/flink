@@ -72,12 +72,14 @@ def readDir(dirname):
     return values
 
 
-# values = readFile('temp.txt')
-values = readDir('atleastThroughputBenchmark2')
+values = readFile('atmostThroughputSink2')
+# values = readDir('atleastThroughputBenchmark2')
 
 # values = values[:-1330000]
 values = [int(v) for v in values]
+values.sort()
 values = [v - values[0] for v in values]
+
 
 print("#Messages: " + str(len(values)))
 # throughput()
