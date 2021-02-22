@@ -69,11 +69,15 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         Set<Long> temp = outstandingConfirms.keySet();
         Set<Long> messagesToResend = new HashSet<>(temp);
         messagesToResend.retainAll(lastSeenMessageIds);
+        System.out.println("resend: " + messagesToResend.size());
         for (Long id : messagesToResend) {
 
             // remove the old message from the map, since the message was added a second time
             // under a new id or is put into the list of messages to resend
-            send(outstandingConfirms.remove(id));
+            SinkMessage<T> msg = outstandingConfirms.remove(id);
+            if (msg != null) {
+                send(msg);
+            }
         }
         lastSeenMessageIds = temp;
     }
@@ -102,11 +106,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         ConfirmCallback nackedConfirms =
                 (sequenceNumber, multiple) -> {
                     SinkMessage<T> message = outstandingConfirms.get(sequenceNumber);
-                    System.err.format(
-                            "Message with body %s has been nack-ed. Sequence number: %d, multiple: %b",
-                            message, sequenceNumber, multiple);
-                    // TODO: Decide what to do here, e.g. put in messages to resend list
-                    //            cleanOutstandingConfirms.handle(sequenceNumber, multiple);
+                    LOG.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", message.getMessage(), sequenceNumber, multiple);
                 };
 
         channel.addConfirmListener(cleanOutstandingConfirms, nackedConfirms);
@@ -116,7 +116,6 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        System.out.println("Outstanding confirms before resend: " + outstandingConfirms.size());
         if (System.currentTimeMillis() - lastResendTimestampMilliseconds
                 > resendIntervalMilliseconds) {
             resendMessages();

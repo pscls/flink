@@ -62,21 +62,23 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        //        System.out.println("Store " +
-        // outstandingConfirms.values().stream().toArray().length + " message into checkpoint.");
         commitMessages();
         return Collections.singletonList(new RabbitMQSinkWriterState<T>(messages));
     }
 
     private void commitMessages() {
+        List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
+        messages.subList(0, messagesToSend.size()).clear();
+
         try {
-            List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
             for (SinkMessage<T> msg : messagesToSend) {
                 super.send(msg);
             }
             rmqChannel.txCommit();
-            messages.subList(0, messagesToSend.size()).clear();
+            LOG.info("Successfully committed {} messages.", messagesToSend.size());
         } catch (IOException e) {
+            LOG.error("Error during commit of {} messages. Rollback Messages. Error: {}", messagesToSend.size(), e.getMessage());
+            messages.addAll(0, messagesToSend);
             e.printStackTrace();
         }
     }

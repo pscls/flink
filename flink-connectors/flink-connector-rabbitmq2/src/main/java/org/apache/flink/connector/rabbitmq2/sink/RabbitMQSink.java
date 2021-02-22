@@ -114,7 +114,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
 
     @Override
     public Optional<Committer<Void>> createCommitter() {
-        //        System.out.println("Create Committer");
         return Optional.empty();
     }
 

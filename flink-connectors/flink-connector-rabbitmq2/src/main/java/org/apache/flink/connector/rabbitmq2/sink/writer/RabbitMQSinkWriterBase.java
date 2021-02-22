@@ -27,7 +27,7 @@ import java.util.concurrent.TimeoutException;
 /** TODO. */
 public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
-    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
     protected final RMQConnectionConfig connectionConfig;
     protected final String queueName;
