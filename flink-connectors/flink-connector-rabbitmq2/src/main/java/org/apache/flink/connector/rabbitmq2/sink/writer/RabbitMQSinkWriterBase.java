@@ -57,7 +57,7 @@ public abstract class RabbitMQSinkWriterBase<T>
     }
 
     // Only used by at-least-once and exactly-once
-    protected boolean send(SinkMessage<T> message) {
+    protected void send(SinkMessage<T> message) {
         message.addRetries();
         if (message.getRetries() >= maxRetry) {
             throw new FlinkRuntimeException(
@@ -65,10 +65,10 @@ public abstract class RabbitMQSinkWriterBase<T>
                             + message.getRetries()
                             + " times by RabbitMQ.");
         }
-        return send(message.getMessage(), message.getBytes());
+        send(message.getMessage(), message.getBytes());
     }
 
-    protected boolean send(T msg, byte[] value) {
+    protected void send(T msg, byte[] value) {
         try {
             if (publishOptions == null) {
                 rmqChannel.basicPublish("", queueName, null, value);
@@ -91,15 +91,13 @@ public abstract class RabbitMQSinkWriterBase<T>
                         publishOptions.computeProperties(msg),
                         value);
             }
-            return true;
         } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+            throw new FlinkRuntimeException(e.getMessage());
         }
     }
 
     @Override
-    public void write(T element, Context context) throws IOException {
+    public void write(T element, Context context) {
         send(new SinkMessage<>(element, serializationSchema.serialize(element)));
     }
 
@@ -128,7 +126,6 @@ public abstract class RabbitMQSinkWriterBase<T>
 
     @Override
     public List<Void> prepareCommit(boolean flush) throws IOException {
-        System.out.println("Prepare Commit");
         return new ArrayList<>();
     }
 
