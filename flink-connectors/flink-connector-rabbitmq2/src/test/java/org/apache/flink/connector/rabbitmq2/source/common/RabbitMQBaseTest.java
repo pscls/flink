@@ -92,10 +92,13 @@ public abstract class RabbitMQBaseTest {
         TimeUnit.SECONDS.sleep(3);
     }
 
-    public void sendToRabbit(List<String> messages, List<String> correlationIds)
+    public void sendToRabbit(List<String> messages, List<String> correlationIds) throws IOException, InterruptedException {
+          sendToRabbit(messages, correlationIds, 100);
+        }
+    public void sendToRabbit(List<String> messages, List<String> correlationIds, int delay)
             throws IOException, InterruptedException {
         for (int i = 0; i < messages.size(); i++) {
-            TimeUnit.MILLISECONDS.sleep(100);
+            TimeUnit.MILLISECONDS.sleep(delay);
             client.sendMessages(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
         }
 

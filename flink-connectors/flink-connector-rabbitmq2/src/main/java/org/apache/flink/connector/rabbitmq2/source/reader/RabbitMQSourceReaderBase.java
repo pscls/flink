@@ -38,7 +38,7 @@ public abstract class RabbitMQSourceReaderBase<T>
     private RabbitMQPartitionSplit split;
     private final RabbitMQCollector<T> collector;
     private Connection rmqConnection;
-    private Channel rmqChannel;
+    protected Channel rmqChannel;
     private final SourceReaderContext sourceReaderContext;
     private final DeserializationSchema<T> deliveryDeserializer;
 
@@ -52,16 +52,17 @@ public abstract class RabbitMQSourceReaderBase<T>
 
     @Override
     public void start() {
+        System.out.println("Starting Source Reader: " + this.hashCode());
         sourceReaderContext.sendSplitRequest();
-        System.out.println("Starting Source Reader");
+
     }
 
     protected abstract boolean isAutoAck();
 
     protected void setupRabbitMQ() {
         try {
-            rmqConnection = setupConnection();
-            rmqChannel = setupChannel(rmqConnection);
+            setupConnection();
+            setupChannel();
             LOG.info(
                     "RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
         } catch (Exception e) {
@@ -94,15 +95,17 @@ public abstract class RabbitMQSourceReaderBase<T>
     protected void handleMessagePolled(Message<T> message) {}
 
     protected ConnectionFactory setupConnectionFactory() throws Exception {
-        return split.getConnectionConfig().getConnectionFactory();
+        ConnectionFactory factory =  split.getConnectionConfig().getConnectionFactory();
+        factory.setAutomaticRecoveryEnabled(false);
+        return factory;
     }
 
-    protected Connection setupConnection() throws Exception {
-        return setupConnectionFactory().newConnection();
+    protected void setupConnection() throws Exception {
+        rmqConnection = setupConnectionFactory().newConnection();
     }
 
-    protected Channel setupChannel(Connection rmqConnection) throws IOException {
-        final Channel rmqChannel = rmqConnection.createChannel();
+    protected void setupChannel() throws IOException {
+        rmqChannel = rmqConnection.createChannel();
         rmqChannel.queueDeclare(split.getQueueName(), true, false, false, null);
 
         // Set maximum of unacknowledged messages
@@ -114,7 +117,6 @@ public abstract class RabbitMQSourceReaderBase<T>
         final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
         rmqChannel.basicConsume(
                 split.getQueueName(), isAutoAck(), deliverCallback, consumerTag -> {});
-        return rmqChannel;
     }
 
     @Override
@@ -147,6 +149,9 @@ public abstract class RabbitMQSourceReaderBase<T>
 
     @Override
     public void addSplits(List<RabbitMQPartitionSplit> list) {
+        if (split != null) {
+            return;
+        }
         assert list.size() == 1;
         split = list.get(0);
         setupRabbitMQ();
@@ -163,9 +168,7 @@ public abstract class RabbitMQSourceReaderBase<T>
     }
 
     @Override
-    public void handleSourceEvents(SourceEvent sourceEvent) {
-        System.out.println("Source Event");
-    }
+    public void handleSourceEvents(SourceEvent sourceEvent) {}
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) {}
