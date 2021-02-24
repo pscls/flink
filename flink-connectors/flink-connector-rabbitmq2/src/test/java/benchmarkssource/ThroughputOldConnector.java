@@ -24,7 +24,7 @@ public class ThroughputOldConnector {
 
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
-    int n = 5500000;
+    int n = 5000000;
     String outputName = "benchmarksEC2_final/atmostTold";
 
     public void sendToRabbit(int n, String queue)
