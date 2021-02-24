@@ -56,7 +56,7 @@ public class ThroughputSink {
 
                     @Override
                     public String next() {
-                        return String.valueOf(System.currentTimeMillis());
+                        return "-1:";
                     }
                 };
         DataGeneratorSource<String> source = new DataGeneratorSource<>(generator);
