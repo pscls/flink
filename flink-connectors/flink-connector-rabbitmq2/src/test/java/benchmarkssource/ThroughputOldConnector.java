@@ -2,7 +2,6 @@ package benchmarkssource;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.RMQSource;
@@ -15,7 +14,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -23,9 +21,8 @@ import java.util.concurrent.TimeoutException;
 public class ThroughputOldConnector {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
-    int n = 5000000;
-    String outputName = "benchmarksEC2_final/atmostTold";
+    int n = 4200000;
+    String outputName = "benchmarksEC2_final/exactlyTold5";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -54,10 +51,8 @@ public class ThroughputOldConnector {
                 System.out.println("Send Message: " + i);
             }
             AMQP.BasicProperties props =
-                    new AMQP.BasicProperties.Builder()
-                            .correlationId(UUID.randomUUID().toString())
-                            .build();
-            rmqChannel.basicPublish("", queue, null, message);
+                    new AMQP.BasicProperties.Builder().correlationId("id_" + i).build();
+            rmqChannel.basicPublish("", queue, props, message);
         }
 
         System.out.println("Close Connection");
@@ -83,10 +78,10 @@ public class ThroughputOldConnector {
                         .build();
 
         RMQSource<String> rabbitMQSource =
-                new RMQSource<>(connectionConfig, queue, new SimpleStringSchema());
+                new RMQSource<>(connectionConfig, queue, true, new SimpleStringSchema());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        // env.enableCheckpointing(10000);
+        env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
