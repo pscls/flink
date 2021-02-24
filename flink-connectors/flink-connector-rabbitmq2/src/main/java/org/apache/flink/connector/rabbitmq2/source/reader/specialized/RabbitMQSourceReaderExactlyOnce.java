@@ -66,10 +66,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         // handle this message only if we haven't seen the correlation id before
         // otherwise, store the new delivery-tag for later acknowledgments
 
-        System.out.println(correlationId);
-        System.out.println(correlationIds);
         if (correlationIds.contains(correlationId)) {
-            System.out.println("============ saw this message before:" + deliveryTag);
             polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(
                     new Message<>(deliveryTag, correlationId));
         } else {
