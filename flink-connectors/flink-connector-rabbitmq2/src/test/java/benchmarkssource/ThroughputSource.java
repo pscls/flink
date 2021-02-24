@@ -25,7 +25,7 @@ public class ThroughputSource {
 
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
-    int n = 5000000;
+    int n = 7000000;
     String outputName = "benchmarksEC2/exactlyThroughputBenchmark";
 
     public void sendToRabbit(int n, String queue)
@@ -51,14 +51,14 @@ public class ThroughputSource {
 
         for (int i = 0; i < n; i++) {
             byte[] message = String.valueOf(System.currentTimeMillis()).getBytes();
-            if (i % 1000000 == 0) {
+            if (i % 500000 == 0) {
                 System.out.println("Send Message: " + i);
             }
             AMQP.BasicProperties props =
                     new AMQP.BasicProperties.Builder()
                             .correlationId(UUID.randomUUID().toString())
                             .build();
-            rmqChannel.basicPublish("", queue, props, message);
+            rmqChannel.basicPublish("", queue, null, message);
         }
 
         System.out.println("Close Connection");
@@ -92,7 +92,7 @@ public class ThroughputSource {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(10000);
+//        env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
