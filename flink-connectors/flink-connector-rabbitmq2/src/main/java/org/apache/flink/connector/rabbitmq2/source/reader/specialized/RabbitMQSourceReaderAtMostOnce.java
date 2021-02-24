@@ -4,11 +4,7 @@ import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 
-/**
- * TODO.
- *
- * @param <T>
- */
+/** TODO. */
 public class RabbitMQSourceReaderAtMostOnce<T> extends RabbitMQSourceReaderBase<T> {
 
     public RabbitMQSourceReaderAtMostOnce(

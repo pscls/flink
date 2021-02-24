@@ -9,8 +9,6 @@ import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 

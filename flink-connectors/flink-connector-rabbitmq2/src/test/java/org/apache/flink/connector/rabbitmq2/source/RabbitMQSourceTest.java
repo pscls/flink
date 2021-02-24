@@ -1,24 +1,20 @@
 package org.apache.flink.connector.rabbitmq2.source;
 
-import org.apache.commons.collections.CollectionUtils;
-
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQBaseTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/** Todo. */
 public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
     // at-most-once
@@ -63,14 +59,14 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
         DataStream<String> outstream =
                 stream.map(
-                        (MapFunction<String, String>)
-                                message -> {
-                                    if (message.equals("Message 2") && shouldFail) {
-                                        shouldFail = false;
-                                        throw new Exception();
-                                    }
-                                    return message;
-                                })
+                                (MapFunction<String, String>)
+                                        message -> {
+                                            if (message.equals("Message 2") && shouldFail) {
+                                                shouldFail = false;
+                                                throw new Exception();
+                                            }
+                                            return message;
+                                        })
                         .setParallelism(1);
         outstream.addSink(new CollectSink());
 
@@ -109,15 +105,16 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         shouldFail = true;
         DataStream<String> outstream =
                 stream.map(
-                        (MapFunction<String, String>)
-                                message -> {
-                                    if (message.equals("Message 2") && shouldFail) {
-                                        shouldFail = false;
-                                        CollectSink.VALUES.clear();
-                                        throw new Exception("This is supposed to be thrown.");
-                                    }
-                                    return message;
-                                })
+                                (MapFunction<String, String>)
+                                        message -> {
+                                            if (message.equals("Message 2") && shouldFail) {
+                                                shouldFail = false;
+                                                CollectSink.VALUES.clear();
+                                                throw new Exception(
+                                                        "This is supposed to be thrown.");
+                                            }
+                                            return message;
+                                        })
                         .setParallelism(1);
         outstream.addSink(new CollectSink());
 
@@ -139,14 +136,15 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         shouldFail = true;
         DataStream<String> outstream =
                 stream.map(
-                        (MapFunction<String, String>)
-                                message -> {
-                                    if (message.equals("Message 2") && shouldFail) {
-                                        shouldFail = false;
-                                        throw new Exception("This is supposed to be thrown.");
-                                    }
-                                    return message;
-                                })
+                                (MapFunction<String, String>)
+                                        message -> {
+                                            if (message.equals("Message 2") && shouldFail) {
+                                                shouldFail = false;
+                                                throw new Exception(
+                                                        "This is supposed to be thrown.");
+                                            }
+                                            return message;
+                                        })
                         .setParallelism(1);
         outstream.addSink(new CollectSink());
 
@@ -170,14 +168,15 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         shouldFail = true;
         DataStream<String> outstream =
                 stream.map(
-                        (MapFunction<String, String>)
-                                message -> {
-                                    if (message.equals("Message 2") && shouldFail) {
-                                        shouldFail = false;
-                                        throw new Exception("This is supposed to be thrown.");
-                                    }
-                                    return message;
-                                })
+                                (MapFunction<String, String>)
+                                        message -> {
+                                            if (message.equals("Message 2") && shouldFail) {
+                                                shouldFail = false;
+                                                throw new Exception(
+                                                        "This is supposed to be thrown.");
+                                            }
+                                            return message;
+                                        })
                         .setParallelism(1);
         outstream.addSink(new CollectSink());
 

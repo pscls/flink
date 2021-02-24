@@ -24,7 +24,7 @@ public class ThroughputOldConnector {
 
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
-    int n = 5000000;
+    int n = 7000000;
     String outputName = "benchmarksEC2_OldConnector/atleastThroughputBenchmark";
 
     public void sendToRabbit(int n, String queue)
@@ -57,7 +57,7 @@ public class ThroughputOldConnector {
                     new AMQP.BasicProperties.Builder()
                             .correlationId(UUID.randomUUID().toString())
                             .build();
-            rmqChannel.basicPublish("", queue, props, message);
+            rmqChannel.basicPublish("", queue, null, message);
         }
 
         System.out.println("Close Connection");

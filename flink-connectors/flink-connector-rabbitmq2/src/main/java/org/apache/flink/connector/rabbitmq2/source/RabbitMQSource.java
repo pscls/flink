@@ -25,7 +25,11 @@ import com.esotericsoftware.minlog.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** TODO. */
+/**
+ * Todo.
+ *
+ * @param <T>
+ */
 public class RabbitMQSource<T>
         implements Source<T, RabbitMQPartitionSplit, RabbitMQSourceEnumState>,
                 ResultTypeQueryable<T> {
@@ -61,7 +65,7 @@ public class RabbitMQSource<T>
     /**
      * The boundedness is always continuous unbounded.
      *
-     * @return
+     * @return boundedness of the stream
      * @see Boundedness
      */
     @Override

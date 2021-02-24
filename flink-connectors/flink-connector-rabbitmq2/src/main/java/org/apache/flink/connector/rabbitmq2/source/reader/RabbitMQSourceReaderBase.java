@@ -54,7 +54,6 @@ public abstract class RabbitMQSourceReaderBase<T>
     public void start() {
         System.out.println("Starting Source Reader: " + this.hashCode());
         sourceReaderContext.sendSplitRequest();
-
     }
 
     protected abstract boolean isAutoAck();
@@ -95,7 +94,7 @@ public abstract class RabbitMQSourceReaderBase<T>
     protected void handleMessagePolled(Message<T> message) {}
 
     protected ConnectionFactory setupConnectionFactory() throws Exception {
-        ConnectionFactory factory =  split.getConnectionConfig().getConnectionFactory();
+        ConnectionFactory factory = split.getConnectionConfig().getConnectionFactory();
         factory.setAutomaticRecoveryEnabled(false);
         return factory;
     }

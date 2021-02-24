@@ -27,7 +27,6 @@ import java.util.concurrent.TimeoutException;
 
 /** TODO. */
 public abstract class RabbitMQBaseTest {
-
     // TODO: Find out how to run multiple tests in the same class
     // TODO: Find out how to run multiple tests from different classes -> stop container??
 
@@ -92,9 +91,11 @@ public abstract class RabbitMQBaseTest {
         TimeUnit.SECONDS.sleep(3);
     }
 
-    public void sendToRabbit(List<String> messages, List<String> correlationIds) throws IOException, InterruptedException {
-          sendToRabbit(messages, correlationIds, 100);
-        }
+    public void sendToRabbit(List<String> messages, List<String> correlationIds)
+            throws IOException, InterruptedException {
+        sendToRabbit(messages, correlationIds, 100);
+    }
+
     public void sendToRabbit(List<String> messages, List<String> correlationIds, int delay)
             throws IOException, InterruptedException {
         for (int i = 0; i < messages.size(); i++) {
