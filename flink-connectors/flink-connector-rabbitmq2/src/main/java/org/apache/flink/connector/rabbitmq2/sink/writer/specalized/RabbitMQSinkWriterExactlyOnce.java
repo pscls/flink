@@ -67,15 +67,21 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     private void commitMessages() {
+        List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
+        messages.subList(0, messagesToSend.size()).clear();
+
         try {
-            List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
-            System.out.println("Commit messages: " + messagesToSend.size());
             for (SinkMessage<T> msg : messagesToSend) {
                 super.send(msg);
             }
             rmqChannel.txCommit();
-            messages.subList(0, messagesToSend.size()).clear();
+            LOG.info("Successfully committed {} messages.", messagesToSend.size());
         } catch (IOException e) {
+            LOG.error(
+                    "Error during commit of {} messages. Rollback Messages. Error: {}",
+                    messagesToSend.size(),
+                    e.getMessage());
+            messages.addAll(0, messagesToSend);
             e.printStackTrace();
         }
     }

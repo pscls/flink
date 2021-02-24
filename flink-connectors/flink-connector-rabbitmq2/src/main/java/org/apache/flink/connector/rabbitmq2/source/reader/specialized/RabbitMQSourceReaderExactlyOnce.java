@@ -6,9 +6,6 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.connector.rabbitmq2.source.common.Message;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
-
-import org.apache.flink.shaded.netty4.io.netty.util.internal.ConcurrentSet;
-
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.AMQP;
@@ -21,12 +18,9 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 /**
@@ -140,7 +134,11 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
             getRmqChannel().txCommit();
             LOG.info("Successfully acknowledged " + deliveryTags.size() + " messages.");
         } catch (IOException e) {
-            LOG.error("Error during acknowledgement of " + correlationIds.size() + " messages. CorrelationIds will be rolled back. Error: " + e.getMessage());
+            LOG.error(
+                    "Error during acknowledgement of "
+                            + correlationIds.size()
+                            + " messages. CorrelationIds will be rolled back. Error: "
+                            + e.getMessage());
             this.correlationIds.addAll(correlationIds);
             e.printStackTrace();
         }

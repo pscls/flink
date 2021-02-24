@@ -62,12 +62,14 @@ public class App {
         //        AvroDeserializationSchema<GenericRecord> avro =
         // AvroDeserializationSchema.forGeneric(schema);
 
-        env.enableCheckpointing(5000);
+        ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+
+        env.enableCheckpointing(1000);
         RabbitMQSource<String> rabbitMQSource =
                 RabbitMQSource.<String>builder()
                         .setConnectionConfig(connectionConfig)
                         .setQueueName("pub")
-                        .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
+                        .setConsistencyMode(mode)
                         .setDeliveryDeserializer(new SimpleStringSchema())
                         .build();
 
@@ -77,7 +79,7 @@ public class App {
 
         stream.map(
                         message -> {
-//                            System.out.println(message);
+                            //                            System.out.println(message);
                             return message;
                         })
                 .setParallelism(2);
@@ -88,9 +90,11 @@ public class App {
                         .setConnectionConfig(connectionConfig)
                         .setQueueName("sub")
                         .setSerializationSchema(new SimpleStringSchema())
-                        .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
+                        .setConsistencyMode(mode)
+                        .setMinimalResendInterval(9L)
                         .build();
-        mappedMessages.sinkTo(sink); // serialization schema to turn Java objects to messages
+        stream.sinkTo(sink)
+                .setParallelism(2); // serialization schema to turn Java objects to messages
 
         env.execute("RabbitMQ");
     }

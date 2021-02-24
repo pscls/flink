@@ -114,7 +114,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
 
     @Override
     public Optional<Committer<Void>> createCommitter() {
-        //        System.out.println("Create Committer");
         return Optional.empty();
     }
 
@@ -136,7 +135,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     @Override
     public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>>
             getWriterStateSerializer() {
-        //        System.out.println("Create Writer Serializer");
         if (publishOptions != null && publishOptions.getDeserializationSchema().isPresent()) {
             return Optional.of(
                     new RabbitMQSinkWriterStateSerializer<>(

@@ -43,8 +43,7 @@ public abstract class RabbitMQBaseTest {
                             .setNumberTaskManagers(1)
                             .build());
 
-    protected StreamExecutionEnvironment env =
-            StreamExecutionEnvironment.getExecutionEnvironment();
+    protected StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
     @Rule
     public RabbitMQContainer rabbitMq =
@@ -60,7 +59,8 @@ public abstract class RabbitMQBaseTest {
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
     }
 
-    public DataStream<String> getSinkOn(StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
+    public DataStream<String> getSinkOn(
+            StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
             throws IOException, TimeoutException {
         queueName = UUID.randomUUID().toString();
         client.createQueue(queueName);
@@ -75,10 +75,7 @@ public abstract class RabbitMQBaseTest {
 
         RabbitMQSource<String> rabbitMQSource =
                 new RabbitMQSource<>(
-                        connectionConfig,
-                        queueName,
-                        new SimpleStringSchema(),
-                        consistencyMode);
+                        connectionConfig, queueName, new SimpleStringSchema(), consistencyMode);
 
         final DataStream<String> stream =
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")

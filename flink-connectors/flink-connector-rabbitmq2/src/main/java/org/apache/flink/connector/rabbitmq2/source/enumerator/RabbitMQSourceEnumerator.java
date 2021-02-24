@@ -8,8 +8,8 @@ import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.FlinkRuntimeException;
 
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -20,8 +20,7 @@ public class RabbitMQSourceEnumerator
         implements SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> {
     private final SplitEnumeratorContext<RabbitMQPartitionSplit> context;
     private final ConsistencyMode consistencyMode;
-    private static final Logger LOG =
-            LoggerFactory.getLogger(RabbitMQSourceEnumerator.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceEnumerator.class);
 
     // AT_MOST_ONCE and AT_LEAST_ONCE do not store anything in the split state, thus
     // all system wide splits are always equivalent. EXACTLY_ONCE uses the split state
@@ -77,8 +76,7 @@ public class RabbitMQSourceEnumerator
      * @param i reader id
      */
     @Override
-    public void addReader(int i) {
-    }
+    public void addReader(int i) {}
 
     /** @return enum state object */
     @Override

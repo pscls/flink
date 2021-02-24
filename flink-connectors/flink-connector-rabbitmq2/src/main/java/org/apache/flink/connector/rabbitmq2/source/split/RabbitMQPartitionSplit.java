@@ -1,7 +1,6 @@
 package org.apache.flink.connector.rabbitmq2.source.split;
 
 import org.apache.flink.api.connector.source.SourceSplit;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import java.util.HashSet;
@@ -31,7 +30,8 @@ public class RabbitMQPartitionSplit implements SourceSplit {
     }
 
     public RabbitMQPartitionSplit clone() {
-        return new RabbitMQPartitionSplit(connectionConfig, rmqQueueName, new HashSet<>(correlationIds));
+        return new RabbitMQPartitionSplit(
+                connectionConfig, rmqQueueName, new HashSet<>(correlationIds));
     }
 
     public Set<String> getCorrelationIds() {
