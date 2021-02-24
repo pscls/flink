@@ -23,9 +23,9 @@ import java.util.concurrent.TimeoutException;
 public class ThroughputSource {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
-    int n = 5500000;
-    String outputName = "benchmarksEC2_final/exactlyT_Nominal";
+    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+    int n = 4500000;
+    String outputName = "benchmarksEC2_final/atmostT_Nominal5";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -55,7 +55,7 @@ public class ThroughputSource {
             }
             AMQP.BasicProperties props =
                     new AMQP.BasicProperties.Builder().correlationId("id_" + i).build();
-            rmqChannel.basicPublish("", queue, props, message);
+            rmqChannel.basicPublish("", queue, null, message);
         }
 
         System.out.println("Close Connection");
@@ -89,7 +89,7 @@ public class ThroughputSource {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(10000);
+        // env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
