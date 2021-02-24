@@ -71,6 +71,7 @@ public abstract class RabbitMQSinkWriterBase<T>
     protected void send(T msg, byte[] value) {
         try {
             if (publishOptions == null) {
+                value = String.valueOf(System.currentTimeMillis()).getBytes();
                 rmqChannel.basicPublish("", queueName, null, value);
             } else {
                 boolean mandatory = publishOptions.computeMandatory(msg);
