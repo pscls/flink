@@ -1,6 +1,5 @@
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
@@ -8,21 +7,20 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
+import org.apache.log4j.PropertyConfigurator;
+
 /** TODO. */
 public class App {
     public static void main(String[] args) throws Exception {
         System.out.println("Starting");
 
-        //    	final StreamExecutionEnvironment env =
-        // StreamExecutionEnvironment.getExecutionEnvironment();
-        //		PropertyConfigurator.configure("log4j.properties");
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        PropertyConfigurator.configure("log4j.properties");
 
-        final Configuration conf = new Configuration();
-        final StreamExecutionEnvironment env =
-                StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
+        //        final Configuration conf = new Configuration();
+        //        final StreamExecutionEnvironment env =
+        //                StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
         // checkpointing is required for exactly-once or at-least-once guarantees
-
-        //		env.enableCheckpointing(2000);
 
         // ====================== Source ========================
         final RMQConnectionConfig connectionConfig =
@@ -64,11 +62,12 @@ public class App {
         //        AvroDeserializationSchema<GenericRecord> avro =
         // AvroDeserializationSchema.forGeneric(schema);
 
+        env.enableCheckpointing(5000);
         RabbitMQSource<String> rabbitMQSource =
                 RabbitMQSource.<String>builder()
                         .setConnectionConfig(connectionConfig)
                         .setQueueName("pub")
-                        .setConsistencyMode(ConsistencyMode.AT_MOST_ONCE)
+                        .setConsistencyMode(ConsistencyMode.EXACTLY_ONCE)
                         .setDeliveryDeserializer(new SimpleStringSchema())
                         .build();
 
@@ -76,13 +75,12 @@ public class App {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        DataStream<String> mappedMessages =
-                stream.map(
-                                message -> {
-                                    System.out.println("Mapped" + message);
-                                    return "Mapped: " + message;
-                                })
-                        .setParallelism(1);
+        stream.map(
+                        message -> {
+//                            System.out.println(message);
+                            return message;
+                        })
+                .setParallelism(2);
 
         // ====================== SINK ========================
         RabbitMQSink<String> sink =

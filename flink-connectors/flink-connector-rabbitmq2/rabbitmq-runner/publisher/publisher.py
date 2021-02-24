@@ -53,10 +53,15 @@ def main():
             print(message_id)
         msg = 'Message %d' % (message_id,)
         message_id += 1
+        correlation_id = str(uuid.uuid4())
+        properties = pika.BasicProperties(correlation_id=correlation_id)
         #correlation_id = random.choice(["uuid1", "uuid2"]) # str(uuid.uuid4())
         #properties = pika.BasicProperties(correlation_id=correlation_id)
         channel.basic_publish(exchange='',
                         routing_key="pub",
+                        body=msg,
+                        properties=properties)
+#         time.sleep(0.1)
                         body=str(int(time.time()*1000)))
                        # properties=properties)
 #         time.sleep(1)
