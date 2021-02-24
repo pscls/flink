@@ -23,7 +23,7 @@ def windowThroughput():
         window_start += window_slide
         window_end += window_slide
 
-    throughputs = throughputs[:-1]
+    throughputs = throughputs[:-2]
 
     throughputs.sort()
 
@@ -75,9 +75,10 @@ def readDir(dirname):
 values = readDir('atmostThroughputBenchmark')
 
 values = [int(v) for v in values]
+values = [v for v in values if v - values[0] > 12000]
 values = [v - values[0] for v in values]
 
 print("#Messages: " + str(len(values)))
 # throughput()
-# windowThroughput()
+windowThroughput()
 viz()
