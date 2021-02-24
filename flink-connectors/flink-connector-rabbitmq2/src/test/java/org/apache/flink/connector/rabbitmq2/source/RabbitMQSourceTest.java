@@ -58,7 +58,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_LEAST_ONCE);
 
         List<String> messages = getSequentialMessages(5);
-        System.out.println(messages);
 
         shouldFail = true;
 
@@ -66,7 +65,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
                 stream.map(
                         (MapFunction<String, String>)
                                 message -> {
-                                    System.out.println(message);
                                     if (message.equals("Message 2") && shouldFail) {
                                         shouldFail = false;
                                         throw new Exception();
@@ -79,7 +77,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         env.executeAsync();
 
         sendToRabbit(messages);
-        System.out.println(CollectSink.VALUES);
         List<String> collectedMessages = getCollectedSinkMessages();
         assertTrue(collectedMessages.containsAll(messages));
     }
@@ -114,7 +111,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
                 stream.map(
                         (MapFunction<String, String>)
                                 message -> {
-                                    System.out.println(message);
                                     if (message.equals("Message 2") && shouldFail) {
                                         shouldFail = false;
                                         CollectSink.VALUES.clear();
@@ -128,7 +124,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         env.executeAsync();
 
         sendToRabbit(messages, correlationIds);
-        System.out.println(CollectSink.VALUES);
         List<String> collectedMessages = getCollectedSinkMessages();
         assertEquals(messages, collectedMessages);
     }
@@ -146,7 +141,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
                 stream.map(
                         (MapFunction<String, String>)
                                 message -> {
-                                    System.out.println(message);
                                     if (message.equals("Message 2") && shouldFail) {
                                         shouldFail = false;
                                         throw new Exception("This is supposed to be thrown.");
@@ -159,7 +153,6 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         env.executeAsync();
 
         sendToRabbit(messages, correlationIds, 1000);
-        System.out.println(CollectSink.VALUES);
         List<String> collectedMessages = getCollectedSinkMessages();
         assertEquals(messages, collectedMessages);
     }
