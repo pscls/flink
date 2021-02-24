@@ -16,7 +16,6 @@ import com.rabbitmq.client.ConnectionFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -24,9 +23,9 @@ import java.util.concurrent.TimeoutException;
 public class ThroughputSource {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
-    int n = 7000000;
-    String outputName = "benchmarksEC2_final/atleastT";
+    ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
+    int n = 5500000;
+    String outputName = "benchmarksEC2_final/exactlyT_Nominal";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -55,10 +54,8 @@ public class ThroughputSource {
                 System.out.println("Send Message: " + i);
             }
             AMQP.BasicProperties props =
-                    new AMQP.BasicProperties.Builder()
-                            .correlationId(UUID.randomUUID().toString())
-                            .build();
-            rmqChannel.basicPublish("", queue, null, message);
+                    new AMQP.BasicProperties.Builder().correlationId("id_" + i).build();
+            rmqChannel.basicPublish("", queue, props, message);
         }
 
         System.out.println("Close Connection");

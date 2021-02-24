@@ -24,8 +24,8 @@ public class ThroughputOldConnector {
 
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
-    int n = 7000000;
-    String outputName = "benchmarksEC2_OldConnector/atleastThroughputBenchmark";
+    int n = 5500000;
+    String outputName = "benchmarksEC2_final/atmostTold";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -65,7 +65,7 @@ public class ThroughputOldConnector {
         rmqChannel.close();
         connection.close();
 
-        TimeUnit.SECONDS.sleep(2);
+        TimeUnit.SECONDS.sleep(4);
     }
 
     @Test
@@ -86,7 +86,7 @@ public class ThroughputOldConnector {
                 new RMQSource<>(connectionConfig, queue, new SimpleStringSchema());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(10000);
+        // env.enableCheckpointing(10000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
