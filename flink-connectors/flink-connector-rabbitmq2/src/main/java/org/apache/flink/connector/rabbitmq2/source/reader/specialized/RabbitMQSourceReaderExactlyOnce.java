@@ -71,10 +71,13 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
         Envelope envelope = delivery.getEnvelope();
         long deliveryTag = envelope.getDeliveryTag();
-
         // handle this message only if we haven't seen the correlation id before
         // otherwise, store the new delivery-tag for later acknowledgments
+
+        System.out.println(correlationId);
+        System.out.println(correlationIds);
         if (correlationIds.contains(correlationId)) {
+            System.out.println("============ saw this message before:" + deliveryTag);
             polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(
                     new Message<>(deliveryTag, correlationId));
         } else {
@@ -120,11 +123,10 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    protected Channel setupChannel(Connection rmqConnection) throws IOException {
-        Channel rmqChannel = super.setupChannel(rmqConnection);
+    protected void setupChannel() throws IOException {
+        super.setupChannel();
         // enable channel commit mode if acknowledging happens after checkpoint
         rmqChannel.txSelect();
-        return rmqChannel;
     }
 
     private void acknowledgeMessages(List<Message<T>> messages) {
@@ -135,7 +137,6 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         try {
             List<Long> deliveryTags =
                     messages.stream().map(Message::getDeliveryTag).collect(Collectors.toList());
-            System.out.println("Try ack " + deliveryTags.size());
             acknowledgeMessageIds(deliveryTags);
             getRmqChannel().txCommit();
             LOG.info("Successfully acknowledged " + deliveryTags.size() + " messages.");

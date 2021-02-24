@@ -12,9 +12,7 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Rule;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -97,10 +95,13 @@ public abstract class RabbitMQBaseTest {
         TimeUnit.SECONDS.sleep(3);
     }
 
-    public void sendToRabbit(List<String> messages, List<String> correlationIds)
+    public void sendToRabbit(List<String> messages, List<String> correlationIds) throws IOException, InterruptedException {
+          sendToRabbit(messages, correlationIds, 100);
+        }
+    public void sendToRabbit(List<String> messages, List<String> correlationIds, int delay)
             throws IOException, InterruptedException {
         for (int i = 0; i < messages.size(); i++) {
-            TimeUnit.MILLISECONDS.sleep(100);
+            TimeUnit.MILLISECONDS.sleep(delay);
             client.sendMessages(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
         }
 
