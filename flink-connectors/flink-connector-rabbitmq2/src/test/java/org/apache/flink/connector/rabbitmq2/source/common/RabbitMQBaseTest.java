@@ -15,6 +15,7 @@ import org.apache.flink.test.util.MiniClusterWithClientResource;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -36,19 +37,19 @@ public abstract class RabbitMQBaseTest {
     protected RabbitMQContainerClient client;
     protected String queueName;
 
-    @ClassRule
-    public static MiniClusterWithClientResource flinkCluster =
+    @Rule
+    public MiniClusterWithClientResource flinkCluster =
             new MiniClusterWithClientResource(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberSlotsPerTaskManager(1)
                             .setNumberTaskManagers(1)
                             .build());
 
-    protected final StreamExecutionEnvironment env =
+    protected StreamExecutionEnvironment env =
             StreamExecutionEnvironment.getExecutionEnvironment();
 
-    @ClassRule
-    public static RabbitMQContainer rabbitMq =
+    @Rule
+    public RabbitMQContainer rabbitMq =
             new RabbitMQContainer(
                             DockerImageName.parse("rabbitmq").withTag("3.7.25-management-alpine"))
                     .withExposedPorts(RABBITMQ_PORT);
@@ -56,18 +57,12 @@ public abstract class RabbitMQBaseTest {
     @Before
     public void setUpContainerClient() throws IOException, TimeoutException {
         client = new RabbitMQContainerClient(rabbitMq, false);
+        env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(1000);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
     }
 
-    @AfterClass
-    public static void after() {
-        rabbitMq.stop();
-        rabbitMq.close();
-    }
-
-    public abstract ConsistencyMode getConsistencyMode();
-
-    public DataStream<String> getSinkOn(StreamExecutionEnvironment env)
+    public DataStream<String> getSinkOn(StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
             throws IOException, TimeoutException {
         queueName = UUID.randomUUID().toString();
         client.createQueue(queueName);
@@ -85,7 +80,7 @@ public abstract class RabbitMQBaseTest {
                         connectionConfig,
                         queueName,
                         new SimpleStringSchema(),
-                        getConsistencyMode());
+                        consistencyMode);
 
         final DataStream<String> stream =
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
@@ -99,17 +94,17 @@ public abstract class RabbitMQBaseTest {
             client.sendMessages(new SimpleStringSchema(), message);
         }
 
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(3);
     }
 
     public void sendToRabbit(List<String> messages, List<String> correlationIds)
             throws IOException, InterruptedException {
         for (int i = 0; i < messages.size(); i++) {
-            TimeUnit.SECONDS.sleep(1);
+            TimeUnit.MILLISECONDS.sleep(100);
             client.sendMessages(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
         }
 
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(3);
     }
 
     public void sendToRabbit(int numberOfMessage) throws IOException, InterruptedException {

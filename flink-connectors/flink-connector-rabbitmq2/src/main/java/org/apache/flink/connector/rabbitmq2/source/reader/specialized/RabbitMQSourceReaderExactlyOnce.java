@@ -64,7 +64,6 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
             throws IOException {
         AMQP.BasicProperties properties = delivery.getProperties();
         String correlationId = properties.getCorrelationId();
-        //		System.out.println("Correlation Id: " + correlationId);
         Preconditions.checkNotNull(
                 correlationId,
                 "RabbitMQ source was instantiated "
@@ -131,6 +130,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     private void acknowledgeMessages(List<Message<T>> messages) {
         List<String> correlationIds =
                 messages.stream().map(Message::getCorrelationId).collect(Collectors.toList());
+        // TODO: Find a good compromise when to remove the correlations Ids from
         this.correlationIds.removeAll(correlationIds);
         try {
             List<Long> deliveryTags =
