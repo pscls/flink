@@ -74,7 +74,7 @@ def readDir(dirname):
 
 
 # values = readFile('atmostThroughputSink_Usable5')
-values = readDir('atleastTold')
+values = readDir('exactlyT_NominalNew_Par1')
 
 # values = values[:-1330000]
 values = [int(v) for v in values]
