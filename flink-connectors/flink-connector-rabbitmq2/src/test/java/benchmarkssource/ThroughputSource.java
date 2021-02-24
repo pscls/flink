@@ -25,7 +25,7 @@ public class ThroughputSource {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
     int n = 4200000;
-    String outputName = "benchmarksEC2_final/exactly_Nominal7";
+    String outputName = "benchmarksEC2_final/exactlyT_NominalNew_Par1";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -97,7 +97,7 @@ public class ThroughputSource {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        stream.map(message -> System.currentTimeMillis()).setParallelism(5).writeAsText(outputName);
+        stream.map(message -> message).setParallelism(5).writeAsText(outputName);
 
         System.out.println("Start ENV");
         env.execute();
