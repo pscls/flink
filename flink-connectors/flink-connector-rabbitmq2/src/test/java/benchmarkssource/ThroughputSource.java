@@ -25,7 +25,7 @@ public class ThroughputSource {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 1500000;
-    String outputName = "benchmarksEC2_final2/atmost_T5_usable";
+    String outputName = "benchmarksEC2_final2/atmost_T6_usable";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
