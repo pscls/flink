@@ -25,7 +25,7 @@ public class ThroughputSource {
     String queue = "pub";
     ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
     int n = 1500000;
-    String outputName = "benchmarksEC2_final2/atmost_T3_usable";
+    String outputName = "benchmarksEC2_final2/atmost_T5_usable";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -68,7 +68,7 @@ public class ThroughputSource {
 
     @Test
     public void simpleAtMostOnceTest() throws Exception {
-        sendToRabbit(n, queue);
+        // sendToRabbit(n, queue);
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
                 new RMQConnectionConfig.Builder()
