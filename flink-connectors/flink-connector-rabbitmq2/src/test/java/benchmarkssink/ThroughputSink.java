@@ -1,5 +1,6 @@
 package benchmarkssink;
 
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.configuration.Configuration;
@@ -14,20 +15,23 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
 
 import org.junit.Test;
 
+import java.sql.Time;
+import java.util.concurrent.TimeUnit;
+
 /** TODO. */
 public class ThroughputSink {
 
     @Test
     public void main() throws Exception {
         System.out.println("Starting");
-
         String queue = "pub";
         ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
 
         final Configuration conf = new Configuration();
         final StreamExecutionEnvironment env =
                 StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(conf);
-
+        ExecutionConfig executionConfig = env.getConfig();
+        executionConfig.enableObjectReuse();
         env.enableCheckpointing(10000);
 
         // ====================== Source ========================

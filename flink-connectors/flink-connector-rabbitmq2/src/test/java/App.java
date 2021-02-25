@@ -5,6 +5,7 @@ import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.connectors.rabbitmq.RMQSink;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import org.apache.log4j.PropertyConfigurator;
@@ -85,6 +86,7 @@ public class App {
                 .setParallelism(2);
 
         // ====================== SINK ========================
+        RMQSink s;
         RabbitMQSink<String> sink =
                 RabbitMQSink.<String>builder()
                         .setConnectionConfig(connectionConfig)
