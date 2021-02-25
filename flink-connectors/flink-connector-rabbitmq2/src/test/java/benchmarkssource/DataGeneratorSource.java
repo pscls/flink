@@ -36,7 +36,7 @@ public class DataGeneratorSource {
 
         System.out.println("Start Sending");
 
-        for (int i = 0; i < 5000000; i++) {
+        for (int i = 0; i < 50000000; i++) {
             byte[] message = String.valueOf(System.currentTimeMillis()).getBytes();
             if (i % 1000000 == 0) {
                 System.out.println("Send Message: " + i);
@@ -45,7 +45,7 @@ public class DataGeneratorSource {
                     new AMQP.BasicProperties.Builder()
                             .correlationId(UUID.randomUUID().toString())
                             .build();
-            rmqChannel.basicPublish("", "pub", props, message);
+            rmqChannel.basicPublish("", "pub", null, message);
         }
 
         System.out.println("Close Connection");
