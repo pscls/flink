@@ -23,9 +23,9 @@ import java.util.concurrent.TimeoutException;
 public class ThroughputSource {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
-    int n = 4200000;
-    String outputName = "benchmarksEC2_final2/atleast_T_30sec";
+    ConsistencyMode mode = ConsistencyMode.AT_MOST_ONCE;
+    int n = 1000000;
+    String outputName = "benchmarksEC2_final2/atmost_T_usable";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -88,7 +88,7 @@ public class ThroughputSource {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(30000);
+        // env.enableCheckpointing(30000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
