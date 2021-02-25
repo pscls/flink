@@ -23,9 +23,9 @@ import java.util.concurrent.TimeoutException;
 public class ThroughputSource {
 
     String queue = "pub";
-    ConsistencyMode mode = ConsistencyMode.EXACTLY_ONCE;
+    ConsistencyMode mode = ConsistencyMode.AT_LEAST_ONCE;
     int n = 4200000;
-    String outputName = "benchmarksEC2_final/exactlyT_NominalNew_Par1";
+    String outputName = "benchmarksEC2_final2/atleast_T_30sec";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
@@ -55,7 +55,7 @@ public class ThroughputSource {
             }
             AMQP.BasicProperties props =
                     new AMQP.BasicProperties.Builder().correlationId("id_" + i).build();
-            rmqChannel.basicPublish("", queue, props, message);
+            rmqChannel.basicPublish("", queue, null, message);
         }
 
         System.out.println("Close Connection");
@@ -69,7 +69,6 @@ public class ThroughputSource {
     @Test
     public void simpleAtMostOnceTest() throws Exception {
         sendToRabbit(n, queue);
-
         System.out.println("Start Flink");
         final RMQConnectionConfig connectionConfig =
                 new RMQConnectionConfig.Builder()
@@ -89,7 +88,7 @@ public class ThroughputSource {
                         .build();
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(10000);
+        env.enableCheckpointing(30000);
         ExecutionConfig executionConfig = env.getConfig();
         executionConfig.enableObjectReuse();
 
@@ -97,7 +96,9 @@ public class ThroughputSource {
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
 
-        stream.map(message -> message).setParallelism(5).writeAsText(outputName);
+        stream.map(message -> String.valueOf(System.currentTimeMillis()))
+                .setParallelism(5)
+                .writeAsText(outputName);
 
         System.out.println("Start ENV");
         env.execute();
