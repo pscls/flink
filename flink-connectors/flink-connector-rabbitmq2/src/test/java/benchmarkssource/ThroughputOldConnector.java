@@ -22,7 +22,7 @@ public class ThroughputOldConnector {
 
     String queue = "pub";
     int n = 4200000;
-    String outputName = "benchmarksEC2_final/exactlyTold5";
+    String outputName = "benchmarksEC2_final/exact";
 
     public void sendToRabbit(int n, String queue)
             throws IOException, TimeoutException, InterruptedException {
