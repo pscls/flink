@@ -63,7 +63,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
         commitMessages();
-        return Collections.singletonList(new RabbitMQSinkWriterState<T>(messages));
+        return Collections.singletonList(new RabbitMQSinkWriterState<>(messages));
     }
 
     private void commitMessages() {

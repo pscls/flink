@@ -14,7 +14,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** TODO. */
+/**
+ * Serializer for a {@link RabbitMQSinkWriterState} used for at-least and exactly-once behaviour
+ * of the sink.
+ **/
 public class RabbitMQSinkWriterStateSerializer<T>
         implements SimpleVersionedSerializer<RabbitMQSinkWriterState<T>> {
     private final DeserializationSchema<T> deserializationSchema;
@@ -33,6 +36,12 @@ public class RabbitMQSinkWriterStateSerializer<T>
         return 0;
     }
 
+    /**
+     * Serializes all {@code outstandingMessages} of a state of a single sink writer.
+     *
+     * @param rabbitMQSinkWriterState A state containing a list of {@code outstandingMessages}
+     * @throws IOException If output stream cant write the required data
+     */
     @Override
     public byte[] serialize(RabbitMQSinkWriterState<T> rabbitMQSinkWriterState) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -52,12 +61,30 @@ public class RabbitMQSinkWriterStateSerializer<T>
         }
     }
 
+    /**
+     * Deserializes {@link SinkMessage} objects that wrap the byte representation of a message
+     * that needs to be delivered to RabbitMQ as well as the original object representation
+     * if a deserialization schema is provided.
+     *
+     * @param i
+     * @param bytes Serialized outstanding sink messages
+     * @return A list of messages that need to be redelivered to RabbitMQ
+     * @throws IOException If input stream cant read the required data
+     */
+    @Override
+    public RabbitMQSinkWriterState<T> deserialize(int i, byte[] bytes) throws IOException {
+        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+        DataInputStream in = new DataInputStream(bais);
+        return new RabbitMQSinkWriterState<>(readSinkMessages(in));
+    }
+
     private List<SinkMessage<T>> readSinkMessages(DataInputStream in) throws IOException {
         final int numberOfMessages = in.readInt();
         List<SinkMessage<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
             int retries = in.readInt();
+            // in this case, the messages need to be deserialized again, so we can recompute publish options
             if (deserializationSchema != null) {
                 messages.add(
                         new SinkMessage<>(
@@ -67,12 +94,5 @@ public class RabbitMQSinkWriterStateSerializer<T>
             }
         }
         return messages;
-    }
-
-    @Override
-    public RabbitMQSinkWriterState<T> deserialize(int i, byte[] bytes) throws IOException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        DataInputStream in = new DataInputStream(bais);
-        return new RabbitMQSinkWriterState<>(readSinkMessages(in));
     }
 }

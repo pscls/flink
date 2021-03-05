@@ -5,7 +5,10 @@ import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
-/** TODO. */
+/**
+ * A Builder for the RabbitMQSink. Available consistency modes are contained in {@link ConsistencyMode}
+ * Required parameters are a {@code queueName}, a {@code connectionConfig} and a {@code serializationSchema}
+ */
 public class RabbitMQSinkBuilder<T> {
 
     private String queueName;
