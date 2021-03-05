@@ -76,7 +76,7 @@ public class App {
 
         stream.map(
                         message -> {
-//                            System.out.println(message);
+                            //                            System.out.println(message);
                             return message;
                         })
                 .setParallelism(2);

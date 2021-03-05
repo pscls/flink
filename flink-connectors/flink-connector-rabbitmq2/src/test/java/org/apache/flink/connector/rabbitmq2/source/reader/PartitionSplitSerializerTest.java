@@ -1,7 +1,7 @@
 package org.apache.flink.connector.rabbitmq2.source.reader;
 
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplitSerializer;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplitSerializer;
 
 import org.junit.Test;
 
@@ -16,7 +16,7 @@ import static org.junit.Assert.assertEquals;
 /** TODO. */
 public class PartitionSplitSerializerTest {
 
-    private RabbitMQPartitionSplit getPartitionSplit() {
+    private RabbitMQSourceSplit getPartitionSplit() {
 
         String queueName = "exampleQueueName";
         List<String> ids = new ArrayList<>();
@@ -24,14 +24,14 @@ public class PartitionSplitSerializerTest {
             ids.add(Integer.toString(i));
         }
         Set<String> correlationIds = new HashSet<>(ids);
-        return new RabbitMQPartitionSplit(null, queueName, correlationIds);
+        return new RabbitMQSourceSplit(null, queueName, correlationIds);
     }
 
     @Test
     public void testSplitSerializer() {
-        RabbitMQPartitionSplit split = getPartitionSplit();
-        RabbitMQPartitionSplitSerializer serializer = new RabbitMQPartitionSplitSerializer();
-        RabbitMQPartitionSplit deserializedSplit = null;
+        RabbitMQSourceSplit split = getPartitionSplit();
+        RabbitMQSourceSplitSerializer serializer = new RabbitMQSourceSplitSerializer();
+        RabbitMQSourceSplit deserializedSplit = null;
         try {
             byte[] serializedSplit = serializer.serialize(split);
             deserializedSplit = serializer.deserialize(0, serializedSplit);

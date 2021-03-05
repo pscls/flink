@@ -5,9 +5,12 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 
 /**
- * TODO.
+ * The RabbitMQSourceReaderAtMostOnce provides at-most-once guarantee. Messages are automatically
+ * acknowledged when received from rabbitmq and afterwards consumed by the output. In case of a
+ * failure in Flink messages might be lost.
  *
- * @param <T>
+ * @param <T> The output type of the source.
+ * @see RabbitMQSourceReaderBase
  */
 public class RabbitMQSourceReaderAtMostOnce<T> extends RabbitMQSourceReaderBase<T> {
 

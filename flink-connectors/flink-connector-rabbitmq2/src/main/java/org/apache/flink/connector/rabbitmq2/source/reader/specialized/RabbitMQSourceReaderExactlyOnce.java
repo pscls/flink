@@ -3,17 +3,12 @@ package org.apache.flink.connector.rabbitmq2.source.reader.specialized;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.rabbitmq2.source.common.Message;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
-
-import org.apache.flink.shaded.netty4.io.netty.util.internal.ConcurrentSet;
-
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
@@ -21,23 +16,33 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 /**
- * TODO.
+ * The RabbitMQSourceReaderExactlyOnce provides exactly-once guarantee. The deliveryTag from the
+ * received messages are used to acknowledge the messages once it is assured that they are safely
+ * consumed by the output. In addition, correlation ids are used to deduplicate messages. Messages
+ * polled by the output are stored so they can be later acknowledged. During a checkpoint the
+ * messages that were polled since the last checkpoint are associated with the id of the current
+ * checkpoint. Once the checkpoint is completed, the messages for the checkpoint are acknowledged in
+ * a transaction to assure that rabbitmq successfully receives the acknowledgements.
  *
- * @param <T>
+ * <p>In order for the exactly-once source reader to work, checkpointing needs to be enabled and the
+ * message from rabbitmq need to have a correlation id.
+ *
+ * @param <T> The output type of the source.
+ * @see RabbitMQSourceReaderBase
  */
 public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase<T> {
-    private List<Message<T>> polledAndUnacknowledgedMessagesSinceLastCheckpoint;
-    private final Deque<Tuple2<Long, List<Message<T>>>>
+    // Message that were polled by the output since the last checkpoint.
+    private final List<RabbitMQMessageWrapper<T>> polledAndUnacknowledgedMessagesSinceLastCheckpoint;
+    //
+    private final Deque<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>>
             polledAndUnacknowledgedMessagesPerCheckpoint;
+    // Set of correlation ids that have been seen and are not acknowledged yet.
     private final ConcurrentHashMap.KeySetView<String, Boolean> correlationIds;
 
     public RabbitMQSourceReaderExactlyOnce(
@@ -55,7 +60,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    protected void handleMessagePolled(Message<T> message) {
+    protected void handleMessagePolled(RabbitMQMessageWrapper<T> message) {
         this.polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(message);
     }
 
@@ -71,29 +76,23 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
         Envelope envelope = delivery.getEnvelope();
         long deliveryTag = envelope.getDeliveryTag();
-        // handle this message only if we haven't seen the correlation id before
-        // otherwise, store the new delivery-tag for later acknowledgments
 
-        System.out.println(correlationId);
-        System.out.println(correlationIds);
-        if (correlationIds.contains(correlationId)) {
-            System.out.println("============ saw this message before:" + deliveryTag);
-            polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(
-                    new Message<>(deliveryTag, correlationId));
-        } else {
+        if (correlationIds.add(correlationId)) {
+            // handle the message only if the correlation id hasn't been seen before
             super.handleMessageReceivedCallback(consumerTag, delivery);
-            correlationIds.add(correlationId);
+        } else {
+            // otherwise, store the new delivery-tag for later acknowledgments
+            polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(
+                    new RabbitMQMessageWrapper<>(deliveryTag, correlationId));
         }
     }
 
     @Override
-    public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
-        System.out.println("Create Snapshot");
-        Tuple2<Long, List<Message<T>>> tuple =
+    public List<RabbitMQSourceSplit> snapshotState(long checkpointId) {
+        Tuple2<Long, List<RabbitMQMessageWrapper<T>>> tuple =
                 new Tuple2<>(checkpointId, polledAndUnacknowledgedMessagesSinceLastCheckpoint);
         polledAndUnacknowledgedMessagesPerCheckpoint.add(tuple);
-
-        polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
+        polledAndUnacknowledgedMessagesSinceLastCheckpoint.clear();
 
         if (getSplit() != null) {
             getSplit().setCorrelationIds(correlationIds);
@@ -102,18 +101,17 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    public void addSplits(List<RabbitMQPartitionSplit> list) {
+    public void addSplits(List<RabbitMQSourceSplit> list) {
         super.addSplits(list);
         correlationIds.addAll(getSplit().getCorrelationIds());
     }
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) {
-        System.out.println("Checkpoint Complete: " + checkpointId);
-        Iterator<Tuple2<Long, List<Message<T>>>> checkpointIterator =
+        Iterator<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>> checkpointIterator =
                 polledAndUnacknowledgedMessagesPerCheckpoint.iterator();
         while (checkpointIterator.hasNext()) {
-            final Tuple2<Long, List<Message<T>>> nextCheckpoint = checkpointIterator.next();
+            final Tuple2<Long, List<RabbitMQMessageWrapper<T>>> nextCheckpoint = checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
                 acknowledgeMessages(nextCheckpoint.f1);
@@ -125,23 +123,27 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     @Override
     protected void setupChannel() throws IOException {
         super.setupChannel();
-        // enable channel commit mode if acknowledging happens after checkpoint
-        rmqChannel.txSelect();
+        // enable channel transactional mode
+        getRmqChannel().txSelect();
     }
 
-    private void acknowledgeMessages(List<Message<T>> messages) {
+    private void acknowledgeMessages(List<RabbitMQMessageWrapper<T>> messages) {
         List<String> correlationIds =
-                messages.stream().map(Message::getCorrelationId).collect(Collectors.toList());
-        // TODO: Find a good compromise when to remove the correlations Ids from
+                messages.stream().map(RabbitMQMessageWrapper::getCorrelationId).collect(Collectors.toList());
         this.correlationIds.removeAll(correlationIds);
+
         try {
             List<Long> deliveryTags =
-                    messages.stream().map(Message::getDeliveryTag).collect(Collectors.toList());
+                    messages.stream().map(RabbitMQMessageWrapper::getDeliveryTag).collect(Collectors.toList());
             acknowledgeMessageIds(deliveryTags);
             getRmqChannel().txCommit();
             LOG.info("Successfully acknowledged " + deliveryTags.size() + " messages.");
         } catch (IOException e) {
-            LOG.error("Error during acknowledgement of " + correlationIds.size() + " messages. CorrelationIds will be rolled back. Error: " + e.getMessage());
+            LOG.error(
+                    "Error during acknowledgement of "
+                            + correlationIds.size()
+                            + " messages. CorrelationIds will be rolled back. Error: "
+                            + e.getMessage());
             this.correlationIds.addAll(correlationIds);
             e.printStackTrace();
         }

@@ -3,9 +3,9 @@ package org.apache.flink.connector.rabbitmq2.source.reader.specialized;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.rabbitmq2.source.common.Message;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -14,12 +14,25 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * TODO.
+ * The RabbitMQSourceReaderAtLeastOnce provides at-least-once guarantee. The deliveryTag from the
+ * received messages are used to acknowledge the messages once it is assured that they are safely
+ * consumed by the output. This means that the deliveryTags of the messages that were polled by the
+ * output are stored separately. Once a snapshot is executed the deliveryTags get associated with
+ * the checkpoint id. When the checkpoint is completed successfully, all messages from before are
+ * acknowledged. In the case of a failure of and a successful restart does rabbitmq resend the
+ * messages that were unacknowledged. This way at-least-once is guaranteed.
  *
- * @param <T>
+ * <p>In order for the at-least-once source reader to work, checkpointing needs to be enabled.
+ *
+ * @param <T> The output type of the source.
+ * @see RabbitMQSourceReaderBase
  */
 public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase<T> {
-    protected List<Long> polledAndUnacknowledgedMessageIds;
+    // DeliveryTags which corresponding messages were polled by the output since the last
+    // checkpoint.
+    private final List<Long> polledAndUnacknowledgedMessageIds;
+    // List of tuples of checkpoint id and deliveryTags that were polled by the output since the
+    // last checkpoint.
     private final Deque<Tuple2<Long, List<Long>>> polledAndUnacknowledgedMessageIdsPerCheckpoint;
 
     public RabbitMQSourceReaderAtLeastOnce(
@@ -36,16 +49,16 @@ public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    protected void handleMessagePolled(Message<T> message) {
+    protected void handleMessagePolled(RabbitMQMessageWrapper<T> message) {
         this.polledAndUnacknowledgedMessageIds.add(message.getDeliveryTag());
     }
 
     @Override
-    public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
+    public List<RabbitMQSourceSplit> snapshotState(long checkpointId) {
         Tuple2<Long, List<Long>> tuple =
                 new Tuple2<>(checkpointId, polledAndUnacknowledgedMessageIds);
         polledAndUnacknowledgedMessageIdsPerCheckpoint.add(tuple);
-        polledAndUnacknowledgedMessageIds = new ArrayList<>();
+        polledAndUnacknowledgedMessageIds.clear();
 
         return super.snapshotState(checkpointId);
     }
