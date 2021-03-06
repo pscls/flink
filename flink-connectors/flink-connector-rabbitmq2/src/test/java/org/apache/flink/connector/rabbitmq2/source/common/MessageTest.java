@@ -12,7 +12,7 @@ public class MessageTest {
         String correlationId = "correlationId";
         long deliveryTag = 1;
         String body = "";
-        Message<String> m = new Message<>(1, correlationId, body);
+        RabbitMQMessageWrapper<String> m = new RabbitMQMessageWrapper<>(1, correlationId, body);
         assertEquals(correlationId, m.getCorrelationId());
         assertEquals(deliveryTag, m.getDeliveryTag());
         assertEquals(body, m.getMessage());

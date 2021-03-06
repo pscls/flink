@@ -4,33 +4,33 @@ import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.FlinkRuntimeException;
 
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 import java.util.List;
 
-/** TODO. */
+/**
+ * The source enumerator provides the source readers with the split. All source readers receive the
+ * same split as it only contains information about the connection and in case of exactly-once, the
+ * seen correlation ids. But in this case, the enumerator makes sure that at maximum one source
+ * reader receives the split. During exactly-once if multiple reader should be assigned a split a
+ * {@link FlinkRuntimeException} is thrown.
+ */
 public class RabbitMQSourceEnumerator
-        implements SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> {
-    private final SplitEnumeratorContext<RabbitMQPartitionSplit> context;
+        implements SplitEnumerator<RabbitMQSourceSplit, RabbitMQSourceEnumState> {
+    private final SplitEnumeratorContext<RabbitMQSourceSplit> context;
     private final ConsistencyMode consistencyMode;
-    private static final Logger LOG =
-            LoggerFactory.getLogger(RabbitMQSourceEnumerator.class);
-
-    // AT_MOST_ONCE and AT_LEAST_ONCE do not store anything in the split state, thus
-    // all system wide splits are always equivalent. EXACTLY_ONCE uses the split state
-    // for storing message ids but this only works with source parallelism of one and therefore,
-    // again, only one system wide split will exist.
-    private RabbitMQPartitionSplit split;
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceEnumerator.class);
+    private RabbitMQSourceSplit split;
 
     public RabbitMQSourceEnumerator(
-            SplitEnumeratorContext<RabbitMQPartitionSplit> context,
+            SplitEnumeratorContext<RabbitMQSourceSplit> context,
             ConsistencyMode consistencyMode,
             RMQConnectionConfig connectionConfig,
             String rmqQueueName,
@@ -40,18 +40,18 @@ public class RabbitMQSourceEnumerator
     }
 
     public RabbitMQSourceEnumerator(
-            SplitEnumeratorContext<RabbitMQPartitionSplit> context,
+            SplitEnumeratorContext<RabbitMQSourceSplit> context,
             ConsistencyMode consistencyMode,
             RMQConnectionConfig connectionConfig,
             String rmqQueueName) {
         this.context = context;
         this.consistencyMode = consistencyMode;
-        this.split = new RabbitMQPartitionSplit(connectionConfig, rmqQueueName);
+        this.split = new RabbitMQSourceSplit(connectionConfig, rmqQueueName);
     }
 
     @Override
     public void start() {
-        System.out.println("Start ENUMERATOR");
+        LOG.info("Start rabbitmq source enumerator");
     }
 
     @Override
@@ -61,7 +61,7 @@ public class RabbitMQSourceEnumerator
     }
 
     @Override
-    public void addSplitsBack(List<RabbitMQPartitionSplit> list, int i) {
+    public void addSplitsBack(List<RabbitMQSourceSplit> list, int i) {
         LOG.info("Splits returned from reader " + i);
         if (list.size() == 0) {
             return;
@@ -74,13 +74,13 @@ public class RabbitMQSourceEnumerator
     /**
      * In the case of exactly-once multiple readers are not allowed.
      *
+     * @see RabbitMQSourceEnumerator#assignSplitToReader(int, RabbitMQSourceSplit)
      * @param i reader id
      */
     @Override
-    public void addReader(int i) {
-    }
+    public void addReader(int i) {}
 
-    /** @return enum state object */
+    /** @return empty enum state object */
     @Override
     public RabbitMQSourceEnumState snapshotState() {
         return new RabbitMQSourceEnumState();
@@ -89,15 +89,14 @@ public class RabbitMQSourceEnumerator
     @Override
     public void close() {}
 
-    private void assignSplitToReader(int readerId, RabbitMQPartitionSplit split) {
+    private void assignSplitToReader(int readerId, RabbitMQSourceSplit split) {
         if (consistencyMode == ConsistencyMode.EXACTLY_ONCE && context.currentParallelism() > 1) {
             throw new FlinkRuntimeException(
                     "The consistency mode is exactly-once and more than one source reader was created. "
                             + "For exactly once a parallelism higher than one is forbidden.");
         }
 
-        SplitsAssignment<RabbitMQPartitionSplit> assignment =
-                new SplitsAssignment<>(split, readerId);
+        SplitsAssignment<RabbitMQSourceSplit> assignment = new SplitsAssignment<>(split, readerId);
         context.assignSplits(assignment);
     }
 }

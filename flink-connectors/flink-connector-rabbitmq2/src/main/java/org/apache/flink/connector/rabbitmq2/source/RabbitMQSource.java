@@ -13,11 +13,12 @@ import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumState;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumStateSerializer;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
+import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderAtMostOnce;
 import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSourceReaderExactlyOnce;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplitSerializer;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
@@ -25,16 +26,33 @@ import com.esotericsoftware.minlog.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** TODO. */
+/**
+ * The source implementation of rabbitmq. Please use a {@link RabbitMQSourceBuilder} to construct
+ * the source. The following example shows how to create a RabbitMQSource emitting records of <code>
+ * String</code> type.
+ *
+ * <pre>{@code
+ * RabbitMQSource<String> source = RabbitMQSource
+ *     .<String>builder()
+ *     .setConnectionConfig(MY_RMQ_CONNECTION_CONFIG)
+ *     .setQueueName("myQueue")
+ *     .setDeliveryDeserializer(new SimpleStringSchema())
+ *     .setConsistencyMode(MY_CONSISTENCY_MODE)
+ *     .build();
+ * }</pre>
+ *
+ * <p>See {@link RabbitMQSourceBuilder} for more details.
+ *
+ * @param <T> the output type of the source.
+ */
 public class RabbitMQSource<T>
-        implements Source<T, RabbitMQPartitionSplit, RabbitMQSourceEnumState>,
-                ResultTypeQueryable<T> {
+        implements Source<T, RabbitMQSourceSplit, RabbitMQSourceEnumState>, ResultTypeQueryable<T> {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSource.class);
 
     private final RMQConnectionConfig connectionConfig;
     private final String queueName;
+    private final DeserializationSchema<T> deliveryDeserializer;
     private final ConsistencyMode consistencyMode;
-    protected DeserializationSchema<T> deliveryDeserializer;
 
     public RabbitMQSource(
             RMQConnectionConfig connectionConfig,
@@ -46,11 +64,13 @@ public class RabbitMQSource<T>
         this.deliveryDeserializer = deserializationSchema;
         this.consistencyMode = consistencyMode;
 
-        System.out.println("Create SOURCE");
+        LOG.info("Create rabbitmq source");
     }
 
     /**
-     * @param <T> type of the source
+     * Get a {@link RabbitMQSourceBuilder} for the source.
+     *
+     * @param <T> type of the source.
      * @return a source builder
      * @see RabbitMQSourceBuilder
      */
@@ -61,7 +81,7 @@ public class RabbitMQSource<T>
     /**
      * The boundedness is always continuous unbounded.
      *
-     * @return
+     * @return Boundedness continuous unbounded.
      * @see Boundedness
      */
     @Override
@@ -70,16 +90,15 @@ public class RabbitMQSource<T>
     }
 
     /**
-     * Returns a new initialized source-reader of the source's consistency mode.
+     * Returns a new initialized source reader of the source's consistency mode.
      *
-     * @param sourceReaderContext context which the reader will be created in
-     * @return a source reader of the right type
+     * @param sourceReaderContext context which the reader will be created in.
+     * @return RabbitMQSourceReader a source reader of the specified consistency type.
      * @see RabbitMQSourceReaderBase
      */
     @Override
-    public SourceReader<T, RabbitMQPartitionSplit> createReader(
+    public SourceReader<T, RabbitMQSourceSplit> createReader(
             SourceReaderContext sourceReaderContext) {
-        System.out.println("Create READER");
         LOG.info("New Source Reader of type " + consistencyMode + " requested.");
         switch (consistencyMode) {
             case AT_MOST_ONCE:
@@ -103,8 +122,8 @@ public class RabbitMQSource<T>
      * @see SplitEnumerator
      */
     @Override
-    public SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> createEnumerator(
-            SplitEnumeratorContext<RabbitMQPartitionSplit> splitEnumeratorContext) {
+    public SplitEnumerator<RabbitMQSourceSplit, RabbitMQSourceEnumState> createEnumerator(
+            SplitEnumeratorContext<RabbitMQSourceSplit> splitEnumeratorContext) {
         System.out.println("Create ENUMERATOR");
         return new RabbitMQSourceEnumerator(
                 splitEnumeratorContext, consistencyMode, connectionConfig, queueName);
@@ -117,8 +136,8 @@ public class RabbitMQSource<T>
      * @see SplitEnumerator
      */
     @Override
-    public SplitEnumerator<RabbitMQPartitionSplit, RabbitMQSourceEnumState> restoreEnumerator(
-            SplitEnumeratorContext<RabbitMQPartitionSplit> splitEnumeratorContext,
+    public SplitEnumerator<RabbitMQSourceSplit, RabbitMQSourceEnumState> restoreEnumerator(
+            SplitEnumeratorContext<RabbitMQSourceSplit> splitEnumeratorContext,
             RabbitMQSourceEnumState enumState) {
         return new RabbitMQSourceEnumerator(
                 splitEnumeratorContext, consistencyMode, connectionConfig, queueName, enumState);
@@ -129,8 +148,8 @@ public class RabbitMQSource<T>
      * @see SimpleVersionedSerializer
      */
     @Override
-    public SimpleVersionedSerializer<RabbitMQPartitionSplit> getSplitSerializer() {
-        return new RabbitMQPartitionSplitSerializer();
+    public SimpleVersionedSerializer<RabbitMQSourceSplit> getSplitSerializer() {
+        return new RabbitMQSourceSplitSerializer();
     }
 
     /**

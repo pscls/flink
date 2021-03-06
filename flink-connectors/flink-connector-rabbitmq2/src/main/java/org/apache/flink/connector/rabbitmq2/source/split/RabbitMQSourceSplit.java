@@ -1,0 +1,85 @@
+package org.apache.flink.connector.rabbitmq2.source.split;
+
+import org.apache.flink.api.connector.source.SourceSplit;
+import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
+import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * This split is passed by the {@link RabbitMQSourceEnumerator} to the SourceReader. It contains the
+ * configuration for the connection and the name of the queue to connect to. In case of exactly-once
+ * the correlation ids for deduplication of messages might contain data. They are fIt might contain
+ * data ife single reader fails and a new reader needs to be * created.
+ */
+public class RabbitMQSourceSplit implements SourceSplit {
+
+    private final RMQConnectionConfig connectionConfig;
+    private final String rmqQueueName;
+    private Set<String> correlationIds;
+
+    public RabbitMQSourceSplit(RMQConnectionConfig connectionConfig, String rmqQueueName) {
+        this(connectionConfig, rmqQueueName, new HashSet<>());
+    }
+
+    public RabbitMQSourceSplit(
+            RMQConnectionConfig connectionConfig, String rmqQueueName, Set<String> correlationIds) {
+        this.connectionConfig = connectionConfig;
+        this.rmqQueueName = rmqQueueName;
+        this.correlationIds = correlationIds;
+    }
+
+    /**
+     * Create a copy of the the split.
+     *
+     * @return RabbitMQSourceSplit which is a copy of this split.
+     */
+    public RabbitMQSourceSplit copy() {
+        return new RabbitMQSourceSplit(
+                connectionConfig, rmqQueueName, new HashSet<>(correlationIds));
+    }
+
+    /**
+     * Get the correlation ids specified in the split.
+     *
+     * @return Set of all correlation ids.
+     */
+    public Set<String> getCorrelationIds() {
+        return correlationIds;
+    }
+
+    /**
+     * Get the name of the queue to consume from defined in the split.
+     *
+     * @return String name of the queue
+     */
+    public String getQueueName() {
+        return rmqQueueName;
+    }
+
+    /**
+     * Get the connection configuration of rabbitmq defined in the split.
+     *
+     * @return RMQConnectionConfig connection configuration of rabbitmq.
+     * @see RMQConnectionConfig
+     */
+    public RMQConnectionConfig getConnectionConfig() {
+        return connectionConfig;
+    }
+
+    /**
+     * Set the correlation ids specified in this split.
+     *
+     * @param newCorrelationIds the correlation ids that will be set.
+     */
+    public void setCorrelationIds(Set<String> newCorrelationIds) {
+        correlationIds = newCorrelationIds;
+    }
+
+    @Override
+    public String splitId() {
+        // Is fixed as there will be only one split that is relevant for the enumerator.
+        return "0";
+    }
+}

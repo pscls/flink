@@ -6,8 +6,9 @@ import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SourceReader;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
-import org.apache.flink.connector.rabbitmq2.source.common.Message;
-import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQPartitionSplit;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
+import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 import org.apache.flink.core.io.InputStatus;
 
 import com.rabbitmq.client.AMQP;
@@ -27,20 +28,24 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * TODO.
+ * The source reader for rabbitmq queues. This is the base class the different consistency modes.
  *
- * @param <T>
+ * @param <T> The output type of the source.
  */
-public abstract class RabbitMQSourceReaderBase<T>
-        implements SourceReader<T, RabbitMQPartitionSplit> {
+public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, RabbitMQSourceSplit> {
     protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
 
-    private RabbitMQPartitionSplit split;
-    private final RabbitMQCollector<T> collector;
+    // The assigned split from the enumerator.
+    private RabbitMQSourceSplit split;
+    // Rabbitmq
     private Connection rmqConnection;
     private Channel rmqChannel;
+
     private final SourceReaderContext sourceReaderContext;
+    // The deserialization schema for the messages of rabbitmq.
     private final DeserializationSchema<T> deliveryDeserializer;
+    // The collector keeps the messages received from rabbitmq.
+    private final RabbitMQCollector<T> collector;
 
     public RabbitMQSourceReaderBase(
             SourceReaderContext sourceReaderContext,
@@ -52,16 +57,16 @@ public abstract class RabbitMQSourceReaderBase<T>
 
     @Override
     public void start() {
+        LOG.info("Starting source reader and send split request");
         sourceReaderContext.sendSplitRequest();
-        System.out.println("Starting Source Reader");
     }
 
-    protected abstract boolean isAutoAck();
+    // ------------- start rabbitmq methods  --------------
 
-    protected void setupRabbitMQ() {
+    private void setupRabbitMQ() {
         try {
-            rmqConnection = setupConnection();
-            rmqChannel = setupChannel(rmqConnection);
+            setupConnection();
+            setupChannel();
             LOG.info(
                     "RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
         } catch (Exception e) {
@@ -69,36 +74,40 @@ public abstract class RabbitMQSourceReaderBase<T>
         }
     }
 
+    private ConnectionFactory setupConnectionFactory() throws Exception {
+        return split.getConnectionConfig().getConnectionFactory();
+    }
+
+    private void setupConnection() throws Exception {
+        rmqConnection = setupConnectionFactory().newConnection();
+    }
+
+    /**
+     *
+     * @return boolean whether messages should be automatically acknowledged to rabbitmq.
+     */
+    protected abstract boolean isAutoAck();
+
     /**
      * This function will be called when a new message from rabbitmq gets pushed to the source. The
-     * message will be deserialized and forwarded to our message collector where it's buffered until
+     * message will be deserialized and forwarded to our message collector where is buffered until
      * it can be processed.
      *
-     * @param consumerTag
-     * @param delivery
-     * @throws IOException
+     * @param consumerTag The consumer tag of the message.
+     * @param delivery The delivery from rabbitmq.
+     * @throws IOException if something fails during deserialization.
      */
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
             throws IOException {
         AMQP.BasicProperties properties = delivery.getProperties();
         byte[] body = delivery.getBody();
         Envelope envelope = delivery.getEnvelope();
-        collector.setFallBackIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
+        collector.setMessageIdentifiers(properties.getCorrelationId(), envelope.getDeliveryTag());
         deliveryDeserializer.deserialize(body, collector);
     }
 
-    protected void handleMessagePolled(Message<T> message) {}
-
-    protected ConnectionFactory setupConnectionFactory() throws Exception {
-        return split.getConnectionConfig().getConnectionFactory();
-    }
-
-    protected Connection setupConnection() throws Exception {
-        return setupConnectionFactory().newConnection();
-    }
-
-    protected Channel setupChannel(Connection rmqConnection) throws IOException {
-        final Channel rmqChannel = rmqConnection.createChannel();
+    protected void setupChannel() throws IOException {
+        rmqChannel = rmqConnection.createChannel();
         rmqChannel.queueDeclare(split.getQueueName(), true, false, false, null);
 
         // Set maximum of unacknowledged messages
@@ -110,12 +119,20 @@ public abstract class RabbitMQSourceReaderBase<T>
         final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
         rmqChannel.basicConsume(
                 split.getQueueName(), isAutoAck(), deliverCallback, consumerTag -> {});
-        return rmqChannel;
     }
+
+    // ------------- end rabbitmq methods  --------------
+
+    /**
+     * This method provides a hook that is called when a message gets polled by the output.
+     *
+     * @param message the message that was polled by the output.
+     */
+    protected void handleMessagePolled(RabbitMQMessageWrapper<T> message) {}
 
     @Override
     public InputStatus pollNext(ReaderOutput<T> output) {
-        Message<T> message = collector.pollMessage();
+        RabbitMQMessageWrapper<T> message = collector.pollMessage();
 
         if (message == null) {
             return InputStatus.NOTHING_AVAILABLE;
@@ -130,8 +147,8 @@ public abstract class RabbitMQSourceReaderBase<T>
     }
 
     @Override
-    public List<RabbitMQPartitionSplit> snapshotState(long checkpointId) {
-        return split != null ? Collections.singletonList(split.clone()) : new ArrayList<>();
+    public List<RabbitMQSourceSplit> snapshotState(long checkpointId) {
+        return split != null ? Collections.singletonList(split.copy()) : new ArrayList<>();
     }
 
     @Override
@@ -139,34 +156,42 @@ public abstract class RabbitMQSourceReaderBase<T>
         return FutureCompletingBlockingQueue.AVAILABLE;
     }
 
+    /**
+     * Assign the split from the enumerator. If the source reader already has a split nothing
+     * happens. After the split is assigned, the connection to rabbitmq can be setup.
+     *
+     * @param list RabbitMQSourceSplits with only one element.
+     * @see RabbitMQSourceEnumerator
+     * @see RabbitMQSourceSplit
+     */
     @Override
-    public void addSplits(List<RabbitMQPartitionSplit> list) {
+    public void addSplits(List<RabbitMQSourceSplit> list) {
+        if (split != null) {
+            return;
+        }
         assert list.size() == 1;
         split = list.get(0);
         setupRabbitMQ();
     }
 
     @Override
-    public void notifyNoMoreSplits() {
-        System.out.println("No more splits");
-        try {
-            close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    public void notifyNoMoreSplits() {}
 
     @Override
-    public void handleSourceEvents(SourceEvent sourceEvent) {
-        System.out.println("Source Event");
-    }
+    public void handleSourceEvents(SourceEvent sourceEvent) {}
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) {}
 
-    protected void acknowledgeMessageIds(List<Long> sessionIds) {
+    /**
+     * Acknowledge a list of message ids in the rabbitmq channel.
+     *
+     * @param messageIds ids that will be acknowledged.
+     * @throws RuntimeException if an error occurs during the acknowledgement.
+     */
+    protected void acknowledgeMessageIds(List<Long> messageIds) {
         try {
-            for (long id : sessionIds) {
+            for (long id : messageIds) {
                 rmqChannel.basicAck(id, false);
             }
         } catch (IOException e) {
@@ -175,18 +200,12 @@ public abstract class RabbitMQSourceReaderBase<T>
         }
     }
 
-    protected void acknowledgeMessageId(long id) {
-        acknowledgeMessageIds(Collections.singletonList(id));
-    }
-
     @Override
-    public void notifyCheckpointAborted(long checkpointId) {
-        System.out.println("Checkpoint Aborted");
-    }
+    public void notifyCheckpointAborted(long checkpointId) {}
 
     @Override
     public void close() throws Exception {
-        System.out.println("CLOSE READER");
+        LOG.info("Close source reader");
         if (getSplit() == null) {
             return;
         }
@@ -197,7 +216,7 @@ public abstract class RabbitMQSourceReaderBase<T>
             }
         } catch (IOException e) {
             throw new RuntimeException(
-                    "Error while closing RMQ channel with "
+                    "Error while closing RMQ channel with %s"
                             + split.getQueueName()
                             + " at "
                             + getSplit().getConnectionConfig().getHost(),
@@ -222,7 +241,7 @@ public abstract class RabbitMQSourceReaderBase<T>
         return rmqChannel;
     }
 
-    protected RabbitMQPartitionSplit getSplit() {
+    protected RabbitMQSourceSplit getSplit() {
         return split;
     }
 }
