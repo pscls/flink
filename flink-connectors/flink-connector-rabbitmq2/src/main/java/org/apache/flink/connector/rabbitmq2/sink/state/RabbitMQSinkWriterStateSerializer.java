@@ -15,9 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Serializer for a {@link RabbitMQSinkWriterState} used for at-least and exactly-once behaviour
- * of the sink.
- **/
+ * Serializer for a {@link RabbitMQSinkWriterState} used for at-least and exactly-once behaviour of
+ * the sink.
+ */
 public class RabbitMQSinkWriterStateSerializer<T>
         implements SimpleVersionedSerializer<RabbitMQSinkWriterState<T>> {
     private final DeserializationSchema<T> deserializationSchema;
@@ -62,9 +62,9 @@ public class RabbitMQSinkWriterStateSerializer<T>
     }
 
     /**
-     * Deserializes {@link SinkMessage} objects that wrap the byte representation of a message
-     * that needs to be delivered to RabbitMQ as well as the original object representation
-     * if a deserialization schema is provided.
+     * Deserializes {@link SinkMessage} objects that wrap the byte representation of a message that
+     * needs to be delivered to RabbitMQ as well as the original object representation if a
+     * deserialization schema is provided.
      *
      * @param i
      * @param bytes Serialized outstanding sink messages
@@ -84,7 +84,8 @@ public class RabbitMQSinkWriterStateSerializer<T>
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
             int retries = in.readInt();
-            // in this case, the messages need to be deserialized again, so we can recompute publish options
+            // in this case, the messages need to be deserialized again, so we can recompute publish
+            // options
             if (deserializationSchema != null) {
                 messages.add(
                         new SinkMessage<>(

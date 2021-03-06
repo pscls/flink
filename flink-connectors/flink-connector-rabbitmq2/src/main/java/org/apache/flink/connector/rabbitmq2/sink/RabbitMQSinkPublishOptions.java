@@ -6,11 +6,11 @@ import org.apache.flink.streaming.connectors.rabbitmq.RMQSinkPublishOptions;
 import java.util.Optional;
 
 /**
- * Extends sink publish options by providing a deserialization schema for deserializing
- * the serialized messages sent to RabbitMQ by the SinkWriter.
- * This is necessary if at-least or exactly-once is required:
- * On initialization of a SinkWriter after a failure, buffered messages need to be resend.
- * To recompute exchange/routing, the message in its deserialized form is required.
+ * Extends sink publish options by providing a deserialization schema for deserializing the
+ * serialized messages sent to RabbitMQ by the SinkWriter. This is necessary if at-least or
+ * exactly-once is required: On initialization of a SinkWriter after a failure, buffered messages
+ * need to be resend. To recompute exchange/routing, the message in its deserialized form is
+ * required.
  *
  * @see RMQSinkPublishOptions
  */
