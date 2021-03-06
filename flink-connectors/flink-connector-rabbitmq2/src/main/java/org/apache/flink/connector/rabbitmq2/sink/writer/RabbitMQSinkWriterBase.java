@@ -5,6 +5,7 @@ import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.*;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
@@ -24,7 +25,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
-/** TODO. */
+/**
+ * RabbitMQSinkWriterBase is the common abstract class of {@link RabbitMQSinkWriterAtMostOnce}
+ * {@link RabbitMQSinkWriterAtLeastOnce} and {@link RabbitMQSinkWriterExactlyOnce}
+ *
+ * <p>
+ * It provides basic functionality and common behaviour such as establishing and
+ * closing a connection via the {@code connectionConfig} and methods for serializing
+ * and sending messages to RabbitMQ (with or without publish options).
+ * </p>
+ * @param <T> Type of the elements in this sink.
+ * */
 public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
     protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
@@ -68,6 +79,11 @@ public abstract class RabbitMQSinkWriterBase<T>
         send(message.getMessage(), message.getBytes());
     }
 
+    /**
+     *
+     * @param msg
+     * @param value
+     */
     protected void send(T msg, byte[] value) {
         try {
             if (publishOptions == null) {
@@ -96,6 +112,12 @@ public abstract class RabbitMQSinkWriterBase<T>
         }
     }
 
+    /**
+     * Receive the next stream element and publish it to RabbitMQ.
+     *
+     * @param element element from upstream flink task
+     * @param context context of this sink writer
+     */
     @Override
     public void write(T element, Context context) {
         send(new SinkMessage<>(element, serializationSchema.serialize(element)));
@@ -105,8 +127,8 @@ public abstract class RabbitMQSinkWriterBase<T>
         try {
             rmqConnection = setupConnection();
             rmqChannel = setupChannel(rmqConnection);
-            LOG.info(
-                    "RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
+            LOG.info("RabbitMQ Connection was successful: " +
+                    "Waiting for messages from the queue. To exit press CTRL+C");
         } catch (IOException | TimeoutException e) {
             LOG.error(e.getMessage());
         }
@@ -137,6 +159,7 @@ public abstract class RabbitMQSinkWriterBase<T>
 
     @Override
     public void close() throws Exception {
+        // close the channel
         try {
             if (rmqChannel != null) {
                 rmqChannel.close();
@@ -149,7 +172,7 @@ public abstract class RabbitMQSinkWriterBase<T>
                             + connectionConfig.getHost(),
                     e);
         }
-
+        // close the connection
         try {
             if (rmqConnection != null) {
                 rmqConnection.close();
