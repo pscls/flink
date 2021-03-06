@@ -1,4 +1,4 @@
-package org.apache.flink.connector.rabbitmq2.source.common;
+package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -26,33 +26,32 @@ public class RabbitMQContainerClient {
     private Channel channel;
     private final Queue<byte[]> messages;
     private String queueName;
-    private final boolean withConsumer;
 
     public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer)
             throws IOException, TimeoutException {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
         this.container = container;
         this.messages = new LinkedList<>();
-        this.withConsumer = withConsumer;
     }
 
-    public RabbitMQContainerClient(RabbitMQContainer container)
-            throws IOException, TimeoutException {
-        this(container, true);
-    }
 
-    public void createQueue(String queueName) throws IOException, TimeoutException {
+    public void createQueue(String queueName, Boolean withConsumer) throws IOException, TimeoutException {
         this.queueName = queueName;
         Connection connection = getRabbitMQConnection();
         this.channel = connection.createChannel();
         channel.queueDeclare(queueName, true, false, false, null);
         if (withConsumer) {
+            messages.clear();
             final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
             channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {});
         }
     }
 
-    public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
+    public void createQueue(String queueName) throws IOException, TimeoutException {
+        createQueue(queueName, false);
+    }
+
+        public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
             throws IOException {
         for (T message : messages) {
             channel.basicPublish("", queueName, null, valueSerializer.serialize(message));
@@ -70,21 +69,17 @@ public class RabbitMQContainerClient {
 
     public <T> List<T> readMessages(DeserializationSchema<T> valueDeserializer) throws IOException {
         List<T> deserializedMessages = new ArrayList<>();
-        for (int i = 0; i < messages.size(); i++) {
+        while (!messages.isEmpty()) {
             T message = valueDeserializer.deserialize(messages.poll());
             deserializedMessages.add(message);
         }
-
         return deserializedMessages;
     }
 
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
             throws IOException {
-        //        AMQP.BasicProperties properties = delivery.getProperties();
-
         byte[] body = delivery.getBody();
         System.out.println("Received message: " + body);
-        //        Envelope envelope = delivery.getEnvelope();
         messages.add(body);
     }
 

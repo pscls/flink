@@ -1,10 +1,9 @@
-package org.apache.flink.connector.rabbitmq2.source.common;
+package org.apache.flink.connector.rabbitmq2.common;
 
-import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -59,11 +58,10 @@ public abstract class RabbitMQBaseTest {
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
     }
 
-    public DataStream<String> getSinkOn(
-            StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
-            throws IOException, TimeoutException {
+    public void addSinkOn(DataStream<String> stream, ConsistencyMode consistencyMode) throws IOException, TimeoutException {
         queueName = UUID.randomUUID().toString();
-        client.createQueue(queueName);
+        client.createQueue(queueName, true);
+
         final RMQConnectionConfig connectionConfig =
                 new RMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
@@ -73,15 +71,18 @@ public abstract class RabbitMQBaseTest {
                         .setPort(rabbitMq.getMappedPort(RABBITMQ_PORT))
                         .build();
 
-        RabbitMQSource<String> rabbitMQSource =
-                new RabbitMQSource<>(
-                        connectionConfig, queueName, new SimpleStringSchema(), consistencyMode);
+        RabbitMQSink<String> sink =
+                RabbitMQSink.<String>builder()
+                        .setConnectionConfig(connectionConfig)
+                        .setQueueName(queueName)
+                        .setSerializationSchema(new SimpleStringSchema())
+                        .setConsistencyMode(consistencyMode)
+                        .build();
+        stream.sinkTo(sink).setParallelism(1);
+    }
 
-        final DataStream<String> stream =
-                env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
-                        .setParallelism(1);
-
-        return stream;
+    public List<String> getMessageFromRabbit() throws IOException {
+        return client.readMessages(new SimpleStringSchema());
     }
 
     public void sendToRabbit(List<String> messages) throws IOException, InterruptedException {

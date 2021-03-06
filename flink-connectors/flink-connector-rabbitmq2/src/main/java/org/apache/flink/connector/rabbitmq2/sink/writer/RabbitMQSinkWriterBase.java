@@ -5,7 +5,6 @@ import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
-import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.FlinkRuntimeException;
@@ -20,6 +19,9 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
@@ -27,7 +29,7 @@ import java.util.concurrent.TimeoutException;
 /** TODO. */
 public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
-    protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSourceReaderBase.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterBase.class);
 
     protected final RMQConnectionConfig connectionConfig;
     protected final String queueName;
@@ -107,15 +109,13 @@ public abstract class RabbitMQSinkWriterBase<T>
             rmqChannel = setupChannel(rmqConnection);
             LOG.info(
                     "RabbitMQ Connection was successful: Waiting for messages from the queue. To exit press CTRL+C");
-        } catch (IOException | TimeoutException e) {
+        } catch (Exception e) {
             LOG.error(e.getMessage());
         }
     }
 
-    protected Connection setupConnection() throws IOException, TimeoutException {
-        final ConnectionFactory connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost(connectionConfig.getHost());
-        return connectionFactory.newConnection();
+    protected Connection setupConnection() throws Exception {
+        return connectionConfig.getConnectionFactory().newConnection();
     }
 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {

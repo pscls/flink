@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /** TODO. */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
@@ -57,11 +58,13 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public void write(T element, Context context) {
+        System.out.println("Write: " + element);
         messages.add(new SinkMessage<>(element, serializationSchema.serialize(element)));
     }
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
+        System.out.println("Snapshot State");
         commitMessages();
         return Collections.singletonList(new RabbitMQSinkWriterState<>(messages));
     }
@@ -69,7 +72,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     private void commitMessages() {
         List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
         messages.subList(0, messagesToSend.size()).clear();
-
+        System.out.println("Commit: " + messagesToSend);
         try {
             for (SinkMessage<T> msg : messagesToSend) {
                 super.send(msg);
