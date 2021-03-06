@@ -3,17 +3,16 @@ package org.apache.flink.connector.rabbitmq2.sink;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.*;
 
 /**
- * A wrapper class for messages that need to be persisted in the state of a
- * {@link RabbitMQSinkWriterAtLeastOnce} or {@link RabbitMQSinkWriterExactlyOnce}.
+ * A wrapper class for messages that need to be persisted in the state of a {@link
+ * RabbitMQSinkWriterAtLeastOnce} or {@link RabbitMQSinkWriterExactlyOnce}.
  *
- * <p>
- * It holds the message in its serialized format which gets sent to RabbitMQ.
- * In the case of publish options being present and checkpointing modes of at-least-once
- * or exactly-once the original message needs to be stored as well because it is needed
- * for recomputing the exchange/routing key from the message content.
- * <p>
- * In the case of at-least-once the retries are increased each time a specific SinkMessage gets resent.
- * </p>
+ * <p>It holds the message in its serialized format which gets sent to RabbitMQ. In the case of
+ * publish options being present and checkpointing modes of at-least-once or exactly-once the
+ * original message needs to be stored as well because it is needed for recomputing the
+ * exchange/routing key from the message content.
+ *
+ * <p>In the case of at-least-once the retries are increased each time a specific SinkMessage gets
+ * resent.
  */
 public class SinkMessage<T> {
     private T message;

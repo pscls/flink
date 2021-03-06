@@ -9,7 +9,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 
@@ -52,10 +51,12 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
         env.enableCheckpointing(100);
         DataStream<String> stream = env.fromCollection(messages);
         shouldFail = true;
-        DataStream<String> stream2 = stream.map(m -> {
-            TimeUnit.SECONDS.sleep(1);
-            return m;
-        });
+        DataStream<String> stream2 =
+                stream.map(
+                        m -> {
+                            TimeUnit.SECONDS.sleep(1);
+                            return m;
+                        });
         addSinkOn(stream2, ConsistencyMode.EXACTLY_ONCE);
 
         env.execute();

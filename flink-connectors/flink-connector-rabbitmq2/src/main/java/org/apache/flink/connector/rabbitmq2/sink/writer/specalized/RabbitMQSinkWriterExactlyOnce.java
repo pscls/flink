@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /** TODO. */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
@@ -80,7 +79,10 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
             rmqChannel.txCommit();
             LOG.info("Successfully committed {} messages.", messagesToSend.size());
         } catch (IOException e) {
-            LOG.error("Error during commit of {} messages. Rollback Messages. Error: {}", messagesToSend.size(), e.getMessage());
+            LOG.error(
+                    "Error during commit of {} messages. Rollback Messages. Error: {}",
+                    messagesToSend.size(),
+                    e.getMessage());
             messages.addAll(0, messagesToSend);
             e.printStackTrace();
         }

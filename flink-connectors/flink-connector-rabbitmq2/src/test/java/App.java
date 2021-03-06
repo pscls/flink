@@ -1,20 +1,21 @@
-//import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-//import org.apache.flink.api.common.serialization.SimpleStringSchema;
-//import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-//import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
-//import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
-//import org.apache.flink.streaming.api.datastream.DataStream;
-//import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-//import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+// import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+// import org.apache.flink.api.common.serialization.SimpleStringSchema;
+// import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+// import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
+// import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
+// import org.apache.flink.streaming.api.datastream.DataStream;
+// import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+// import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 //
-//import org.apache.log4j.PropertyConfigurator;
+// import org.apache.log4j.PropertyConfigurator;
 //
-///** TODO. */
-//public class App {
+/// ** TODO. */
+// public class App {
 //    public static void main(String[] args) throws Exception {
 //        System.out.println("Starting");
 //
-//        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+//        final StreamExecutionEnvironment env =
+// StreamExecutionEnvironment.getExecutionEnvironment();
 //        PropertyConfigurator.configure("log4j.properties");
 //
 //        //        final Configuration conf = new Configuration();
@@ -93,8 +94,9 @@
 //                        .setConsistencyMode(mode)
 //                        .setMinimalResendInterval(9L)
 //                        .build();
-//        stream.sinkTo(sink).setParallelism(2); // serialization schema to turn Java objects to messages
+//        stream.sinkTo(sink).setParallelism(2); // serialization schema to turn Java objects to
+// messages
 //
 //        env.execute("RabbitMQ");
 //    }
-//}
+// }

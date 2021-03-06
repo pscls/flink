@@ -106,7 +106,11 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         ConfirmCallback nackedConfirms =
                 (sequenceNumber, multiple) -> {
                     SinkMessage<T> message = outstandingConfirms.get(sequenceNumber);
-                    LOG.error("Message with body {} has been nack-ed. Sequence number: {}, multiple: {}", message.getMessage(), sequenceNumber, multiple);
+                    LOG.error(
+                            "Message with body {} has been nack-ed. Sequence number: {}, multiple: {}",
+                            message.getMessage(),
+                            sequenceNumber,
+                            multiple);
                 };
 
         channel.addConfirmListener(cleanOutstandingConfirms, nackedConfirms);

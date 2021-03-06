@@ -58,7 +58,8 @@ public abstract class RabbitMQBaseTest {
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
     }
 
-    public void addSinkOn(DataStream<String> stream, ConsistencyMode consistencyMode) throws IOException, TimeoutException {
+    public void addSinkOn(DataStream<String> stream, ConsistencyMode consistencyMode)
+            throws IOException, TimeoutException {
         queueName = UUID.randomUUID().toString();
         client.createQueue(queueName, true);
 

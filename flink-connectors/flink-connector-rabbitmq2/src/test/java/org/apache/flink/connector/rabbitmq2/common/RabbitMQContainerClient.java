@@ -34,8 +34,8 @@ public class RabbitMQContainerClient {
         this.messages = new LinkedList<>();
     }
 
-
-    public void createQueue(String queueName, Boolean withConsumer) throws IOException, TimeoutException {
+    public void createQueue(String queueName, Boolean withConsumer)
+            throws IOException, TimeoutException {
         this.queueName = queueName;
         Connection connection = getRabbitMQConnection();
         this.channel = connection.createChannel();
@@ -51,7 +51,7 @@ public class RabbitMQContainerClient {
         createQueue(queueName, false);
     }
 
-        public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
+    public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
             throws IOException {
         for (T message : messages) {
             channel.basicPublish("", queueName, null, valueSerializer.serialize(message));
