@@ -127,11 +127,11 @@ public class RabbitMQSinkBuilder<T> {
     }
 
     /**
-     * Only relevant for at-least-once and exactly-once behaviour.
+     * Only relevant for at-least-once.
      *
      * <p>Set the minimal time interval in milliseconds after which each message is resent if no
      * acknowledgement arrived from RabbitMQ. Because the sink resends messages on checkpoints, this
-     * prevents the sink from resending messages directly after the first time they are send.
+     * prevents the sink from resending messages immediately if the checkpoint interval is too small.
      *
      * @param minimalResendIntervalMilliseconds the minimal interval to resend messages in ms
      * @return this builder
