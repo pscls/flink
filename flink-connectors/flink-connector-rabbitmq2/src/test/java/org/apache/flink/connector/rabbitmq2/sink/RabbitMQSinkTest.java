@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class RabbitMQSinkTest extends RabbitMQBaseTest {
 
@@ -46,7 +47,52 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
     }
 
     @Test
+    public void simpleAtLeastOnceWithFlinkFailureTest() throws Exception {
+        List<String> messages = Arrays.asList("1", "2", "3", "4", "5");
+
+        DataStream<String> stream = env.fromCollection(messages);
+        shouldFail = true;
+        DataStream<String> stream2 =
+                stream.map(
+                        m -> {
+                            if (m.equals("3") && shouldFail) {
+                                shouldFail = false;
+                                throw new Exception("Supposed to be thrown.");
+                            }
+                            return m;
+                        });
+        addSinkOn(stream2, ConsistencyMode.AT_LEAST_ONCE);
+        env.execute();
+
+        TimeUnit.SECONDS.sleep(3);
+
+        List<String> receivedMessages = getMessageFromRabbit();
+
+        assertTrue(receivedMessages.containsAll(messages));
+    }
+
+    @Test
     public void simpleExactlyOnceTest() throws Exception {
+        List<String> messages = Arrays.asList("1", "2", "3", "4", "5");
+        env.enableCheckpointing(100);
+        DataStream<String> stream = env.fromCollection(messages);
+        DataStream<String> stream2 =
+                stream.map(
+                        m -> {
+                            TimeUnit.SECONDS.sleep(1);
+                            return m;
+                        });
+        addSinkOn(stream2, ConsistencyMode.EXACTLY_ONCE);
+
+        env.execute();
+
+        TimeUnit.SECONDS.sleep(3);
+        List<String> receivedMessages = getMessageFromRabbit();
+        assertEquals(messages, receivedMessages);
+    }
+
+    @Test
+    public void simpleExactlyOnceWithFlinkFailureTest() throws Exception {
         List<String> messages = Arrays.asList("1", "2", "3", "4", "5");
         env.enableCheckpointing(100);
         DataStream<String> stream = env.fromCollection(messages);
@@ -55,6 +101,10 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
                 stream.map(
                         m -> {
                             TimeUnit.SECONDS.sleep(1);
+                            if (messages.equals("3") && shouldFail) {
+                                shouldFail = false;
+                                throw new Exception("Supposed to be thrown.");
+                            }
                             return m;
                         });
         addSinkOn(stream2, ConsistencyMode.EXACTLY_ONCE);
