@@ -64,7 +64,12 @@ public abstract class RabbitMQSinkWriterBase<T>
         setupRabbitMQ();
     }
 
-    // Only used by at-least-once and exactly-once
+    /**
+     * Only used by at-least-once and exactly-once for resending messages that could not be delivered.
+     * The retry count is incremented and an exception is thrown when the threshold is reached.
+     *
+     * @param message sink message containing some state like number of retries and message content
+     */
     protected void send(SinkMessage<T> message) {
         message.addRetries();
         if (message.getRetries() >= maxRetry) {
@@ -77,31 +82,34 @@ public abstract class RabbitMQSinkWriterBase<T>
     }
 
     /**
-     * @param msg
-     * @param value
+     * Publish a message to a queue in RabbitMQ.
+     * With publish options enabled, first compute the necessary publishing information.
+     *
+     * @param message original message, only required for publishing with publish options enabled
+     * @param serializedMessage serialized message to send to RabbitMQ
      */
-    protected void send(T msg, byte[] value) {
+    protected void send(T message, byte[] serializedMessage) {
         try {
             if (publishOptions == null) {
-                rmqChannel.basicPublish("", queueName, null, value);
+                rmqChannel.basicPublish("", queueName, null, serializedMessage);
             } else {
-                boolean mandatory = publishOptions.computeMandatory(msg);
-                boolean immediate = publishOptions.computeImmediate(msg);
+                boolean mandatory = publishOptions.computeMandatory(message);
+                boolean immediate = publishOptions.computeImmediate(message);
 
                 Preconditions.checkState(
                         !(returnListener == null && (mandatory || immediate)),
                         "Setting mandatory and/or immediate flags to true requires a ReturnListener.");
 
-                String rk = publishOptions.computeRoutingKey(msg);
-                String exchange = publishOptions.computeExchange(msg);
+                String rk = publishOptions.computeRoutingKey(message);
+                String exchange = publishOptions.computeExchange(message);
 
                 rmqChannel.basicPublish(
                         exchange,
                         rk,
                         mandatory,
                         immediate,
-                        publishOptions.computeProperties(msg),
-                        value);
+                        publishOptions.computeProperties(message),
+                        serializedMessage);
             }
         } catch (IOException e) {
             throw new FlinkRuntimeException(e.getMessage());
