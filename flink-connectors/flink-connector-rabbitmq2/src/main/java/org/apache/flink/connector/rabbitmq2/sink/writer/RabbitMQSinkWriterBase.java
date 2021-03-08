@@ -44,9 +44,11 @@ public abstract class RabbitMQSinkWriterBase<T>
     protected final SerializationSchema<T> serializationSchema;
     protected final int maxRetry;
 
-    @Nullable private final RabbitMQSinkPublishOptions<T> publishOptions;
+    @Nullable
+    private final RabbitMQSinkPublishOptions<T> publishOptions;
 
-    @Nullable private final SerializableReturnListener returnListener;
+    @Nullable
+    private final SerializableReturnListener returnListener;
 
     public RabbitMQSinkWriterBase(
             RMQConnectionConfig connectionConfig,
@@ -85,7 +87,7 @@ public abstract class RabbitMQSinkWriterBase<T>
      * Publish a message to a queue in RabbitMQ.
      * With publish options enabled, first compute the necessary publishing information.
      *
-     * @param message original message, only required for publishing with publish options enabled
+     * @param message original message, only required for publishing with publish options present
      * @param serializedMessage serialized message to send to RabbitMQ
      */
     protected void send(T message, byte[] serializedMessage) {
@@ -93,27 +95,31 @@ public abstract class RabbitMQSinkWriterBase<T>
             if (publishOptions == null) {
                 rmqChannel.basicPublish("", queueName, null, serializedMessage);
             } else {
-                boolean mandatory = publishOptions.computeMandatory(message);
-                boolean immediate = publishOptions.computeImmediate(message);
-
-                Preconditions.checkState(
-                        !(returnListener == null && (mandatory || immediate)),
-                        "Setting mandatory and/or immediate flags to true requires a ReturnListener.");
-
-                String rk = publishOptions.computeRoutingKey(message);
-                String exchange = publishOptions.computeExchange(message);
-
-                rmqChannel.basicPublish(
-                        exchange,
-                        rk,
-                        mandatory,
-                        immediate,
-                        publishOptions.computeProperties(message),
-                        serializedMessage);
+                publishWithOptions(message, serializedMessage);
             }
         } catch (IOException e) {
             throw new FlinkRuntimeException(e.getMessage());
         }
+    }
+
+    private void publishWithOptions(T message, byte[] serializedMessage) throws IOException {
+        boolean mandatory = publishOptions.computeMandatory(message);
+        boolean immediate = publishOptions.computeImmediate(message);
+
+        Preconditions.checkState(
+                !(returnListener == null && (mandatory || immediate)),
+                "Setting mandatory and/or immediate flags to true requires a ReturnListener.");
+
+        String rk = publishOptions.computeRoutingKey(message);
+        String exchange = publishOptions.computeExchange(message);
+
+        rmqChannel.basicPublish(
+                exchange,
+                rk,
+                mandatory,
+                immediate,
+                publishOptions.computeProperties(message),
+                serializedMessage);
     }
 
     /**

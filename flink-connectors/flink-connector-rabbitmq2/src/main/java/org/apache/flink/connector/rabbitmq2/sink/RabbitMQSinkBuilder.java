@@ -8,7 +8,9 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
 /**
  * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in
  * {@link ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig}
- * and a {@code serializationSchema}
+ * and a {@code serializationSchema}.
+ * Optional parameters include {@code publishOptions}, a {@code minimalResendIntervalMilliseconds}
+ * (for at-least-once), {@code maxRetry} threshold for resending behaviour and a {@code returnListener}.
  *
  * <pre>
  *  RabbitMQSink
@@ -20,10 +22,6 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
  *    .setMinimalResendInterval(10L)
  *    .build();
  * </pre>
- *
- * ======= A Builder for the RabbitMQSink. Available consistency modes are contained in {@link
- * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and a
- * {@code serializationSchema}
  */
 public class RabbitMQSinkBuilder<T> {
 
@@ -41,6 +39,11 @@ public class RabbitMQSinkBuilder<T> {
         this.maxRetry = RabbitMQSink.DEFAULT_MAX_RETRY;
     }
 
+    /**
+     * Builds the sink instance.
+     *
+     * @return new Sink instance that has the specified configuration
+     */
     public RabbitMQSink<T> build() {
         return new RabbitMQSink<>(
                 connectionConfig,

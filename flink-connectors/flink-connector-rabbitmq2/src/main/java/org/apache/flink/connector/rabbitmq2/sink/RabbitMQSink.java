@@ -36,13 +36,15 @@ import java.util.Optional;
  * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added to
  * route messages in RabbitMQ.
  *
- * <p>If at-least-once is required, an optional number of @{code maxRetry} retries can be specified
+ * <p>If at-least-once is required, an optional number of {@code maxRetry} retries can be specified
  * until a failure is triggered. Generally, messages are buffered until an acknowledgement arrives
  * because delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be
  * resent to RabbitMQ. If the checkpointing interval is set low or a high frequency of resending is
  * not desired, the {@code minimalResendIntervalMilliseconds} can be specified to prevent the sink
  * from resending data that has just arrived. In case of a failure, all unacknowledged messages can
- * be restored and resend. In the case of exactly-once a transactional RabbitMQ channel is used to
+ * be restored and resend.
+ *
+ * <p>In the case of exactly-once a transactional RabbitMQ channel is used to
  * achieve that all messages within a checkpoint are delivered once and only once. All messages that
  * arrive in a checkpoint interval are buffered and sent to RabbitMQ in a single transaction when
  * the checkpoint is triggered. If the transaction fails, all messages that were a part of the
@@ -117,6 +119,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
      *
      * @param context The initialization context of the Sink
      * @param states A list of states to initialize the writer with
+     *
      * @return The SinkWriter implementation depending on the consistency mode set by the user
      */
     @Override
@@ -129,8 +132,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         queueName,
                         serializationSchema,
                         publishOptions,
-                        returnListener,
-                        states);
+                        returnListener);
             case AT_LEAST_ONCE:
                 return new RabbitMQSinkWriterAtLeastOnce<>(
                         connectionConfig,
@@ -176,14 +178,16 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
 
     /**
      * If publish options are specified and the sink writer has state (at-least-once or
-     * exactly-once) we need to provide the deserialization schema for the state serializer.
+     * exactly-once) the deserialization schema for the messages need to be provided
+     * for the state serializer.
      *
      * @return The serializer for the state of the SinkWriter
+     *
      * @see RabbitMQSinkWriterStateSerializer
      */
     @Override
     public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>>
-            getWriterStateSerializer() {
+    getWriterStateSerializer() {
         if (publishOptions != null && publishOptions.getDeserializationSchema().isPresent()) {
             return Optional.of(
                     new RabbitMQSinkWriterStateSerializer<>(
