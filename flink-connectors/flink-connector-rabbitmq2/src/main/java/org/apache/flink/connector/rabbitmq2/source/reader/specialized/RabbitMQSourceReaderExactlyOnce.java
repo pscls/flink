@@ -38,7 +38,8 @@ import java.util.stream.Collectors;
  */
 public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase<T> {
     // Message that were polled by the output since the last checkpoint.
-    private final List<RabbitMQMessageWrapper<T>> polledAndUnacknowledgedMessagesSinceLastCheckpoint;
+    private final List<RabbitMQMessageWrapper<T>>
+            polledAndUnacknowledgedMessagesSinceLastCheckpoint;
     //
     private final Deque<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>>
             polledAndUnacknowledgedMessagesPerCheckpoint;
@@ -111,7 +112,8 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         Iterator<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>> checkpointIterator =
                 polledAndUnacknowledgedMessagesPerCheckpoint.iterator();
         while (checkpointIterator.hasNext()) {
-            final Tuple2<Long, List<RabbitMQMessageWrapper<T>>> nextCheckpoint = checkpointIterator.next();
+            final Tuple2<Long, List<RabbitMQMessageWrapper<T>>> nextCheckpoint =
+                    checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
                 acknowledgeMessages(nextCheckpoint.f1);
@@ -129,12 +131,16 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
     private void acknowledgeMessages(List<RabbitMQMessageWrapper<T>> messages) {
         List<String> correlationIds =
-                messages.stream().map(RabbitMQMessageWrapper::getCorrelationId).collect(Collectors.toList());
+                messages.stream()
+                        .map(RabbitMQMessageWrapper::getCorrelationId)
+                        .collect(Collectors.toList());
         this.correlationIds.removeAll(correlationIds);
 
         try {
             List<Long> deliveryTags =
-                    messages.stream().map(RabbitMQMessageWrapper::getDeliveryTag).collect(Collectors.toList());
+                    messages.stream()
+                            .map(RabbitMQMessageWrapper::getDeliveryTag)
+                            .collect(Collectors.toList());
             acknowledgeMessageIds(deliveryTags);
             getRmqChannel().txCommit();
             LOG.info("Successfully acknowledged " + deliveryTags.size() + " messages.");

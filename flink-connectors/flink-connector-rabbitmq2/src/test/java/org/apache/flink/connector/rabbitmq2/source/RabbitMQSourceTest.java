@@ -2,7 +2,7 @@ package org.apache.flink.connector.rabbitmq2.source;
 
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQBaseTest;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQBaseTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -14,11 +14,16 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * The tests for the rabbitmq source with different consistency modes. As the tests are working a
+ * lot with timeouts to uphold stream it is possible that tests might fail.
+ */
 public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
-    // at-most-once
+    // --------------- at most once ---------------
     @Test
     public void simpleAtMostOnceTest() throws Exception {
+        // Test whether at-most-once is working correctly.
         DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_MOST_ONCE);
         addCollectorSink(stream);
         env.executeAsync();
@@ -27,13 +32,14 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         sendToRabbit(messages);
 
         assertEquals(
-                CollectionUtils.getCardinalityMap(getCollectedSinkMessages()),
-                CollectionUtils.getCardinalityMap(messages));
+                CollectionUtils.getCardinalityMap(messages),
+                CollectionUtils.getCardinalityMap(getCollectedSinkMessages()));
     }
 
-    // at-least-once
+    // --------------- at least once ---------------
     @Test
     public void simpleAtLeastOnceTest() throws Exception {
+        // Test whether at-least-once is working correctly.
         DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_LEAST_ONCE);
         addCollectorSink(stream);
         env.executeAsync();
@@ -46,28 +52,32 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
                 CollectionUtils.getCardinalityMap(getCollectedSinkMessages()));
     }
 
+    // Needs to be static so it can be accessed by the MapFunction.
     static boolean shouldFail = true;
 
     @Test
     public void simpleAtLeastOnceFailureTest() throws Exception {
+        // An exception is thrown in the MapFunction in order to trigger a restart of Flink and it
+        // is assured that the source receives the messages again.
         DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_LEAST_ONCE);
 
         List<String> messages = getSequentialMessages(5);
 
         shouldFail = true;
 
-        DataStream<String> outstream =
+        DataStream<String> outStream =
                 stream.map(
                                 (MapFunction<String, String>)
                                         message -> {
                                             if (message.equals("Message 2") && shouldFail) {
                                                 shouldFail = false;
-                                                throw new Exception();
+                                                throw new Exception(
+                                                        "This is supposed to be thrown.");
                                             }
                                             return message;
                                         })
                         .setParallelism(1);
-        outstream.addSink(new CollectSink());
+        outStream.addSink(new CollectSink());
 
         env.executeAsync();
 
@@ -76,9 +86,10 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
         assertTrue(collectedMessages.containsAll(messages));
     }
 
-    // exactly-once
+    // --------------- exactly once ---------------
     @Test
     public void simpleFilterCorrelationIdsTest() throws Exception {
+        // Test whether exactly-once is working correctly and filters correlation ids.
         env.enableCheckpointing(5000);
         DataStream<String> stream = getSinkOn(env, ConsistencyMode.EXACTLY_ONCE);
         addCollectorSink(stream);
@@ -95,94 +106,34 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
     @Test
     public void exactlyOnceWithFailure() throws Exception {
-        env.enableCheckpointing(1000);
+        // An exception is thrown in the MapFunction in order to trigger a restart of Flink and it
+        // is assured that the system receives the messages only once.
         DataStream<String> stream = getSinkOn(env, ConsistencyMode.EXACTLY_ONCE);
 
         List<String> messages = getSequentialMessages(5);
         List<String> correlationIds = Arrays.asList("0", "1", "2", "3", "4");
 
         shouldFail = true;
-        DataStream<String> outstream =
+        DataStream<String> outStream =
                 stream.map(
                                 (MapFunction<String, String>)
                                         message -> {
                                             if (message.equals("Message 2") && shouldFail) {
                                                 shouldFail = false;
-                                                CollectSink.VALUES.clear();
                                                 throw new Exception(
                                                         "This is supposed to be thrown.");
                                             }
                                             return message;
                                         })
                         .setParallelism(1);
-        outstream.addSink(new CollectSink());
+        outStream.addSink(new CollectSink());
 
         env.executeAsync();
 
         sendToRabbit(messages, correlationIds);
         List<String> collectedMessages = getCollectedSinkMessages();
-        assertEquals(messages, collectedMessages);
-    }
-
-    @Test
-    public void exactlyOnceWithFailureTestWithMessageDelay() throws Exception {
-        env.enableCheckpointing(500);
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.EXACTLY_ONCE);
-
-        List<String> messages = getSequentialMessages(5);
-        List<String> correlationIds = Arrays.asList("0", "1", "2", "3", "4");
-
-        shouldFail = true;
-        DataStream<String> outstream =
-                stream.map(
-                                (MapFunction<String, String>)
-                                        message -> {
-                                            if (message.equals("Message 2") && shouldFail) {
-                                                shouldFail = false;
-                                                throw new Exception(
-                                                        "This is supposed to be thrown.");
-                                            }
-                                            return message;
-                                        })
-                        .setParallelism(1);
-        outstream.addSink(new CollectSink());
-
-        env.executeAsync();
-
-        sendToRabbit(messages, correlationIds, 1000);
-        List<String> collectedMessages = getCollectedSinkMessages();
-        assertEquals(messages, collectedMessages);
-    }
-
-    @Test
-    public void exactlyOnceWithFailureLongCheckpointingExpectDuplications() throws Exception {
-        // For this test long checkpointing is equivalent to no checkpointing at all.
-        // Thus, we not enable checkpointing here on purpose.
-
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.EXACTLY_ONCE);
-
-        List<String> messages = getSequentialMessages(5);
-        List<String> correlationIds = Arrays.asList("1", "2", "3", "4", "5");
-
-        shouldFail = true;
-        DataStream<String> outstream =
-                stream.map(
-                                (MapFunction<String, String>)
-                                        message -> {
-                                            if (message.equals("Message 2") && shouldFail) {
-                                                shouldFail = false;
-                                                throw new Exception(
-                                                        "This is supposed to be thrown.");
-                                            }
-                                            return message;
-                                        })
-                        .setParallelism(1);
-        outstream.addSink(new CollectSink());
-
-        env.executeAsync();
-
-        sendToRabbit(messages, correlationIds);
-        List<String> collectedMessages = getCollectedSinkMessages();
+        // Add these messages that get received by the CollectSink but are not lost as they should
+        // be in a normal sink.
         messages.addAll(0, Arrays.asList("Message 0", "Message 1"));
         assertEquals(messages, collectedMessages);
     }

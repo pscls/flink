@@ -1,4 +1,4 @@
-package org.apache.flink.connector.rabbitmq2.source.common;
+package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.serialization.SerializationSchema;
@@ -19,7 +19,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeoutException;
 
-/** TODO. */
+/**
+ * This class provides a rabbitmq container client which allows creating queues, sending messages to
+ * rabbitmq and get the messages received by rabbitmq.
+ */
 public class RabbitMQContainerClient {
 
     private final RabbitMQContainer container;
@@ -28,16 +31,14 @@ public class RabbitMQContainerClient {
     private String queueName;
     private final boolean withConsumer;
 
-    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer)
-            throws IOException, TimeoutException {
+    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer) {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
         this.container = container;
         this.messages = new LinkedList<>();
         this.withConsumer = withConsumer;
     }
 
-    public RabbitMQContainerClient(RabbitMQContainer container)
-            throws IOException, TimeoutException {
+    public RabbitMQContainerClient(RabbitMQContainer container) {
         this(container, true);
     }
 
@@ -78,13 +79,8 @@ public class RabbitMQContainerClient {
         return deserializedMessages;
     }
 
-    protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
-            throws IOException {
-        //        AMQP.BasicProperties properties = delivery.getProperties();
-
+    protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) {
         byte[] body = delivery.getBody();
-        System.out.println("Received message: " + body);
-        //        Envelope envelope = delivery.getEnvelope();
         messages.add(body);
     }
 

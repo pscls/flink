@@ -82,10 +82,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
         rmqConnection = setupConnectionFactory().newConnection();
     }
 
-    /**
-     *
-     * @return boolean whether messages should be automatically acknowledged to rabbitmq.
-     */
+    /** @return boolean whether messages should be automatically acknowledged to rabbitmq. */
     protected abstract boolean isAutoAck();
 
     /**

@@ -8,8 +8,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The collector for the messages received from rabbitmq. Deserialized receive their identifiers
- * through {@link #setMessageIdentifiers(String, long)} before they are collected through
- * {@link #collect(Object)}. Messages can be polled in order to be processed by the output.
+ * through {@link #setMessageIdentifiers(String, long)} before they are collected through {@link
+ * #collect(Object)}. Messages can be polled in order to be processed by the output.
  *
  * @param <T> The output type of the source.
  * @see RabbitMQMessageWrapper
@@ -29,10 +29,7 @@ public class RabbitMQCollector<T> implements RMQDeserializationSchema.RMQCollect
         this(Integer.MAX_VALUE);
     }
 
-    /**
-     *
-     * @return boolean true if there are messages remaining in the collector.
-     */
+    /** @return boolean true if there are messages remaining in the collector. */
     public boolean hasUnpolledMessages() {
         return !unpolledMessageQueue.isEmpty();
     }

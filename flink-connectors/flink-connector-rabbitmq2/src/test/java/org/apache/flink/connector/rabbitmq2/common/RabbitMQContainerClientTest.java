@@ -1,7 +1,6 @@
-package org.apache.flink.connector.rabbitmq2.source;
+package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQContainerClient;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -24,10 +23,14 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.assertEquals;
 import static org.rnorth.visibleassertions.VisibleAssertions.assertTrue;
 
-/** TODO: Tests for GenericContainerRules. */
-public class TestcontainerAndClientTest {
+/**
+ * Tests for to assure the rabbitmq container client is working correctly.
+ *
+ * @see RabbitMQContainerClient
+ */
+public class RabbitMQContainerClientTest {
 
-    private static final String RABBIQMQ_TEST_EXCHANGE = "TestExchange";
+    private static final String RABBITMQ_TEST_EXCHANGE = "TestExchange";
     private static final String RABBITMQ_TEST_ROUTING_KEY = "TestRoutingKey";
     private static final String RABBITMQ_TEST_MESSAGE = "Hello world";
     private static final int RABBITMQ_PORT = 5672;
@@ -58,9 +61,9 @@ public class TestcontainerAndClientTest {
         Connection connection = factory.newConnection();
 
         Channel channel = connection.createChannel();
-        channel.exchangeDeclare(RABBIQMQ_TEST_EXCHANGE, "direct", true);
+        channel.exchangeDeclare(RABBITMQ_TEST_EXCHANGE, "direct", true);
         String queueName = channel.queueDeclare().getQueue();
-        channel.queueBind(queueName, RABBIQMQ_TEST_EXCHANGE, RABBITMQ_TEST_ROUTING_KEY);
+        channel.queueBind(queueName, RABBITMQ_TEST_EXCHANGE, RABBITMQ_TEST_ROUTING_KEY);
 
         // Set up a consumer on the queue
         final boolean[] messageWasReceived = new boolean[1];
@@ -73,8 +76,7 @@ public class TestcontainerAndClientTest {
                             String consumerTag,
                             Envelope envelope,
                             AMQP.BasicProperties properties,
-                            byte[] body)
-                            throws IOException {
+                            byte[] body) {
                         messageWasReceived[0] =
                                 Arrays.equals(body, RABBITMQ_TEST_MESSAGE.getBytes());
                     }
@@ -82,7 +84,7 @@ public class TestcontainerAndClientTest {
 
         // post a message
         channel.basicPublish(
-                RABBIQMQ_TEST_EXCHANGE,
+                RABBITMQ_TEST_EXCHANGE,
                 RABBITMQ_TEST_ROUTING_KEY,
                 null,
                 RABBITMQ_TEST_MESSAGE.getBytes());

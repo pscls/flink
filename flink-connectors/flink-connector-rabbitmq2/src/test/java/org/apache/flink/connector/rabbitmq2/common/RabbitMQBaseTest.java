@@ -1,4 +1,4 @@
-package org.apache.flink.connector.rabbitmq2.source.common;
+package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -25,11 +25,12 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/** TODO. */
+/**
+ * The base class for rabbitmq tests. It sets up a flink cluster and a docker image for rabbitmq. It
+ * provides behavior to easily add onto the stream, send message to rabbitmq and get the message in
+ * rabbitmq.
+ */
 public abstract class RabbitMQBaseTest {
-
-    // TODO: Find out how to run multiple tests in the same class
-    // TODO: Find out how to run multiple tests from different classes -> stop container??
 
     protected static final int RABBITMQ_PORT = 5672;
     protected RabbitMQContainerClient client;
@@ -52,7 +53,7 @@ public abstract class RabbitMQBaseTest {
                     .withExposedPorts(RABBITMQ_PORT);
 
     @Before
-    public void setUpContainerClient() throws IOException, TimeoutException {
+    public void setUpContainerClient() {
         client = new RabbitMQContainerClient(rabbitMq, false);
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(1000);
@@ -137,7 +138,7 @@ public abstract class RabbitMQBaseTest {
         stream.addSink(new CollectSink());
     }
 
-    /** TODO. */
+    /** CollectSink to access the messages from the stream. */
     public static class CollectSink implements SinkFunction<String> {
 
         // must be static
@@ -145,11 +146,10 @@ public abstract class RabbitMQBaseTest {
 
         public CollectSink() {
             super();
-            System.out.println("Sink created");
         }
 
         @Override
-        public void invoke(String value) throws Exception {
+        public void invoke(String value) {
             VALUES.add(value);
         }
     }
