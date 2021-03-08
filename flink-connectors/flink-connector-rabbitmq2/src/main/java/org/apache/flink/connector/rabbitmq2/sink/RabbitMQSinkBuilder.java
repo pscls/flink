@@ -25,7 +25,6 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
  * A Builder for the RabbitMQSink. Available consistency modes are contained in {@link
  * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and a
  * {@code serializationSchema}
->>>>>>> 5ab3534adbc0850974e8d87750a428efc634bfbb
  */
 public class RabbitMQSinkBuilder<T> {
 
@@ -136,7 +135,7 @@ public class RabbitMQSinkBuilder<T> {
     }
 
     /**
-     * Only relevant for at-least-once and exactly-once behaviour.
+     * Only relevant for at-least-once behaviour.
      *
      * <p>
      * Set the minimal time interval in milliseconds after which each message is resent if no
