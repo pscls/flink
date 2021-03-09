@@ -1,6 +1,7 @@
 package org.apache.flink.connector.rabbitmq2.sink;
 
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.*;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
 
 /**
  * A wrapper class for messages that need to be persisted in the state of a {@link

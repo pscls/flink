@@ -5,9 +5,11 @@ import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 
 /**
- * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in
- * {@link ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig}
- * and a {@code serializationSchema}
+ * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in {@link
+ * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and a
+ * {@code serializationSchema}. Optional parameters include {@code publishOptions}, a {@code
+ * minimalResendIntervalMilliseconds} (for at-least-once), {@code maxRetry} threshold for resending
+ * behaviour and a {@code returnListener}.
  *
  * <pre>
  *  RabbitMQSink
@@ -19,10 +21,6 @@ import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
  *    .setMinimalResendInterval(10L)
  *    .build();
  * </pre>
- *
- * ======= A Builder for the RabbitMQSink. Available consistency modes are contained in {@link
- * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and a
- * {@code serializationSchema}
  */
 public class RabbitMQSinkBuilder<T> {
 
@@ -40,6 +38,11 @@ public class RabbitMQSinkBuilder<T> {
         this.maxRetry = RabbitMQSink.DEFAULT_MAX_RETRY;
     }
 
+    /**
+     * Builds the sink instance.
+     *
+     * @return new Sink instance that has the specified configuration
+     */
     public RabbitMQSink<T> build() {
         return new RabbitMQSink<>(
                 connectionConfig,
@@ -130,7 +133,8 @@ public class RabbitMQSinkBuilder<T> {
      *
      * <p>Set the minimal time interval in milliseconds after which each message is resent if no
      * acknowledgement arrived from RabbitMQ. Because the sink resends messages on checkpoints, this
-     * prevents the sink from resending messages immediately if the checkpoint interval is too small.
+     * prevents the sink from resending messages immediately if the checkpoint interval is too
+     * small.
      *
      * @param minimalResendIntervalMilliseconds the minimal interval to resend messages in ms
      * @return this builder

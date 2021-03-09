@@ -31,11 +31,11 @@ import java.util.Optional;
 
 /**
  * Connection Configuration for RMQ. If {@link Builder#setUri(String)} has been set then {@link
- * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, Boolean, Boolean, Integer, Integer,
- * Integer, Integer, Integer)} will be used for initialize the RMQ connection or {@link
- * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, String, String, String, Integer,
- * Boolean, Boolean, Integer, Integer, Integer, Integer, Integer)} will be used for initialize the
- * RMQ connection
+ * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, Boolean, Boolean, Integer,
+ * Integer, Integer, Integer, Integer)} will be used for initialize the RMQ connection or {@link
+ * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, String, String, String,
+ * Integer, Boolean, Boolean, Integer, Integer, Integer, Integer, Integer)} will be used for
+ * initialize the RMQ connection
  */
 public class RabbitMQConnectionConfig implements Serializable {
 
@@ -509,12 +509,13 @@ public class RabbitMQConnectionConfig implements Serializable {
          * The Builder method.
          *
          * <p>If URI is NULL we use host, port, vHost, username, password combination to initialize
-         * connection. using {@link RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, String,
-         * String, String, Integer, Boolean, Boolean, Integer, Integer, Integer, Integer, Integer)}.
+         * connection. using {@link RabbitMQConnectionConfig#RabbitMQConnectionConfig(String,
+         * Integer, String, String, String, Integer, Boolean, Boolean, Integer, Integer, Integer,
+         * Integer, Integer)}.
          *
          * <p>Otherwise the URI will be used to initialize the client connection {@link
-         * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, Boolean, Boolean, Integer,
-         * Integer, Integer, Integer, Integer)}
+         * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, Boolean, Boolean,
+         * Integer, Integer, Integer, Integer, Integer)}
          *
          * @return RMQConnectionConfig
          */

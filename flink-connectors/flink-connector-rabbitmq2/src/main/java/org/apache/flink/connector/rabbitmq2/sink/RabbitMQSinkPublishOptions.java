@@ -87,11 +87,11 @@ public interface RabbitMQSinkPublishOptions<IN> extends java.io.Serializable {
     }
 
     /**
-     * Get the deserialization schema for the serialized messages send to RabbitMQ by the SinkWriter.
-     * This is necessary if at-least or exactly-once is required. In these cases, messages need to
-     * be stored serialized in checkpoints.On initialization of a SinkWriter after a failure,
-     * checkpointed message need to be retrieved, deserialize and resend. The deserialization step
-     * is important to support the other publish options.
+     * Get the deserialization schema for the serialized messages send to RabbitMQ by the
+     * SinkWriter. This is necessary if at-least or exactly-once is required. In these cases,
+     * messages need to be stored serialized in checkpoints.On initialization of a SinkWriter after
+     * a failure, checkpointed message need to be retrieved, deserialize and resend. The
+     * deserialization step is important to support the other publish options.
      *
      * @return a optional deserialization schema
      */

@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/** TODO. */
 public class RabbitMQSinkTest extends RabbitMQBaseTest {
 
     static Boolean shouldFail = true;
