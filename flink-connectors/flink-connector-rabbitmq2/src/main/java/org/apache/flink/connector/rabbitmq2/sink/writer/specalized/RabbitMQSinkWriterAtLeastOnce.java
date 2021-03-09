@@ -1,7 +1,9 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
@@ -37,6 +39,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * <p>After a failure, a new writer gets initialized with one or more states that contain
  * unacknowledged messages. These messages get resend immediately while buffering them in the new
  * state of the writer.
+ *
+ * @param <T> Type of the elements in this sink
  */
 public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> {
     protected final ConcurrentNavigableMap<Long, SinkMessage<T>> outstandingConfirms;
@@ -46,6 +50,18 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     public static final long DEFAULT_MINIMAL_RESEND_INTERVAL = 5000L;
 
+    /**
+     * Create a new RabbitMQSinkWriterExactlyOnce.
+     *
+     * @param connectionConfig configuration parameters used to connect to RabbitMQ
+     * @param queueName name of the queue to publish to
+     * @param serializationSchema serialization schema to turn elements into byte representation
+     * @param publishOptions optionally used to compute routing/exchange for messages
+     * @param maxRetry number of retries for each message
+     * @param returnListener returnListener
+     * @param minimalResendIntervalMilliseconds how long to wait until a resend is triggered
+     * @param states a list of states to initialize this reader with
+     */
     public RabbitMQSinkWriterAtLeastOnce(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
@@ -130,9 +146,9 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
         Channel channel = super.setupChannel(rmqConnection);
-
         ConfirmCallback ackCallback = handleAcknowledgements();
         ConfirmCallback nackCallback = handleNegativeAcknowledgements();
+        // register callbacks for cases of ack and negative ack of messages (seq numbers)
         channel.addConfirmListener(ackCallback, nackCallback);
         channel.confirmSelect();
         return channel;
