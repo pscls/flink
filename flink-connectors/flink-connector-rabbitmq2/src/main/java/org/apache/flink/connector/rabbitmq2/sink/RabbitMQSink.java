@@ -17,6 +17,9 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkW
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.util.Preconditions;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.Nullable;
 
 import java.util.List;
@@ -67,6 +70,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final int maxRetry;
     private final SerializableReturnListener returnListener;
     private final Long minimalResendIntervalMilliseconds;
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSink.class);
+
 
     public static final int DEFAULT_MAX_RETRY = 5;
     public static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
