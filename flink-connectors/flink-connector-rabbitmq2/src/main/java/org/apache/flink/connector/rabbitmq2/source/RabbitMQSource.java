@@ -10,6 +10,7 @@ import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumState;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumStateSerializer;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
@@ -20,7 +21,6 @@ import org.apache.flink.connector.rabbitmq2.source.reader.specialized.RabbitMQSo
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import com.esotericsoftware.minlog.Log;
 import org.slf4j.Logger;
@@ -49,13 +49,13 @@ public class RabbitMQSource<T>
         implements Source<T, RabbitMQSourceSplit, RabbitMQSourceEnumState>, ResultTypeQueryable<T> {
     private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSource.class);
 
-    private final RMQConnectionConfig connectionConfig;
+    private final RabbitMQConnectionConfig connectionConfig;
     private final String queueName;
     private final DeserializationSchema<T> deliveryDeserializer;
     private final ConsistencyMode consistencyMode;
 
     public RabbitMQSource(
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String queueName,
             DeserializationSchema<T> deserializationSchema,
             ConsistencyMode consistencyMode) {
@@ -124,7 +124,6 @@ public class RabbitMQSource<T>
     @Override
     public SplitEnumerator<RabbitMQSourceSplit, RabbitMQSourceEnumState> createEnumerator(
             SplitEnumeratorContext<RabbitMQSourceSplit> splitEnumeratorContext) {
-        System.out.println("Create ENUMERATOR");
         return new RabbitMQSourceEnumerator(
                 splitEnumeratorContext, consistencyMode, connectionConfig, queueName);
     }

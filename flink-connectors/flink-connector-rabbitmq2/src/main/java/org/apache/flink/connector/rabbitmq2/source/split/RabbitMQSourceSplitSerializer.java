@@ -1,7 +1,7 @@
 package org.apache.flink.connector.rabbitmq2.source.split;
 
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +46,8 @@ public class RabbitMQSourceSplitSerializer
         try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
                 DataInputStream in = new DataInputStream(bais);
                 ObjectInputStream objectInputStream = new ObjectInputStream(in)) {
-            RMQConnectionConfig config = (RMQConnectionConfig) objectInputStream.readObject();
+            RabbitMQConnectionConfig config =
+                    (RabbitMQConnectionConfig) objectInputStream.readObject();
             String queueName = in.readUTF();
             Set<String> correlationIds = readStringSet(in);
             return new RabbitMQSourceSplit(config, queueName, correlationIds);

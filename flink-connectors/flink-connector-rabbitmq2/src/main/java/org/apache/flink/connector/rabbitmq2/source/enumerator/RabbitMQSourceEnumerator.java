@@ -4,8 +4,8 @@ import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.FlinkRuntimeException;
 
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class RabbitMQSourceEnumerator
     public RabbitMQSourceEnumerator(
             SplitEnumeratorContext<RabbitMQSourceSplit> context,
             ConsistencyMode consistencyMode,
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String rmqQueueName,
             RabbitMQSourceEnumState enumState) {
         // The enumState is not used since the enumerator has no state in this architecture.
@@ -42,7 +42,7 @@ public class RabbitMQSourceEnumerator
     public RabbitMQSourceEnumerator(
             SplitEnumeratorContext<RabbitMQSourceSplit> context,
             ConsistencyMode consistencyMode,
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String rmqQueueName) {
         this.context = context;
         this.consistencyMode = consistencyMode;

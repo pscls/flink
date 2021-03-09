@@ -1,8 +1,8 @@
 package org.apache.flink.connector.rabbitmq2.source.split;
 
 import org.apache.flink.api.connector.source.SourceSplit;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -15,16 +15,18 @@ import java.util.Set;
  */
 public class RabbitMQSourceSplit implements SourceSplit {
 
-    private final RMQConnectionConfig connectionConfig;
+    private final RabbitMQConnectionConfig connectionConfig;
     private final String rmqQueueName;
     private Set<String> correlationIds;
 
-    public RabbitMQSourceSplit(RMQConnectionConfig connectionConfig, String rmqQueueName) {
+    public RabbitMQSourceSplit(RabbitMQConnectionConfig connectionConfig, String rmqQueueName) {
         this(connectionConfig, rmqQueueName, new HashSet<>());
     }
 
     public RabbitMQSourceSplit(
-            RMQConnectionConfig connectionConfig, String rmqQueueName, Set<String> correlationIds) {
+            RabbitMQConnectionConfig connectionConfig,
+            String rmqQueueName,
+            Set<String> correlationIds) {
         this.connectionConfig = connectionConfig;
         this.rmqQueueName = rmqQueueName;
         this.correlationIds = correlationIds;
@@ -62,9 +64,9 @@ public class RabbitMQSourceSplit implements SourceSplit {
      * Get the connection configuration of rabbitmq defined in the split.
      *
      * @return RMQConnectionConfig connection configuration of rabbitmq.
-     * @see RMQConnectionConfig
+     * @see RabbitMQConnectionConfig
      */
-    public RMQConnectionConfig getConnectionConfig() {
+    public RabbitMQConnectionConfig getConnectionConfig() {
         return connectionConfig;
     }
 

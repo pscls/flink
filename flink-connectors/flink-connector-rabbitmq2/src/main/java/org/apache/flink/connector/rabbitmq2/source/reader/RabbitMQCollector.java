@@ -1,7 +1,10 @@
 package org.apache.flink.connector.rabbitmq2.source.reader;
 
 import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
-import org.apache.flink.streaming.connectors.rabbitmq.RMQDeserializationSchema;
+import org.apache.flink.util.Collector;
+
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Envelope;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -14,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @param <T> The output type of the source.
  * @see RabbitMQMessageWrapper
  */
-public class RabbitMQCollector<T> implements RMQDeserializationSchema.RMQCollector<T> {
+public class RabbitMQCollector<T> implements Collector<T> {
     // Queue that holds the messages.
     private final BlockingQueue<RabbitMQMessageWrapper<T>> unpolledMessageQueue;
     // Identifiers of the next message that will be collected.
@@ -47,7 +50,16 @@ public class RabbitMQCollector<T> implements RMQDeserializationSchema.RMQCollect
         return unpolledMessageQueue;
     }
 
-    @Override
+    /**
+     * Sets the correlation id and the delivery tag that corresponds to the records originating from
+     * the RMQ event. If the correlation id has been processed before, records will not be emitted
+     * downstream.
+     *
+     * <p>If not set explicitly, the {@link AMQP.BasicProperties#getCorrelationId()} and {@link
+     * Envelope#getDeliveryTag()} will be used.
+     *
+     * @return true, if a message with given correlationId was seen before
+     */
     public boolean setMessageIdentifiers(String correlationId, long deliveryTag) {
         this.correlationId = correlationId;
         this.deliveryTag = deliveryTag;

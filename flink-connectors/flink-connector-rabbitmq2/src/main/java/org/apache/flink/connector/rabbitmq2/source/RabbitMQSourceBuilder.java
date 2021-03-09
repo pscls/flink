@@ -2,7 +2,7 @@ package org.apache.flink.connector.rabbitmq2.source;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 
 /**
  * A @builder class to simplify the creation of a {@link RabbitMQSource}.
@@ -20,14 +20,14 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
  *     .build();
  * }</pre>
  *
- * <p>For details about the connection config refer to {@link RMQConnectionConfig}. For details
+ * <p>For details about the connection config refer to {@link RabbitMQConnectionConfig}. For details
  * about the available consistency modes refer to {@link ConsistencyMode}.
  *
  * @param <T> the output type of the source.
  */
 public class RabbitMQSourceBuilder<T> {
     // The configuration for the rabbitmq connection.
-    private RMQConnectionConfig connectionConfig;
+    private RabbitMQConnectionConfig connectionConfig;
     // Name of the queue to consume from.
     private String queueName;
     // The deserializer for the messages of rabbitmq.
@@ -50,9 +50,9 @@ public class RabbitMQSourceBuilder<T> {
      *
      * @param connectionConfig the connection configuration for rabbitmq.
      * @return this RabbitMQSourceBuilder
-     * @see RMQConnectionConfig
+     * @see RabbitMQConnectionConfig
      */
-    public RabbitMQSourceBuilder<T> setConnectionConfig(RMQConnectionConfig connectionConfig) {
+    public RabbitMQSourceBuilder<T> setConnectionConfig(RabbitMQConnectionConfig connectionConfig) {
         this.connectionConfig = connectionConfig;
         return this;
     }
