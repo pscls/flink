@@ -2,12 +2,14 @@ package org.apache.flink.connector.rabbitmq2.sink.writer;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.*;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 
@@ -37,7 +39,7 @@ public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
     protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterBase.class);
 
-    protected final RMQConnectionConfig connectionConfig;
+    protected final RabbitMQConnectionConfig connectionConfig;
     protected final String queueName;
     protected Connection rmqConnection;
     protected Channel rmqChannel;
@@ -49,7 +51,7 @@ public abstract class RabbitMQSinkWriterBase<T>
     @Nullable private final SerializableReturnListener returnListener;
 
     public RabbitMQSinkWriterBase(
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
@@ -159,7 +161,6 @@ public abstract class RabbitMQSinkWriterBase<T>
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
-        System.out.println("Base Checkpointing!!!!");
         return new ArrayList<>();
     }
 

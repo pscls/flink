@@ -2,8 +2,7 @@ package org.apache.flink.connector.rabbitmq2.sink;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 
 /**
  * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in
@@ -28,7 +27,7 @@ import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig
 public class RabbitMQSinkBuilder<T> {
 
     private String queueName;
-    private RMQConnectionConfig connectionConfig;
+    private RabbitMQConnectionConfig connectionConfig;
     private SerializationSchema<T> serializationSchema;
     private ConsistencyMode consistencyMode;
     private RabbitMQSinkPublishOptions<T> publishOptions;
@@ -59,7 +58,7 @@ public class RabbitMQSinkBuilder<T> {
      * @param connectionConfig configuration required to connect to RabbitMQ
      * @return this builder
      */
-    public RabbitMQSinkBuilder<T> setConnectionConfig(RMQConnectionConfig connectionConfig) {
+    public RabbitMQSinkBuilder<T> setConnectionConfig(RabbitMQConnectionConfig connectionConfig) {
         this.connectionConfig = connectionConfig;
         return this;
     }

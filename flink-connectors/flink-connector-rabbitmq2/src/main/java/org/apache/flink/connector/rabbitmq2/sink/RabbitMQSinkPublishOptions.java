@@ -24,7 +24,6 @@ package org.apache.flink.connector.rabbitmq2.sink;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
 

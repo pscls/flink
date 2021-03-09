@@ -1,11 +1,12 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -21,7 +22,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     private List<SinkMessage<T>> messages;
 
     public RabbitMQSinkWriterExactlyOnce(
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
@@ -40,7 +41,6 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
-        System.out.println("Init with state");
         List<SinkMessage<T>> messages = new ArrayList<>();
         for (RabbitMQSinkWriterState<T> state : states) {
             messages.addAll(state.getOutstandingMessages());
@@ -56,13 +56,11 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     public void write(T element, Context context) {
-        System.out.println("Write: " + element);
         messages.add(new SinkMessage<>(element, serializationSchema.serialize(element)));
     }
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        System.out.println("Snapshot State");
         commitMessages();
         return Collections.singletonList(new RabbitMQSinkWriterState<>(messages));
     }
@@ -70,7 +68,6 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     private void commitMessages() {
         List<SinkMessage<T>> messagesToSend = new ArrayList<>(messages);
         messages.subList(0, messagesToSend.size()).clear();
-        System.out.println("Commit: " + messagesToSend);
         try {
             for (SinkMessage<T> msg : messagesToSend) {
                 super.send(msg);

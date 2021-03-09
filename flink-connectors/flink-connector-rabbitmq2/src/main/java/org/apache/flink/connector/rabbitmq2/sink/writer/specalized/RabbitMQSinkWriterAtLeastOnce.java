@@ -1,11 +1,12 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmCallback;
@@ -30,7 +31,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     public static final long DEFAULT_MINIMAL_RESEND_INTERVAL = 5000L;
 
     public RabbitMQSinkWriterAtLeastOnce(
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
@@ -56,7 +57,6 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
-        System.out.println("Init with state");
         for (RabbitMQSinkWriterState<T> state : states) {
             for (SinkMessage<T> message : state.getOutstandingMessages()) {
                 send(message);
@@ -68,7 +68,6 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         Set<Long> temp = outstandingConfirms.keySet();
         Set<Long> messagesToResend = new HashSet<>(temp);
         messagesToResend.retainAll(lastSeenMessageIds);
-        System.out.println("resend: " + messagesToResend.size());
         for (Long id : messagesToResend) {
 
             // remove the old message from the map, since the message was added a second time
@@ -124,7 +123,6 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             resendMessages();
             lastResendTimestampMilliseconds = System.currentTimeMillis();
         }
-        System.out.println("Store " + outstandingConfirms.size() + " message into checkpoint.");
         return Collections.singletonList(
                 new RabbitMQSinkWriterState<>(new ArrayList<>(outstandingConfirms.values())));
     }

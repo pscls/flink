@@ -1,17 +1,18 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 
 import java.util.List;
 
 /** TODO. */
 public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
     public RabbitMQSinkWriterAtMostOnce(
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,

@@ -79,7 +79,6 @@ public class RabbitMQContainerClient {
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
             throws IOException {
         byte[] body = delivery.getBody();
-        System.out.println("Received message: " + body);
         messages.add(body);
     }
 

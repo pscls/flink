@@ -7,6 +7,7 @@ import org.apache.flink.api.connector.sink.GlobalCommitter;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterStateSerializer;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
@@ -14,8 +15,6 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkW
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
-import org.apache.flink.streaming.connectors.rabbitmq.SerializableReturnListener;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.util.Preconditions;
 
 import javax.annotation.Nullable;
@@ -30,7 +29,7 @@ import java.util.Optional;
  * thus works in a streaming fashion.
  *
  * <p>When creating the sink a {@code connectionConfig} must be specified via {@link
- * RMQConnectionConfig}. It contains required information for the RabbitMQ java client to connect to
+ * RabbitMQConnectionConfig}. It contains required information for the RabbitMQ java client to connect to
  * the RabbitMQ server. A minimum configuration contains a (virtual) host, a username, a password
  * and a port. Besides that, the {@code queueName} to publish to and a serialization schema {@link
  * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added to
@@ -58,7 +57,7 @@ import java.util.Optional;
  */
 public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>, Void> {
 
-    private final RMQConnectionConfig connectionConfig;
+    private final RabbitMQConnectionConfig connectionConfig;
     private final String queueName;
     private final SerializationSchema<T> serializationSchema;
     private final RabbitMQSinkPublishOptions<T> publishOptions;
@@ -71,7 +70,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     public static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
 
     public RabbitMQSink(
-            RMQConnectionConfig connectionConfig,
+            RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             ConsistencyMode consistencyMode,

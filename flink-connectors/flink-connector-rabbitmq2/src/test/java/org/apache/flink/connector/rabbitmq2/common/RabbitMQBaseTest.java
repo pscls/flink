@@ -3,12 +3,12 @@ package org.apache.flink.connector.rabbitmq2.common;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
-import org.apache.flink.streaming.connectors.rabbitmq.common.RMQConnectionConfig;
 import org.apache.flink.test.util.MiniClusterWithClientResource;
 
 import org.junit.Before;
@@ -63,8 +63,8 @@ public abstract class RabbitMQBaseTest {
         queueName = UUID.randomUUID().toString();
         client.createQueue(queueName, true);
 
-        final RMQConnectionConfig connectionConfig =
-                new RMQConnectionConfig.Builder()
+        final RabbitMQConnectionConfig connectionConfig =
+                new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
                         .setVirtualHost("/")
                         .setUserName(rabbitMq.getAdminUsername())
@@ -144,11 +144,6 @@ public abstract class RabbitMQBaseTest {
 
         // must be static
         public static final List<String> VALUES = Collections.synchronizedList(new ArrayList<>());
-
-        public CollectSink() {
-            super();
-            System.out.println("Sink created");
-        }
 
         @Override
         public void invoke(String value) throws Exception {
