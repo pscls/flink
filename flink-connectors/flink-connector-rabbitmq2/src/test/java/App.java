@@ -86,14 +86,14 @@
 ////                .setParallelism(2);
 //
 //        // ====================== SINK ========================
-        RabbitMQSink<String> sink =
-                RabbitMQSink.<String>builder()
-                        .setConnectionConfig(connectionConfig)
-                        .setQueueName("sub")
-                        .setSerializationSchema(new SimpleStringSchema())
-                        .setConsistencyMode(mode)
-                        .setMinimalResendInterval(9L)
-                        .build();
+//        RabbitMQSink<String> sink =
+//                RabbitMQSink.<String>builder()
+//                        .setConnectionConfig(connectionConfig)
+//                        .setQueueName("sub")
+//                        .setSerializationSchema(new SimpleStringSchema())
+//                        .setConsistencyMode(mode)
+//                        .setMinimalResendInterval(9L)
+//                        .build();
 //        stream.sinkTo(sink).setParallelism(2); // serialization schema to turn Java objects to
 // messages
 //
