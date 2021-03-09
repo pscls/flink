@@ -51,7 +51,7 @@ public class RabbitMQSource<T>
 
     private final RabbitMQConnectionConfig connectionConfig;
     private final String queueName;
-    private final DeserializationSchema<T> deliveryDeserializer;
+    private final DeserializationSchema<T> deserializationSchema;
     private final ConsistencyMode consistencyMode;
 
     public RabbitMQSource(
@@ -61,7 +61,7 @@ public class RabbitMQSource<T>
             ConsistencyMode consistencyMode) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
-        this.deliveryDeserializer = deserializationSchema;
+        this.deserializationSchema = deserializationSchema;
         this.consistencyMode = consistencyMode;
 
         LOG.info("Create rabbitmq source");
@@ -103,13 +103,13 @@ public class RabbitMQSource<T>
         switch (consistencyMode) {
             case AT_MOST_ONCE:
                 return new RabbitMQSourceReaderAtMostOnce<>(
-                        sourceReaderContext, deliveryDeserializer);
+                        sourceReaderContext, deserializationSchema);
             case AT_LEAST_ONCE:
                 return new RabbitMQSourceReaderAtLeastOnce<>(
-                        sourceReaderContext, deliveryDeserializer);
+                        sourceReaderContext, deserializationSchema);
             case EXACTLY_ONCE:
                 return new RabbitMQSourceReaderExactlyOnce<>(
-                        sourceReaderContext, deliveryDeserializer);
+                        sourceReaderContext, deserializationSchema);
             default:
                 Log.error("The requested reader of type " + consistencyMode + " is not supported");
                 return null;
@@ -166,6 +166,6 @@ public class RabbitMQSource<T>
      */
     @Override
     public TypeInformation<T> getProducedType() {
-        return deliveryDeserializer.getProducedType();
+        return deserializationSchema.getProducedType();
     }
 }

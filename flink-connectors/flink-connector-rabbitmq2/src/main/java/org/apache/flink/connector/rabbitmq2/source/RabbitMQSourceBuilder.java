@@ -31,7 +31,7 @@ public class RabbitMQSourceBuilder<T> {
     // Name of the queue to consume from.
     private String queueName;
     // The deserializer for the messages of rabbitmq.
-    private DeserializationSchema<T> deliveryDeserializer;
+    private DeserializationSchema<T> deserializationSchema;
     // The consistency mode for the source.
     private ConsistencyMode consistencyMode;
 
@@ -42,7 +42,7 @@ public class RabbitMQSourceBuilder<T> {
      */
     public RabbitMQSource<T> build() {
         return new RabbitMQSource<>(
-                connectionConfig, queueName, deliveryDeserializer, consistencyMode);
+                connectionConfig, queueName, deserializationSchema, consistencyMode);
     }
 
     /**
@@ -71,13 +71,13 @@ public class RabbitMQSourceBuilder<T> {
     /**
      * Set the deserializer for the message deliveries from rabbitmq.
      *
-     * @param deliveryDeserializer a deserializer for the message deliveries from rabbitmq.
+     * @param deserializationSchema a deserializer for the message deliveries from rabbitmq.
      * @return this RabbitMQSourceBuilder
      * @see DeserializationSchema
      */
-    public RabbitMQSourceBuilder<T> setDeliveryDeserializer(
-            DeserializationSchema<T> deliveryDeserializer) {
-        this.deliveryDeserializer = deliveryDeserializer;
+    public RabbitMQSourceBuilder<T> setDeserializationSchema(
+            DeserializationSchema<T> deserializationSchema) {
+        this.deserializationSchema = deserializationSchema;
         return this;
     }
 
