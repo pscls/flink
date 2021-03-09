@@ -6,11 +6,11 @@ def main():
 
     # Get the location of the AMQP broker (RabbitMQ server) from
     # an environment variable
-    queue_name = 'pub'
+    queue_name = 'sub'
 
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
-    channel.queue_declare(queue=queue_name)
+    channel.queue_declare(queue=queue_name, durable=True)
 
     
     channel.basic_consume(queue=queue_name,
