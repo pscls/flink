@@ -13,7 +13,10 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-/** TODO. */
+/**
+ * The tests for the rabbitmq sink with different consistency modes. As the tests are working a
+ * lot with timeouts to uphold stream it is possible that tests might fail.
+ */
 public class RabbitMQSinkTest extends RabbitMQBaseTest {
 
     static Boolean shouldFail = true;
