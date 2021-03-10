@@ -34,9 +34,9 @@ import java.util.Optional;
  * <p>When creating the sink a {@code connectionConfig} must be specified via {@link
  * RabbitMQConnectionConfig}. It contains required information for the RabbitMQ java client to
  * connect to the RabbitMQ server. A minimum configuration contains a (virtual) host, a username, a
- * password and a port. Besides that, the {@code queueName} to publish to and a
- * {@link SerializationSchema} for the sink input type is required. {@code publishOptions} can be
- * added to route messages in RabbitMQ.
+ * password and a port. Besides that, the {@code queueName} to publish to and a {@link
+ * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added to
+ * route messages in RabbitMQ.
  *
  * <p>If at-least-once is required, an optional number of {@code maxRetry} attempts can be specified
  * until a failure is triggered. Generally, messages are buffered until an acknowledgement arrives
@@ -71,7 +71,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final SerializableReturnListener returnListener;
     private final Long minimalResendIntervalMilliseconds;
     private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSink.class);
-
 
     public static final int DEFAULT_MAX_RETRY = 5;
     public static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
