@@ -13,4 +13,10 @@ must be aware that this may be subject to conditions declared in the
 Mozilla Public License 1.1 ("MPL"), the GNU General Public License version 2 ("GPL")
 and the Apache License version 2 ("ASL").
 
-[Sink](src/main/java/org/apache/flink/connector/rabbitmq2/sink/README.md)
+
+# Connector
+
+This connector provides a [source](src/main/java/org/apache/flink/connector/rabbitmq2/source/README.md) 
+and [sink](src/main/java/org/apache/flink/connector/rabbitmq2/sink/README.md) for consuming from and
+publishing message to RabbitMQ in either an at-most-once, at-least-once, or exactly-once manner.
+Further details on the behaviour and data flow can be found in the respective directories.
