@@ -17,7 +17,7 @@
 
 /*
  * This class was copied from the old RabbitMQ connector and got extended by the
- * serialization schema requirement for at-least-once and exactly-once.
+ * serialization schema which is required for at-least-once and exactly-once.
  */
 
 package org.apache.flink.connector.rabbitmq2.sink;
