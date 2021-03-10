@@ -56,7 +56,7 @@ import java.util.List;
  */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
 
-    /** all messages that arrived and could not be committed thus far */
+    /** All messages that arrived and could not be committed this far. */
     private List<SinkMessage<T>> messages;
 
     /**

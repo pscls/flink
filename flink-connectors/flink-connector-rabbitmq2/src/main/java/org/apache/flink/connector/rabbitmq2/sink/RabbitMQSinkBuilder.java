@@ -30,16 +30,15 @@ import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
  * behaviour and a {@code returnListener}.
  *
  * <pre>{@code
- *  RabbitMQSink
- *    .builder()
- *    .setConnectionConfig(connectionConfig)
- *    .setQueueName("queue")
- *    .setSerializationSchema(new SimpleStringSchema())
- *    .setConsistencyMode(ConsistencyMode.AT_LEAST_ONCE)
- *    .setMinimalResendInterval(10L)
- *    .build();
- * }
- * </pre>
+ * RabbitMQSink
+ *   .builder()
+ *   .setConnectionConfig(connectionConfig)
+ *   .setQueueName("queue")
+ *   .setSerializationSchema(new SimpleStringSchema())
+ *   .setConsistencyMode(ConsistencyMode.AT_LEAST_ONCE)
+ *   .setMinimalResendInterval(10L)
+ *   .build();
+ * }</pre>
  */
 public class RabbitMQSinkBuilder<T> {
 
