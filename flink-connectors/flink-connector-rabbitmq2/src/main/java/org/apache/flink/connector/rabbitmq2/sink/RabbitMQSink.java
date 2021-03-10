@@ -59,7 +59,7 @@ import java.util.Optional;
  *     .setMinimalResendInterval(10L)
  *     .build();
  * }
- *  * </pre>
+ * </pre>
  *
  * <p>When creating the sink a {@code connectionConfig} must be specified via {@link
  * RabbitMQConnectionConfig}. It contains required information for the RabbitMQ java client to
