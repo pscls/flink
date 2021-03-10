@@ -80,7 +80,6 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
                     messagesToSend.size(),
                     e.getMessage());
             messages.addAll(0, messagesToSend);
-            e.printStackTrace();
         }
     }
 }
