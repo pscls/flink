@@ -19,8 +19,8 @@
 package org.apache.flink.connector.rabbitmq2.source;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 
 /**
  * A @builder class to simplify the creation of a {@link RabbitMQSource}.

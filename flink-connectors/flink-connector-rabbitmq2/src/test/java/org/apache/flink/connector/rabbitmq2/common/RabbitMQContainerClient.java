@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -47,28 +48,29 @@ public class RabbitMQContainerClient {
     private Channel channel;
     private final Queue<byte[]> messages;
     private String queueName;
-    private final boolean withConsumer;
+    private CountDownLatch latch;
 
-    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer) {
+    public RabbitMQContainerClient(RabbitMQContainer container) {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
         this.container = container;
         this.messages = new LinkedList<>();
-        this.withConsumer = withConsumer;
     }
 
-    public RabbitMQContainerClient(RabbitMQContainer container) {
-        this(container, true);
-    }
-
-    public void createQueue(String queueName) throws IOException, TimeoutException {
+    public void createQueue(String queueName, Boolean withConsumer)
+            throws IOException, TimeoutException {
         this.queueName = queueName;
         Connection connection = getRabbitMQConnection();
         this.channel = connection.createChannel();
         channel.queueDeclare(queueName, true, false, false, null);
         if (withConsumer) {
+            messages.clear();
             final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
             channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {});
         }
+    }
+
+    public void createQueue(String queueName) throws IOException, TimeoutException {
+        createQueue(queueName, false);
     }
 
     public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
@@ -89,17 +91,19 @@ public class RabbitMQContainerClient {
 
     public <T> List<T> readMessages(DeserializationSchema<T> valueDeserializer) throws IOException {
         List<T> deserializedMessages = new ArrayList<>();
-        for (int i = 0; i < messages.size(); i++) {
+        while (!messages.isEmpty()) {
             T message = valueDeserializer.deserialize(messages.poll());
             deserializedMessages.add(message);
         }
-
         return deserializedMessages;
     }
 
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) {
         byte[] body = delivery.getBody();
         messages.add(body);
+        if (latch != null) {
+            latch.countDown();
+        }
     }
 
     private Connection getRabbitMQConnection() throws TimeoutException, IOException {
@@ -112,5 +116,9 @@ public class RabbitMQContainerClient {
         factory.setPort(container.getAmqpPort());
 
         return factory.newConnection();
+    }
+
+    public void setCountDownLatch(CountDownLatch latch) {
+        this.latch = latch;
     }
 }

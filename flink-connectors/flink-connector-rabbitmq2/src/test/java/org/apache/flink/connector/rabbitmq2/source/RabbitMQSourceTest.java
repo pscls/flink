@@ -19,7 +19,7 @@
 package org.apache.flink.connector.rabbitmq2.source;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQBaseTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
 

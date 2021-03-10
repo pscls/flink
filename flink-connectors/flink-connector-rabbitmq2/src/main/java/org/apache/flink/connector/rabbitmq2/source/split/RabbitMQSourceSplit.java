@@ -19,7 +19,7 @@
 package org.apache.flink.connector.rabbitmq2.source.split;
 
 import org.apache.flink.api.connector.source.SourceSplit;
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
 
 import java.util.HashSet;

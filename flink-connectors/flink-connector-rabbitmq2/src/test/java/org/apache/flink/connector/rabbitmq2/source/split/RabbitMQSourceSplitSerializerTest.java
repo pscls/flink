@@ -50,7 +50,7 @@ public class RabbitMQSourceSplitSerializerTest {
         RabbitMQSourceSplit deserializedSplit = null;
         try {
             byte[] serializedSplit = serializer.serialize(split);
-            deserializedSplit = serializer.deserialize(0, serializedSplit);
+            deserializedSplit = serializer.deserialize(1, serializedSplit);
         } catch (IOException e) {
             e.printStackTrace();
         }
