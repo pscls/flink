@@ -45,6 +45,7 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
 
         DataStream<String> stream = env.fromCollection(messages);
         addSinkOn(stream, ConsistencyMode.AT_MOST_ONCE);
+        env.execute();
 
         TimeUnit.SECONDS.sleep(3);
 
@@ -122,8 +123,8 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
         DataStream<String> stream2 =
                 stream.map(
                         m -> {
-                            TimeUnit.SECONDS.sleep(1);
-                            if (messages.equals("3") && shouldFail) {
+                            TimeUnit.MILLISECONDS.sleep(500);
+                            if (m.equals("3") && shouldFail) {
                                 shouldFail = false;
                                 throw new Exception("Supposed to be thrown.");
                             }
@@ -131,9 +132,9 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
                         });
         addSinkOn(stream2, ConsistencyMode.EXACTLY_ONCE);
 
-        env.execute();
+        env.executeAsync();
 
-        TimeUnit.SECONDS.sleep(3);
+        TimeUnit.SECONDS.sleep(5);
         List<String> receivedMessages = getMessageFromRabbit();
         assertEquals(messages, receivedMessages);
     }
