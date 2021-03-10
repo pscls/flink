@@ -37,25 +37,23 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A {@link SinkWriter} implementation for {@link RabbitMQSink} that provides exactly-once
- * delivery guarantees, which means incoming stream elements will be delivered to RabbitMQ
- * exactly once. For this, checkpointing needs to be enabled.
+ * A {@link SinkWriter} implementation for {@link RabbitMQSink} that provides exactly-once delivery
+ * guarantees, which means incoming stream elements will be delivered to RabbitMQ exactly once. For
+ * this, checkpointing needs to be enabled.
  *
- * <p>Exactly-once behaviour is implemented using a transactional RabbitMQ channel.
- * All incoming stream elements are buffered in the state of this writer until the next checkpoint
- * is triggered. All buffered {@code messages} are then send to RabbitMQ in a single transaction.
- * When successful, all messages committed get removed from the state.
- * If the transaction is aborted, all messages are put back into the state and send on the next
- * checkpoint.
+ * <p>Exactly-once behaviour is implemented using a transactional RabbitMQ channel. All incoming
+ * stream elements are buffered in the state of this writer until the next checkpoint is triggered.
+ * All buffered {@code messages} are then send to RabbitMQ in a single transaction. When successful,
+ * all messages committed get removed from the state. If the transaction is aborted, all messages
+ * are put back into the state and send on the next checkpoint.
  *
- * <p>The transactional channel is heavyweight and will decrease throughput.
- * If the system is under heavy load, consecutive checkpoints can be delayed if commits take
- * longer than the checkpointing interval specified.
- * Only use exactly-once if necessary (no duplicated messages in RabbitMQ allowed), otherwise
- * consider using at-least-once.
+ * <p>The transactional channel is heavyweight and will decrease throughput. If the system is under
+ * heavy load, consecutive checkpoints can be delayed if commits take longer than the checkpointing
+ * interval specified. Only use exactly-once if necessary (no duplicated messages in RabbitMQ
+ * allowed), otherwise consider using at-least-once.
  *
  * @param <T> Type of the elements in this sink
- * */
+ */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
 
     /** all messages that arrived and could not be committed thus far */

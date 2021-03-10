@@ -37,7 +37,10 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeoutException;
 
-/** TODO. */
+/**
+ * This class provides a rabbitmq container client which allows creating queues, sending messages to
+ * rabbitmq and get the messages received by rabbitmq.
+ */
 public class RabbitMQContainerClient {
 
     private final RabbitMQContainer container;
@@ -45,11 +48,14 @@ public class RabbitMQContainerClient {
     private final Queue<byte[]> messages;
     private String queueName;
 
-    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer)
-            throws IOException, TimeoutException {
+    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer) {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
         this.container = container;
         this.messages = new LinkedList<>();
+    }
+
+    public RabbitMQContainerClient(RabbitMQContainer container) {
+        this(container, true);
     }
 
     public void createQueue(String queueName, Boolean withConsumer)
@@ -94,8 +100,7 @@ public class RabbitMQContainerClient {
         return deserializedMessages;
     }
 
-    protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
-            throws IOException {
+    protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) {
         byte[] body = delivery.getBody();
         messages.add(body);
     }
