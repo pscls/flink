@@ -14,9 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/*
+ * This class is copied from the old rabbitmq connector.
+ */
 
 package org.apache.flink.connector.rabbitmq2;
 
+import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.ConnectionFactory;
@@ -35,7 +39,7 @@ import java.util.Optional;
  * Integer, Integer, Integer, Integer)} will be used for initialize the RMQ connection or {@link
  * RabbitMQConnectionConfig#RabbitMQConnectionConfig(String, Integer, String, String, String,
  * Integer, Boolean, Boolean, Integer, Integer, Integer, Integer, Integer)} will be used for
- * initialize the RMQ connection
+ * initialize the RMQ connection.
  */
 public class RabbitMQConnectionConfig implements Serializable {
 
