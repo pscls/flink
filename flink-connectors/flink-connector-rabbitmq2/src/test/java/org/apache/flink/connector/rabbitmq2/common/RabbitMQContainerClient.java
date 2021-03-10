@@ -48,14 +48,10 @@ public class RabbitMQContainerClient {
     private final Queue<byte[]> messages;
     private String queueName;
 
-    public RabbitMQContainerClient(RabbitMQContainer container, boolean withConsumer) {
+    public RabbitMQContainerClient(RabbitMQContainer container) {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
         this.container = container;
         this.messages = new LinkedList<>();
-    }
-
-    public RabbitMQContainerClient(RabbitMQContainer container) {
-        this(container, true);
     }
 
     public void createQueue(String queueName, Boolean withConsumer)
