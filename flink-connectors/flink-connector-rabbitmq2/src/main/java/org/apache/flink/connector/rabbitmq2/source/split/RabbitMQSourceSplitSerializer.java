@@ -18,7 +18,7 @@
 
 package org.apache.flink.connector.rabbitmq2.source.split;
 
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import java.io.ByteArrayInputStream;

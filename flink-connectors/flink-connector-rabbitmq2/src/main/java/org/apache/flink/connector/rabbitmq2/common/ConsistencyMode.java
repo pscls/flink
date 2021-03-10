@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2;
+package org.apache.flink.connector.rabbitmq2.common;
 
 /**
  * The different consistency modes that can be defined for the sink and source individually.

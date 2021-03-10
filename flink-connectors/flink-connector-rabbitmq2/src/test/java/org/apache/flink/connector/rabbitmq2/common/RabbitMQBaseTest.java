@@ -21,8 +21,7 @@ package org.apache.flink.connector.rabbitmq2.common;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -40,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -50,9 +50,9 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class RabbitMQBaseTest {
 
-    protected static final int RABBITMQ_PORT = 5672;
-    protected RabbitMQContainerClient client;
-    protected String queueName;
+    private static final int RABBITMQ_PORT = 5672;
+    private RabbitMQContainerClient client;
+    private String queueName;
 
     @Rule
     public MiniClusterWithClientResource flinkCluster =
@@ -72,10 +72,37 @@ public abstract class RabbitMQBaseTest {
 
     @Before
     public void setUpContainerClient() {
-        client = new RabbitMQContainerClient(rabbitMq, false);
+        client = new RabbitMQContainerClient(rabbitMq);
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(1000);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
+    }
+
+    public void addSinkOn(DataStream<String> stream, ConsistencyMode consistencyMode)
+            throws IOException, TimeoutException {
+        queueName = UUID.randomUUID().toString();
+        client.createQueue(queueName, true);
+        final RabbitMQConnectionConfig connectionConfig =
+                new RabbitMQConnectionConfig.Builder()
+                        .setHost(rabbitMq.getHost())
+                        .setVirtualHost("/")
+                        .setUserName(rabbitMq.getAdminUsername())
+                        .setPassword(rabbitMq.getAdminPassword())
+                        .setPort(rabbitMq.getMappedPort(RABBITMQ_PORT))
+                        .build();
+
+        RabbitMQSink<String> sink =
+                RabbitMQSink.<String>builder()
+                        .setConnectionConfig(connectionConfig)
+                        .setQueueName(queueName)
+                        .setSerializationSchema(new SimpleStringSchema())
+                        .setConsistencyMode(consistencyMode)
+                        .build();
+        stream.sinkTo(sink).setParallelism(1);
+    }
+
+    public List<String> getMessageFromRabbit() throws IOException {
+        return client.readMessages(new SimpleStringSchema());
     }
 
     public DataStream<String> getSinkOn(
@@ -154,6 +181,12 @@ public abstract class RabbitMQBaseTest {
 
     public void addCollectorSink(DataStream<String> stream) {
         stream.addSink(new CollectSink());
+    }
+
+    public CountDownLatch setContainerClientCountDownLatch(int count) {
+        CountDownLatch latch = new CountDownLatch(count);
+        client.setCountDownLatch(latch);
+        return latch;
     }
 
     /** CollectSink to access the messages from the stream. */
