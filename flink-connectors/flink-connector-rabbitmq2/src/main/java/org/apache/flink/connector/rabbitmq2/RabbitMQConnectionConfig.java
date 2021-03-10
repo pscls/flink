@@ -21,7 +21,6 @@
 
 package org.apache.flink.connector.rabbitmq2;
 
-import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.ConnectionFactory;
