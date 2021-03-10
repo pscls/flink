@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -24,11 +42,12 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/** TODO. */
+/**
+ * The base class for rabbitmq tests. It sets up a flink cluster and a docker image for rabbitmq. It
+ * provides behavior to easily add onto the stream, send message to rabbitmq and get the message in
+ * rabbitmq.
+ */
 public abstract class RabbitMQBaseTest {
-
-    // TODO: Find out how to run multiple tests in the same class
-    // TODO: Find out how to run multiple tests from different classes -> stop container??
 
     protected static final int RABBITMQ_PORT = 5672;
     protected RabbitMQContainerClient client;
@@ -51,7 +70,7 @@ public abstract class RabbitMQBaseTest {
                     .withExposedPorts(RABBITMQ_PORT);
 
     @Before
-    public void setUpContainerClient() throws IOException, TimeoutException {
+    public void setUpContainerClient() {
         client = new RabbitMQContainerClient(rabbitMq, false);
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(1000);
@@ -62,7 +81,6 @@ public abstract class RabbitMQBaseTest {
             throws IOException, TimeoutException {
         queueName = UUID.randomUUID().toString();
         client.createQueue(queueName, true);
-
         final RabbitMQConnectionConfig connectionConfig =
                 new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
@@ -139,14 +157,14 @@ public abstract class RabbitMQBaseTest {
         stream.addSink(new CollectSink());
     }
 
-    /** TODO. */
+    /** CollectSink to access the messages from the stream. */
     public static class CollectSink implements SinkFunction<String> {
 
         // must be static
         public static final List<String> VALUES = Collections.synchronizedList(new ArrayList<>());
 
         @Override
-        public void invoke(String value) throws Exception {
+        public void invoke(String value) {
             VALUES.add(value);
         }
     }
