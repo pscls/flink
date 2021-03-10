@@ -34,11 +34,11 @@ import java.util.Optional;
  * <p>When creating the sink a {@code connectionConfig} must be specified via {@link
  * RabbitMQConnectionConfig}. It contains required information for the RabbitMQ java client to
  * connect to the RabbitMQ server. A minimum configuration contains a (virtual) host, a username, a
- * password and a port. Besides that, the {@code queueName} to publish to and a serialization schema
+ * password and a port. Besides that, the {@code queueName} to publish to and a
  * {@link SerializationSchema} for the sink input type is required. {@code publishOptions} can be
  * added to route messages in RabbitMQ.
  *
- * <p>If at-least-once is required, an optional number of {@code maxRetry} retries can be specified
+ * <p>If at-least-once is required, an optional number of {@code maxRetry} attempts can be specified
  * until a failure is triggered. Generally, messages are buffered until an acknowledgement arrives
  * because delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be
  * resent to RabbitMQ. If the checkpointing interval is set low or a high frequency of resending is
@@ -50,7 +50,7 @@ import java.util.Optional;
  * messages within a checkpoint are delivered once and only once. All messages that arrive in a
  * checkpoint interval are buffered and sent to RabbitMQ in a single transaction when the checkpoint
  * is triggered. If the transaction fails, all messages that were a part of the transaction are put
- * back into the buffer and resend in the next checkpoint.
+ * back into the buffer and a resend is issued in the next checkpoint.
  *
  * <p>Keep in mind that the transactional channels are heavyweight and performance will drop. Under
  * heavy load, checkpoints can be delayed if a transaction takes longer than the specified
@@ -101,7 +101,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     }
 
     private boolean verifyPublishOptions() {
-        // If at_most_once, we don't care if publish options are provided
+        // If at-most-once, doesnt matter if publish options are provided (no state in writer)
         if (consistencyMode == ConsistencyMode.AT_MOST_ONCE) {
             return true;
         }

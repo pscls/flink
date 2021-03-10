@@ -16,6 +16,16 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
  * fire-and-forget fashion).
  */
 public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
+
+    /**
+     * Create a new RabbitMQSinkWriterExactlyOnce.
+     *
+     * @param connectionConfig configuration parameters used to connect to RabbitMQ
+     * @param queueName name of the queue to publish to
+     * @param serializationSchema serialization schema to turn elements into byte representation
+     * @param publishOptions optionally used to compute routing/exchange for messages
+     * @param returnListener returnListener
+     */
     public RabbitMQSinkWriterAtMostOnce(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,

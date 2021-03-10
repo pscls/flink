@@ -1,7 +1,9 @@
 package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
+import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
@@ -16,11 +18,42 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** TODO. */
+/**
+ * A {@link SinkWriter} implementation for {@link RabbitMQSink} that provides exactly-once
+ * delivery guarantees, which means incoming stream elements will be delivered to RabbitMQ
+ * exactly once. For this, checkpointing needs to be enabled.
+ *
+ * <p>Exactly-once behaviour is implemented using a transactional RabbitMQ channel.
+ * All incoming stream elements are buffered in the state of this writer until the next checkpoint
+ * is triggered. All buffered {@code messages} are then send to RabbitMQ in a single transaction.
+ * When successful, all messages committed get removed from the state.
+ * If the transaction is aborted, all messages are put back into the state and send on the next
+ * checkpoint.
+ *
+ * <p>The transactional channel is heavyweight and will decrease throughput.
+ * If the system is under heavy load, consecutive checkpoints can be delayed if commits take
+ * longer than the checkpointing interval specified.
+ * Only use exactly-once if necessary (no duplicated messages in RabbitMQ allowed), otherwise
+ * consider using at-least-once.
+ *
+ * @param <T> Type of the elements in this sink
+ * */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
 
+    /** all messages that arrived and could not be committed thus far */
     private List<SinkMessage<T>> messages;
 
+    /**
+     * Create a new RabbitMQSinkWriterExactlyOnce.
+     *
+     * @param connectionConfig configuration parameters used to connect to RabbitMQ
+     * @param queueName name of the queue to publish to
+     * @param serializationSchema serialization schema to turn elements into byte representation
+     * @param publishOptions optionally used to compute routing/exchange for messages
+     * @param maxRetry number of retries for each message
+     * @param returnListener return listener
+     * @param states a list of states to initialize this reader with
+     */
     public RabbitMQSinkWriterExactlyOnce(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
@@ -50,6 +83,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
         Channel rmqChannel = super.setupChannel(rmqConnection);
+        // puts channel in commit mode
         rmqChannel.txSelect();
         return rmqChannel;
     }

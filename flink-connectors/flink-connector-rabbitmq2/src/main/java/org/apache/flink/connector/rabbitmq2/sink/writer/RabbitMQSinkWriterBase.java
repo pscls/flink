@@ -26,14 +26,14 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 /**
- * RabbitMQSinkWriterBase is the common abstract class of {@link RabbitMQSinkWriterAtMostOnce}
+ * RabbitMQSinkWriterBase is the common abstract class of {@link RabbitMQSinkWriterAtMostOnce},
  * {@link RabbitMQSinkWriterAtLeastOnce} and {@link RabbitMQSinkWriterExactlyOnce}
  *
  * <p>It provides basic functionality and common behaviour such as establishing and closing a
  * connection via the {@code connectionConfig} and methods for serializing and sending messages to
  * RabbitMQ (with or without publish options).
  *
- * @param <T> Type of the elements in this sink.
+ * @param <T> Type of the elements in this sink
  */
 public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
