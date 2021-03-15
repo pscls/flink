@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -51,9 +52,9 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class RabbitMQBaseTest {
 
-    protected static final int RABBITMQ_PORT = 5672;
-    protected RabbitMQContainerClient client;
-    protected String queueName;
+    private static final int RABBITMQ_PORT = 5672;
+    private RabbitMQContainerClient client;
+    private String queueName;
 
     @Rule
     public MiniClusterWithClientResource flinkCluster =
@@ -182,6 +183,12 @@ public abstract class RabbitMQBaseTest {
 
     public void addCollectorSink(DataStream<String> stream) {
         stream.addSink(new CollectSink());
+    }
+
+    public CountDownLatch setContainerClientCountDownLatch(int count) {
+        CountDownLatch latch = new CountDownLatch(count);
+        client.setCountDownLatch(latch);
+        return latch;
     }
 
     /** CollectSink to access the messages from the stream. */
