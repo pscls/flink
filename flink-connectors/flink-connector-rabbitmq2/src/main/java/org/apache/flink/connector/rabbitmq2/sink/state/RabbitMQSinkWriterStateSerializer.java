@@ -19,7 +19,7 @@
 package org.apache.flink.connector.rabbitmq2.sink.state;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import javax.annotation.Nullable;
@@ -69,18 +69,17 @@ public class RabbitMQSinkWriterStateSerializer<T>
         return baos.toByteArray();
     }
 
-    private void writeSinkMessages(DataOutputStream out, List<SinkMessage<T>> messages)
+    private void writeSinkMessages(DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages)
             throws IOException {
         out.writeInt(messages.size());
-        for (SinkMessage<T> message : messages) {
+        for (RabbitMQSinkMessageWrapper<T> message : messages) {
             out.writeInt(message.getBytes().length);
             out.write(message.getBytes());
-            out.writeInt(message.getRetries());
         }
     }
 
     /**
-     * Deserializes {@link SinkMessage} objects that wrap the byte representation of a message that
+     * Deserializes {@link RabbitMQSinkMessageWrapper} objects that wrap the byte representation of a message that
      * needs to be delivered to RabbitMQ as well as the original object representation if a
      * deserialization schema is provided.
      *
@@ -96,9 +95,9 @@ public class RabbitMQSinkWriterStateSerializer<T>
         return new RabbitMQSinkWriterState<>(readSinkMessages(in));
     }
 
-    private List<SinkMessage<T>> readSinkMessages(DataInputStream in) throws IOException {
+    private List<RabbitMQSinkMessageWrapper<T>> readSinkMessages(DataInputStream in) throws IOException {
         final int numberOfMessages = in.readInt();
-        List<SinkMessage<T>> messages = new ArrayList<>();
+        List<RabbitMQSinkMessageWrapper<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
             int retries = in.readInt();
@@ -106,10 +105,10 @@ public class RabbitMQSinkWriterStateSerializer<T>
             // options
             if (deserializationSchema != null) {
                 messages.add(
-                        new SinkMessage<>(
-                                deserializationSchema.deserialize(bytes), bytes, retries));
+                        new RabbitMQSinkMessageWrapper<>(
+                                deserializationSchema.deserialize(bytes), bytes));
             } else {
-                messages.add(new SinkMessage<>(bytes, retries));
+                messages.add(new RabbitMQSinkMessageWrapper<>(bytes));
             }
         }
         return messages;

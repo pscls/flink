@@ -50,7 +50,7 @@ public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
             SerializableReturnListener returnListener) {
-        super(connectionConfig, queueName, serializationSchema, publishOptions, 0, returnListener);
+        super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
     }
 
     @Override

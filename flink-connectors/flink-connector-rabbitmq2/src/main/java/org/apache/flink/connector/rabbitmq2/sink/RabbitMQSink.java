@@ -35,9 +35,6 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkW
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.util.Preconditions;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nullable;
 
 import java.util.List;
@@ -97,10 +94,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final SerializationSchema<T> serializationSchema;
     private final RabbitMQSinkPublishOptions<T> publishOptions;
     private final ConsistencyMode consistencyMode;
-    private final int maxRetry;
     private final SerializableReturnListener returnListener;
-    private final Long minimalResendIntervalMilliseconds;
-    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSink.class);
 
     private static final int DEFAULT_MAX_RETRY = 5;
     private static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
@@ -111,17 +105,13 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
             SerializationSchema<T> serializationSchema,
             ConsistencyMode consistencyMode,
             SerializableReturnListener returnListener,
-            @Nullable RabbitMQSinkPublishOptions<T> publishOptions,
-            @Nullable Integer maxRetry,
-            @Nullable Long minimalResendIntervalMilliseconds) {
+            @Nullable RabbitMQSinkPublishOptions<T> publishOptions) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
         this.consistencyMode = consistencyMode;
         this.returnListener = returnListener;
         this.publishOptions = publishOptions;
-        this.maxRetry = maxRetry != null ? maxRetry : DEFAULT_MAX_RETRY;
-        this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
 
         requireNonNull(connectionConfig);
         requireNonNull(queueName);
@@ -175,9 +165,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         queueName,
                         serializationSchema,
                         publishOptions,
-                        maxRetry,
                         returnListener,
-                        minimalResendIntervalMilliseconds,
                         states);
             case EXACTLY_ONCE:
                 return new RabbitMQSinkWriterExactlyOnce<>(
@@ -185,7 +173,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         queueName,
                         serializationSchema,
                         publishOptions,
-                        maxRetry,
                         returnListener,
                         states);
             default:
@@ -280,9 +267,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                     serializationSchema,
                     consistencyMode,
                     returnListener,
-                    publishOptions,
-                    maxRetry,
-                    minimalResendIntervalMilliseconds);
+                    publishOptions
+            );
         }
 
         /**
@@ -340,37 +326,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
          */
         public RabbitMQSinkBuilder<T> setConsistencyMode(ConsistencyMode consistencyMode) {
             this.consistencyMode = consistencyMode;
-            return this;
-        }
-
-        /**
-         * Optional and only relevant for at-least-once and exactly-once behaviour.
-         *
-         * <p>Set the maximum number of retries for this sink in at-least-once and exactly-once modes.
-         * If a sent message is not acknowledged after a certain interval, it will be resent on the next
-         * checkpoint. After the retry threshold is reached, an exception will be thrown.
-         *
-         * @param maxRetry sets the maximum number of retries to send each message.
-         * @return this builder
-         */
-        public RabbitMQSinkBuilder<T> setMaxRetry(int maxRetry) {
-            this.maxRetry = maxRetry;
-            return this;
-        }
-
-        /**
-         * Only relevant for at-least-once behaviour.
-         *
-         * <p>Set the minimal time interval in milliseconds after which each message is resent if no
-         * acknowledgement arrived from RabbitMQ. Because the sink resends messages on checkpoints, this
-         * prevents the sink from resending messages immediately if the checkpoint interval is too
-         * small.
-         *
-         * @param minimalResendIntervalMilliseconds the minimal interval to resend messages in ms
-         * @return this builder
-         */
-        public RabbitMQSinkBuilder<T> setMinimalResendInterval(Long minimalResendIntervalMilliseconds) {
-            this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
             return this;
         }
 

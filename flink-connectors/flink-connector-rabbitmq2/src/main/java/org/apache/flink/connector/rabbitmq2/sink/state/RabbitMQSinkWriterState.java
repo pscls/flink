@@ -19,7 +19,7 @@
 package org.apache.flink.connector.rabbitmq2.sink.state;
 
 import org.apache.flink.api.connector.sink.SinkWriter;
-import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
 
@@ -31,13 +31,13 @@ import java.util.List;
  * RabbitMQSinkWriterExactlyOnce} implementations.
  */
 public class RabbitMQSinkWriterState<T> {
-    private final List<SinkMessage<T>> outstandingMessages;
+    private final List<RabbitMQSinkMessageWrapper<T>> outstandingMessages;
 
-    public RabbitMQSinkWriterState(List<SinkMessage<T>> outstandingMessages) {
+    public RabbitMQSinkWriterState(List<RabbitMQSinkMessageWrapper<T>> outstandingMessages) {
         this.outstandingMessages = outstandingMessages;
     }
 
-    public List<SinkMessage<T>> getOutstandingMessages() {
+    public List<RabbitMQSinkMessageWrapper<T>> getOutstandingMessages() {
         return outstandingMessages;
     }
 }

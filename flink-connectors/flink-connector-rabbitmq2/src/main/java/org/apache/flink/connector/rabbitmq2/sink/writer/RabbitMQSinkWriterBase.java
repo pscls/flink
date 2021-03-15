@@ -23,7 +23,7 @@ import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.SerializableReturnListener;
-import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
@@ -62,7 +62,6 @@ public abstract class RabbitMQSinkWriterBase<T>
     protected Connection rmqConnection;
     protected Channel rmqChannel;
     protected final SerializationSchema<T> serializationSchema;
-    protected final int maxRetry;
 
     @Nullable private final RabbitMQSinkPublishOptions<T> publishOptions;
 
@@ -73,13 +72,11 @@ public abstract class RabbitMQSinkWriterBase<T>
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            int maxRetry,
             SerializableReturnListener returnListener) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
         this.publishOptions = publishOptions;
-        this.maxRetry = maxRetry;
         this.returnListener = returnListener;
         setupRabbitMQ();
     }
@@ -91,14 +88,7 @@ public abstract class RabbitMQSinkWriterBase<T>
      *
      * @param message sink message containing some state like number of retries and message content
      */
-    protected void send(SinkMessage<T> message) {
-        message.addRetries();
-        if (message.getRetries() >= maxRetry) {
-            throw new FlinkRuntimeException(
-                    "A message was not acknowledged or rejected "
-                            + message.getRetries()
-                            + " times by RabbitMQ.");
-        }
+    protected void send(RabbitMQSinkMessageWrapper<T> message) {
         send(message.getMessage(), message.getBytes());
     }
 
@@ -149,7 +139,7 @@ public abstract class RabbitMQSinkWriterBase<T>
      */
     @Override
     public void write(T element, Context context) {
-        send(new SinkMessage<>(element, serializationSchema.serialize(element)));
+        send(new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
     }
 
     protected void setupRabbitMQ() {

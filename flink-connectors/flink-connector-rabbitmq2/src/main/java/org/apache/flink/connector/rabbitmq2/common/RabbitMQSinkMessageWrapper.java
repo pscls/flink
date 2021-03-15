@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2.sink;
+package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
@@ -30,35 +30,18 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkW
  * original message needs to be stored as well because it is needed for recomputing the
  * exchange/routing key from the message content.
  *
- * <p>In the case of at-least-once the retries are increased each time a specific SinkMessage gets
- * resent.
  */
-public class SinkMessage<T> {
+public class RabbitMQSinkMessageWrapper<T> {
     private T message;
     private byte[] bytes;
-    private int retries;
 
-    public SinkMessage(T message, byte[] bytes) {
-        this(message, bytes, 0);
-    }
-
-    public SinkMessage(byte[] bytes, int retries) {
+    public RabbitMQSinkMessageWrapper(byte[] bytes) {
         this.bytes = bytes;
-        this.retries = retries;
     }
 
-    public SinkMessage(T message, byte[] bytes, int retries) {
+    public RabbitMQSinkMessageWrapper(T message, byte[] bytes) {
         this.message = message;
         this.bytes = bytes;
-        this.retries = retries;
-    }
-
-    public int getRetries() {
-        return retries;
-    }
-
-    public void addRetries() {
-        retries += 1;
     }
 
     public byte[] getBytes() {
