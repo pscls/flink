@@ -320,7 +320,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         }
 
         /**
-         * Set the SerializableReturnListener for this sink.
+         * Set the {@link SerializableReturnListener} for this sink. If no ReturnListener is set,
+         * unrouted messages, which are returned by RabbitMQ, will be dropped silently.
          *
          * @param returnListener the return listener to use
          * @return this builder
