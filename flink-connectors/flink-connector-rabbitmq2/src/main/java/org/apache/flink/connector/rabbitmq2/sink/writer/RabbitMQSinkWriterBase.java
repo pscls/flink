@@ -174,6 +174,9 @@ public abstract class RabbitMQSinkWriterBase<T>
     protected Channel setupChannel(Connection rmqConnection) throws IOException {
         final Channel rmqChannel = rmqConnection.createChannel();
         rmqChannel.queueDeclare(queueName, true, false, false, null);
+        if (returnListener != null) {
+            rmqChannel.addReturnListener(returnListener);
+        }
         return rmqChannel;
     }
 

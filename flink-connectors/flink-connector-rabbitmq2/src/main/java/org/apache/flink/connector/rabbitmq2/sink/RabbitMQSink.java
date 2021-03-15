@@ -43,6 +43,8 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RabbitMQ sink that publishes messages to a RabbitMQ queue.
  * It provides at-most-once, at-least-once or exactly-once processing semantics. For at-least-once
@@ -63,8 +65,8 @@ import java.util.Optional;
  * RabbitMQConnectionConfig}. It contains required information for the RabbitMQ java client to
  * connect to the RabbitMQ server. A minimum configuration contains a (virtual) host, a username, a
  * password and a port. Besides that, the {@code queueName} to publish to and a {@link
- * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added to
- * route messages in RabbitMQ.
+ * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added
+ * optionally to route messages in RabbitMQ.
  *
  * <p>If at-least-once is required, an optional number of {@code maxRetry} attempts can be specified
  * until a failure is triggered. Generally, messages are buffered until an acknowledgement arrives
@@ -120,6 +122,10 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         this.publishOptions = publishOptions;
         this.maxRetry = maxRetry != null ? maxRetry : DEFAULT_MAX_RETRY;
         this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
+
+        requireNonNull(connectionConfig);
+        requireNonNull(queueName);
+        requireNonNull(serializationSchema);
 
         Preconditions.checkState(
                 verifyPublishOptions(),
@@ -182,8 +188,10 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         maxRetry,
                         returnListener,
                         states);
+            default:
+                throw new RuntimeException("Error in creating a SinkWriter: "
+                        + "No valid consistency mode was specified.");
         }
-        return null;
     }
 
     @Override
