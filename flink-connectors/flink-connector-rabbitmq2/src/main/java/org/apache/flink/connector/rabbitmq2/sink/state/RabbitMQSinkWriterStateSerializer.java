@@ -19,7 +19,7 @@
 package org.apache.flink.connector.rabbitmq2.sink.state;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.connector.rabbitmq2.common.RabbitMQSinkMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import javax.annotation.Nullable;

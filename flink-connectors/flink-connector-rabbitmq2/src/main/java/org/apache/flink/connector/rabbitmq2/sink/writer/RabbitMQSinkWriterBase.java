@@ -23,7 +23,7 @@ import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
-import org.apache.flink.connector.rabbitmq2.common.RabbitMQSinkMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
