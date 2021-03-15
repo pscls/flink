@@ -26,6 +26,7 @@ import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.committer.RabbitMQTransactionCommitter;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
@@ -45,9 +46,9 @@ import java.util.Optional;
 import static java.util.Objects.requireNonNull;
 
 /**
- * RabbitMQ sink that publishes messages to a RabbitMQ queue.
- * It provides at-most-once, at-least-once or exactly-once processing semantics. For at-least-once
- * and exactly-once, checkpointing needs to be enabled.
+ * RabbitMQ sink that publishes messages to a RabbitMQ queue. It provides at-most-once,
+ * at-least-once or exactly-once processing semantics. For at-least-once and exactly-once,
+ * checkpointing needs to be enabled.
  *
  * <pre>{@code
  * RabbitMQSink
@@ -66,10 +67,9 @@ import static java.util.Objects.requireNonNull;
  * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added
  * optionally to route messages in RabbitMQ.
  *
- * <p>If at-least-once is required messages are buffered until an acknowledgement arrives
- * because delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be
- * resent to RabbitMQ. In case of a failure, all unacknowledged messages can
- * be restored and resend.
+ * <p>If at-least-once is required messages are buffered until an acknowledgement arrives because
+ * delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be resent
+ * to RabbitMQ. In case of a failure, all unacknowledged messages can be restored and resend.
  *
  * <p>In the case of exactly-once a transactional RabbitMQ channel is used to achieve that all
  * messages within a checkpoint are delivered once and only once. All messages that arrive in a
@@ -77,15 +77,16 @@ import static java.util.Objects.requireNonNull;
  * is triggered. If the transaction fails, all messages that were a part of the transaction are put
  * back into the buffer and a resend is issued in the next checkpoint.
  *
- * <p>Keep in mind that the transactional channels are heavyweight and the performance will drop. Under
- * heavy load, checkpoints can be delayed if a transaction takes longer than the specified
+ * <p>Keep in mind that the transactional channels are heavyweight and the performance will drop.
+ * Under heavy load, checkpoints can be delayed if a transaction takes longer than the specified
  * checkpointing interval.
  *
  * <p>If publish options are used and the checkpointing mode is at-least-once or exactly-once, they
  * require a {@link DeserializationSchema} to be provided because messages that were persisted as
  * part of an earlier checkpoint are needed to recompute routing/exchange.
  */
-public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>, Void> {
+public class RabbitMQSink<T>
+        implements Sink<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>, Void> {
 
     private final RabbitMQConnectionConfig connectionConfig;
     private final String queueName;
@@ -146,7 +147,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
      * @return The SinkWriter implementation depending on the consistency mode set by the user
      */
     @Override
-    public SinkWriter<T, Void, RabbitMQSinkWriterState<T>> createWriter(
+    public SinkWriter<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>> createWriter(
             InitContext context, List<RabbitMQSinkWriterState<T>> states) {
         switch (consistencyMode) {
             case AT_MOST_ONCE:
@@ -165,32 +166,37 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                         returnListener,
                         states);
             case EXACTLY_ONCE:
-                return new RabbitMQSinkWriterExactlyOnce<>(
-                        connectionConfig,
-                        queueName,
-                        serializationSchema,
-                        publishOptions,
-                        returnListener,
-                        states);
+                return new RabbitMQSinkWriterExactlyOnce<>(serializationSchema, states);
             default:
-                throw new RuntimeException("Error in creating a SinkWriter: "
-                        + "No valid consistency mode was specified.");
+                throw new RuntimeException(
+                        "Error in creating a SinkWriter: "
+                                + "No valid consistency mode was specified.");
         }
     }
 
     @Override
-    public Optional<Committer<Void>> createCommitter() {
+    public Optional<Committer<RabbitMQSinkWriterState<T>>> createCommitter() {
+        if (consistencyMode == ConsistencyMode.EXACTLY_ONCE) {
+            return Optional.of(
+                    new RabbitMQTransactionCommitter<T>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener));
+        }
         return Optional.empty();
     }
 
     @Override
-    public Optional<GlobalCommitter<Void, Void>> createGlobalCommitter() {
+    public Optional<GlobalCommitter<RabbitMQSinkWriterState<T>, Void>> createGlobalCommitter() {
         return Optional.empty();
     }
 
     @Override
-    public Optional<SimpleVersionedSerializer<Void>> getCommittableSerializer() {
-        return Optional.empty();
+    public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>>
+            getCommittableSerializer() {
+        return getWriterStateSerializer();
     }
 
     @Override
@@ -220,8 +226,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
 
     /**
      * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in {@link
-     * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and a
-     * {@code serializationSchema}. Optional parameters include {@code publishOptions}, a {@code
+     * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and
+     * a {@code serializationSchema}. Optional parameters include {@code publishOptions}, a {@code
      * minimalResendIntervalMilliseconds} (for at-least-once) and a {@code returnListener}.
      *
      * <pre>{@code
@@ -259,8 +265,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                     serializationSchema,
                     consistencyMode,
                     returnListener,
-                    publishOptions
-            );
+                    publishOptions);
         }
 
         /**
@@ -269,7 +274,8 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
          * @param connectionConfig configuration required to connect to RabbitMQ
          * @return this builder
          */
-        public RabbitMQSinkBuilder<T> setConnectionConfig(RabbitMQConnectionConfig connectionConfig) {
+        public RabbitMQSinkBuilder<T> setConnectionConfig(
+                RabbitMQConnectionConfig connectionConfig) {
             this.connectionConfig = connectionConfig;
             return this;
         }
@@ -298,13 +304,14 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         }
 
         /**
-         * Sets the RabbitMQSinkPublishOptions for this sink. Publish options can be used for routing in
-         * an exchange in RabbitMQ.
+         * Sets the RabbitMQSinkPublishOptions for this sink. Publish options can be used for
+         * routing in an exchange in RabbitMQ.
          *
          * @param publishOptions the publish options to be used
          * @return this builder
          */
-        public RabbitMQSinkBuilder<T> setPublishOptions(RabbitMQSinkPublishOptions<T> publishOptions) {
+        public RabbitMQSinkBuilder<T> setPublishOptions(
+                RabbitMQSinkPublishOptions<T> publishOptions) {
             this.publishOptions = publishOptions;
             return this;
         }

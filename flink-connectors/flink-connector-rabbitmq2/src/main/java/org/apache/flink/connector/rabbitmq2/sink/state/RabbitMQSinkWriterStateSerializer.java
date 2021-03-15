@@ -69,8 +69,8 @@ public class RabbitMQSinkWriterStateSerializer<T>
         return baos.toByteArray();
     }
 
-    private void writeSinkMessages(DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages)
-            throws IOException {
+    private void writeSinkMessages(
+            DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages) throws IOException {
         out.writeInt(messages.size());
         for (RabbitMQSinkMessageWrapper<T> message : messages) {
             out.writeInt(message.getBytes().length);
@@ -79,9 +79,9 @@ public class RabbitMQSinkWriterStateSerializer<T>
     }
 
     /**
-     * Deserializes {@link RabbitMQSinkMessageWrapper} objects that wrap the byte representation of a message that
-     * needs to be delivered to RabbitMQ as well as the original object representation if a
-     * deserialization schema is provided.
+     * Deserializes {@link RabbitMQSinkMessageWrapper} objects that wrap the byte representation of
+     * a message that needs to be delivered to RabbitMQ as well as the original object
+     * representation if a deserialization schema is provided.
      *
      * @param i
      * @param bytes Serialized outstanding sink messages
@@ -95,12 +95,16 @@ public class RabbitMQSinkWriterStateSerializer<T>
         return new RabbitMQSinkWriterState<>(readSinkMessages(in));
     }
 
-    private List<RabbitMQSinkMessageWrapper<T>> readSinkMessages(DataInputStream in) throws IOException {
+    private List<RabbitMQSinkMessageWrapper<T>> readSinkMessages(DataInputStream in)
+            throws IOException {
         final int numberOfMessages = in.readInt();
         List<RabbitMQSinkMessageWrapper<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
-            /** In this case, the messages need to be deserialized again, so we can recompute publish options **/
+            /**
+             * In this case, the messages need to be deserialized again, so we can recompute publish
+             * options *
+             */
             if (deserializationSchema != null) {
                 messages.add(
                         new RabbitMQSinkMessageWrapper<>(

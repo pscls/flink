@@ -21,9 +21,9 @@ package org.apache.flink.connector.rabbitmq2.sink.writer;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
-import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 
@@ -54,7 +54,7 @@ import java.util.concurrent.TimeoutException;
  * @param <T> Type of the elements in this sink
  */
 public abstract class RabbitMQSinkWriterBase<T>
-        implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
+        implements SinkWriter<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>> {
     protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterBase.class);
 
     protected final RabbitMQConnectionConfig connectionConfig;
@@ -170,13 +170,13 @@ public abstract class RabbitMQSinkWriterBase<T>
     }
 
     @Override
-    public List<Void> prepareCommit(boolean flush) throws IOException {
-        return new ArrayList<>();
+    public List<RabbitMQSinkWriterState<T>> prepareCommit(boolean flush) throws IOException {
+        return Collections.emptyList();
     }
 
     @Override
-    public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
-        return new ArrayList<>();
+    public List<RabbitMQSinkWriterState<T>> snapshotState() {
+        return Collections.emptyList();
     }
 
     @Override

@@ -24,6 +24,7 @@ import org.apache.flink.connector.rabbitmq2.common.RabbitMQBaseTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 import org.junit.Test;
+
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -92,7 +93,7 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
 
     @Test
     public void ExactlyOnceTest() throws Exception {
-        List<String> messages = getRandomMessages(1000);
+        List<String> messages = getRandomMessages(10);
         CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
         env.enableCheckpointing(100);
@@ -100,7 +101,7 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
         DataStream<String> stream2 =
                 stream.map(
                         m -> {
-                            TimeUnit.MILLISECONDS.sleep(2);
+                            TimeUnit.MILLISECONDS.sleep(100);
                             return m;
                         });
         addSinkOn(stream2, ConsistencyMode.EXACTLY_ONCE);

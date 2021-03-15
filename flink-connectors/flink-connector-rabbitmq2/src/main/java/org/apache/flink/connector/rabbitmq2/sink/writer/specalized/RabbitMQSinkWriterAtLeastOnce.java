@@ -22,9 +22,9 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
-import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
@@ -79,12 +79,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             RabbitMQSinkPublishOptions<T> publishOptions,
             SerializableReturnListener returnListener,
             List<RabbitMQSinkWriterState<T>> states) {
-        super(
-                connectionConfig,
-                queueName,
-                serializationSchema,
-                publishOptions,
-                returnListener);
+        super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
         initWithState(states);
