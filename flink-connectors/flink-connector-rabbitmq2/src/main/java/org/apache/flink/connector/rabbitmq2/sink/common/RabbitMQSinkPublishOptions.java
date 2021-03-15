@@ -20,7 +20,7 @@
  * serialization schema which is required for at-least-once and exactly-once.
  */
 
-package org.apache.flink.connector.rabbitmq2.sink;
+package org.apache.flink.connector.rabbitmq2.sink.common;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.common.serialization.DeserializationSchema;

@@ -19,7 +19,7 @@
  * This class is copied from the old rabbitmq connector.
  */
 
-package org.apache.flink.connector.rabbitmq2;
+package org.apache.flink.connector.rabbitmq2.common;
 
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.util.Preconditions;

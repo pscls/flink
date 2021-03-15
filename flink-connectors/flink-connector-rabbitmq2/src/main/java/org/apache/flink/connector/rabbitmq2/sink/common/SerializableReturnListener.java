@@ -16,24 +16,22 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2;
-
-/**
- * The different consistency modes that can be defined for the sink and source individually.
- *
- * <p>The available consistency modes are as follows.
- *
- * <ul>
- *   <li><code>AT_MOST_ONCE</code> Messages are consumed by the output once or never.
- *   <li><code>AT_LEAST_ONCE</code> Messages are consumed by the output at least once.
- *   <li><code>EXACTLY_ONCE</code> Messages are consumed by the output exactly once.
- * </ul>
- *
- * <p>Note that the higher the consistency guarantee gets, fewer messages can be processed by the
- * system. At-least-once and exactly-once should only be used if necessary.
+/*
+ * This class was copied from the old RabbitMQ connector.
  */
-public enum ConsistencyMode {
-    AT_MOST_ONCE,
-    AT_LEAST_ONCE,
-    EXACTLY_ONCE,
-}
+
+package org.apache.flink.connector.rabbitmq2.sink.common;
+
+import com.rabbitmq.client.ReturnListener;
+
+import java.io.Serializable;
+
+/** A serializable {@link ReturnListener} to handle unroutable but "mandatory" messages.
+ *
+ * <p> If a message has the "mandatory" flag set, but cannot be routed, RabbitMQ's broker
+ * will return the message to the publishing client (via an AMQP.Basic.Return command).
+ * This ReturnListener implements a callback handler to get notified in such returns and act on
+ * these messages as wanted.
+ */
+
+public interface SerializableReturnListener extends Serializable, ReturnListener {}

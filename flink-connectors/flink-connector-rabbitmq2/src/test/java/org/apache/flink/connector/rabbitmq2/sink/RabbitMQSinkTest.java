@@ -18,7 +18,7 @@
 
 package org.apache.flink.connector.rabbitmq2.sink;
 
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.common.GlobalBoolean;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQBaseTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
