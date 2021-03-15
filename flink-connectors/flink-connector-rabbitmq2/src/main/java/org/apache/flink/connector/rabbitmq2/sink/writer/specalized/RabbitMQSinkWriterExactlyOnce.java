@@ -66,7 +66,6 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
      * @param queueName name of the queue to publish to
      * @param serializationSchema serialization schema to turn elements into byte representation
      * @param publishOptions optionally used to compute routing/exchange for messages
-     * @param maxRetry number of retries for each message
      * @param returnListener return listener
      * @param states a list of states to initialize this reader with
      */

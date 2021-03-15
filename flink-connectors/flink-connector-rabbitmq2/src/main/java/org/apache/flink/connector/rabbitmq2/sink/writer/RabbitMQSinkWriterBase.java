@@ -83,10 +83,9 @@ public abstract class RabbitMQSinkWriterBase<T>
 
     /**
      * Only used by at-least-once and exactly-once for resending messages that could not be
-     * delivered. The retry count is incremented and an exception is thrown when the threshold is
-     * reached.
+     * delivered.
      *
-     * @param message sink message containing some state like number of retries and message content
+     * @param message sink message wrapping the atomic message object
      */
     protected void send(RabbitMQSinkMessageWrapper<T> message) {
         send(message.getMessage(), message.getBytes());

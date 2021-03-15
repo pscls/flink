@@ -54,7 +54,6 @@ import static java.util.Objects.requireNonNull;
  *     .setQueueName("queue")
  *     .setSerializationSchema(new SimpleStringSchema())
  *     .setConsistencyMode(ConsistencyMode.AT_LEAST_ONCE)
- *     .setMinimalResendInterval(10L)
  *     .build();
  * }</pre>
  *
@@ -65,12 +64,9 @@ import static java.util.Objects.requireNonNull;
  * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added
  * optionally to route messages in RabbitMQ.
  *
- * <p>If at-least-once is required, an optional number of {@code maxRetry} attempts can be specified
- * until a failure is triggered. Generally, messages are buffered until an acknowledgement arrives
+ * <p>If at-least-once is required messages are buffered until an acknowledgement arrives
  * because delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be
- * resent to RabbitMQ. If the checkpointing interval is set low or a high frequency of resending is
- * not desired, the {@code minimalResendIntervalMilliseconds} can be specified to prevent the sink
- * from resending data that has just arrived. In case of a failure, all unacknowledged messages can
+ * resent to RabbitMQ. In case of a failure, all unacknowledged messages can
  * be restored and resend.
  *
  * <p>In the case of exactly-once a transactional RabbitMQ channel is used to achieve that all
@@ -96,7 +92,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final ConsistencyMode consistencyMode;
     private final SerializableReturnListener returnListener;
 
-    private static final int DEFAULT_MAX_RETRY = 5;
     private static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
 
     private RabbitMQSink(
@@ -225,8 +220,7 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
      * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in {@link
      * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and a
      * {@code serializationSchema}. Optional parameters include {@code publishOptions}, a {@code
-     * minimalResendIntervalMilliseconds} (for at-least-once), {@code maxRetry} threshold for resending
-     * behaviour and a {@code returnListener}.
+     * minimalResendIntervalMilliseconds} (for at-least-once) and a {@code returnListener}.
      *
      * <pre>{@code
      * RabbitMQSink
@@ -235,7 +229,6 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
      *   .setQueueName("queue")
      *   .setSerializationSchema(new SimpleStringSchema())
      *   .setConsistencyMode(ConsistencyMode.AT_LEAST_ONCE)
-     *   .setMinimalResendInterval(10L)
      *   .build();
      * }</pre>
      */
@@ -246,13 +239,10 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         private SerializationSchema<T> serializationSchema;
         private ConsistencyMode consistencyMode;
         private RabbitMQSinkPublishOptions<T> publishOptions;
-        private Integer maxRetry;
-        private Long minimalResendIntervalMilliseconds;
         private SerializableReturnListener returnListener;
 
         public RabbitMQSinkBuilder() {
             this.consistencyMode = RabbitMQSink.DEFAULT_CONSISTENCY_MODE;
-            this.maxRetry = RabbitMQSink.DEFAULT_MAX_RETRY;
         }
 
         /**

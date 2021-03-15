@@ -46,13 +46,11 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * meaning it guarantees that outgoing message arrive at RabbitMQ at least once.
  *
  * <p>At-least-once behaviour is implemented by assigning sequence numbers to arriving messages and
- * buffering them together in the state of the writer until an ack arrives or a maximum number of
- * retries is exceeded.
+ * buffering them together in the state of the writer until an ack arrives.
  *
  * <p>Checkpointing is required for at-least-once to work because messages are resend only when a
  * checkpoint is triggered (to avoid complex time tracking mechanisms for each individual message).
- * On a checkpoint, a resend of all messages that are unacknowledged and at least {@code
- * resendIntervalMilliseconds} old is issued.
+ * On a checkpoint, a resend of all messages that are unacknowledged is issued.
  *
  * <p>After a failure, a new writer gets initialized with one or more states that contain
  * unacknowledged messages. These messages get resend immediately while buffering them in the new

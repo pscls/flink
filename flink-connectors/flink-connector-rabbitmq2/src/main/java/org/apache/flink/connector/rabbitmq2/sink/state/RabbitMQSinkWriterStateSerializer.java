@@ -100,9 +100,7 @@ public class RabbitMQSinkWriterStateSerializer<T>
         List<RabbitMQSinkMessageWrapper<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
-            int retries = in.readInt();
-            // in this case, the messages need to be deserialized again, so we can recompute publish
-            // options
+            /** In this case, the messages need to be deserialized again, so we can recompute publish options **/
             if (deserializationSchema != null) {
                 messages.add(
                         new RabbitMQSinkMessageWrapper<>(

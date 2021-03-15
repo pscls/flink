@@ -16,7 +16,7 @@ Generally, new messages are buffered until an acknowledgement arrives.
 On a checkpoint, all send but unacknowledged messages are resent to RabbitMQ.
 The buffered messages are then stored in the checkpoint to guarantee their future delivery in case
 of a failure.
-If the resend is triggered before the acknowledgement arrives, or the acknowledgement is lost,
+If resend is triggered before the acknowledgement arrives, or the acknowledgement is lost,
 messages will be duplicated inside RabbitMQ.
 
 
