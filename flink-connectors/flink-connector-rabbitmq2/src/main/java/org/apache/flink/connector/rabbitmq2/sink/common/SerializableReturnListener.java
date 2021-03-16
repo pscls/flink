@@ -16,10 +16,6 @@
  * limitations under the License.
  */
 
-/*
- * This class was copied from the old RabbitMQ connector.
- */
-
 package org.apache.flink.connector.rabbitmq2.sink.common;
 
 import com.rabbitmq.client.ReturnListener;
@@ -27,6 +23,7 @@ import com.rabbitmq.client.ReturnListener;
 import java.io.Serializable;
 
 /**
+ * This class was copied from the old RabbitMQ connector.
  * A serializable {@link ReturnListener} to handle unroutable but "mandatory" messages.
  *
  * <p>If a message has the "mandatory" flag set, but cannot be routed, RabbitMQ's broker will return

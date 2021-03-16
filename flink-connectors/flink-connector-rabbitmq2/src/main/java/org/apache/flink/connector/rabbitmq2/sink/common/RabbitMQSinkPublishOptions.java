@@ -25,7 +25,6 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import java.util.Optional;
 
 /**
- * TODO: Discuss referencing old connector
  * This class was copied from the old RabbitMQ connector and got extended by the serialization
  * schema which is required for at-least-once and exactly-once.
  *
