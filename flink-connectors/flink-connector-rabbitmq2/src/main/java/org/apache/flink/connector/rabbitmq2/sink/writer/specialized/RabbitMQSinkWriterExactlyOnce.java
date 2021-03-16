@@ -50,7 +50,8 @@ public class RabbitMQSinkWriterExactlyOnce<T>
         implements SinkWriter<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>> {
 
     private final SerializationSchema<T> serializationSchema;
-    /** All messages that arrived and could not be committed this far. */
+    // TODO: Think about whether this needs to be synchronized
+    // All messages that arrived and could not be committed this far.
     private List<RabbitMQSinkMessageWrapper<T>> messages;
 
     /**

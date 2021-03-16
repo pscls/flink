@@ -84,6 +84,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
         initWithState(states);
+        configureChannel();
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
@@ -142,17 +143,13 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         };
     }
 
-    @Override
-    protected Channel setupChannel(
-            Connection rmqConnection, String queueName, SerializableReturnListener returnListener)
+    private void configureChannel()
             throws IOException {
-        Channel channel = super.setupChannel(rmqConnection, queueName, returnListener);
         ConfirmCallback ackCallback = handleAcknowledgements();
         ConfirmCallback nackCallback = handleNegativeAcknowledgements();
         // register callbacks for cases of ack and negative ack of messages (seq numbers)
-        channel.addConfirmListener(ackCallback, nackCallback);
-        channel.confirmSelect();
-        return channel;
+        getRmqChannel().addConfirmListener(ackCallback, nackCallback);
+        getRmqChannel().confirmSelect();
     }
 
     /**

@@ -25,6 +25,7 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSink
 
 import java.util.List;
 
+// TODO: Find a more suitable name so it covers the new commit architecture as well
 /**
  * The state of a {@link SinkWriter} implementation. Contains {@code outstandingMessages} that could
  * not be delivered in a checkpoint. Used in the {@link RabbitMQSinkWriterAtLeastOnce} and {@link

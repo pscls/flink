@@ -37,12 +37,12 @@ public class RabbitMQSinkConnection<T> {
         this.rmqChannel = setupChannel(rmqConnection, queueName, returnListener);
     }
 
-    protected Connection setupConnection(RabbitMQConnectionConfig connectionConfig)
+    private Connection setupConnection(RabbitMQConnectionConfig connectionConfig)
             throws Exception {
         return connectionConfig.getConnectionFactory().newConnection();
     }
 
-    protected Channel setupChannel(
+    private Channel setupChannel(
             Connection rmqConnection, String queueName, SerializableReturnListener returnListener)
             throws IOException {
         final Channel rmqChannel = rmqConnection.createChannel();

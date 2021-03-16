@@ -15,11 +15,6 @@
  * limitations under the License.
  */
 
-/*
- * This class was copied from the old RabbitMQ connector and got extended by the
- * serialization schema which is required for at-least-once and exactly-once.
- */
-
 package org.apache.flink.connector.rabbitmq2.sink.common;
 
 import org.apache.flink.annotation.PublicEvolving;
@@ -30,6 +25,10 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import java.util.Optional;
 
 /**
+ * TODO: Discuss referencing old connector
+ * This class was copied from the old RabbitMQ connector and got extended by the serialization
+ * schema which is required for at-least-once and exactly-once.
+ *
  * The message computation provides methods to compute the message routing key and/or the
  * properties.
  *

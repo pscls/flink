@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+// TODO: Document the new architecture
 public class RabbitMQTransactionCommitter<T> extends RabbitMQSinkConnection<T>
         implements Committer<RabbitMQSinkWriterState<T>> {
 
@@ -25,16 +26,13 @@ public class RabbitMQTransactionCommitter<T> extends RabbitMQSinkConnection<T>
             SerializableReturnListener returnListener)
             throws Exception {
         super(connectionConfig, queueName, publishOptions, returnListener);
+        configureChannel();
     }
 
-    @Override
-    protected Channel setupChannel(
-            Connection rmqConnection, String queueName, SerializableReturnListener returnListener)
+    private void configureChannel()
             throws IOException {
-        Channel rmqChannel = super.setupChannel(rmqConnection, queueName, returnListener);
         // Put the channel in commit mode
-        rmqChannel.txSelect();
-        return rmqChannel;
+        getRmqChannel().txSelect();
     }
 
     @Override
