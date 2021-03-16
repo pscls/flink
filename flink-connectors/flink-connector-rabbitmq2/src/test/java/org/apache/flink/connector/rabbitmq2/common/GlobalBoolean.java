@@ -21,7 +21,7 @@ package org.apache.flink.connector.rabbitmq2.common;
 import java.io.Serializable;
 
 /**
- * This class holds a globally unique <code>Boolean</></code> to prevent object resets on Flink
+ * This class holds a globally unique <code>Boolean</code> to prevent object resets on Flink
  * recoveries after a failure has occurred. This boolean works as a singleton and keeps its state
  * even when Flink initializes a new object from a serialized checkpoint. This recovery safe
  * behavior allows us the check whether we have thrown an exception before.

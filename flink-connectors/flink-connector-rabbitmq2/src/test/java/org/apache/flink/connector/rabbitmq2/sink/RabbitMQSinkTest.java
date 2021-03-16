@@ -38,7 +38,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class RabbitMQSinkTest extends RabbitMQBaseTest {
     @Test
-    public void AtMostOnceTest() throws Exception {
+    public void atMostOnceTest() throws Exception {
         List<String> messages = getRandomMessages(100);
         CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
@@ -52,7 +52,7 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
     }
 
     @Test
-    public void AtLeastOnceTest() throws Exception {
+    public void atLeastOnceTest() throws Exception {
         List<String> messages = getRandomMessages(100);
         CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
@@ -67,7 +67,7 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
     }
 
     @Test
-    public void AtLeastOnceWithFlinkFailureTest() throws Exception {
+    public void atLeastOnceWithFlinkFailureTest() throws Exception {
         List<String> messages = getRandomMessages(100);
         CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
@@ -92,7 +92,7 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
     }
 
     @Test
-    public void ExactlyOnceTest() throws Exception {
+    public void exactlyOnceTest() throws Exception {
         List<String> messages = getRandomMessages(10);
         CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
