@@ -29,7 +29,7 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 /**
  * A {@link SinkWriter} implementation for {@link RabbitMQSink}.
  *
- * <p>It uses exclusively the basic functionalities provided in {@link RabbitMQSinkWriterBase} for
+ * <p>It uses exclusively the basic functionalities provided by {@link RabbitMQSinkWriterBase} for
  * publishing messages to RabbitMQ (serializing a stream element and publishing it to RabbitMQ in a
  * fire-and-forget fashion).
  */

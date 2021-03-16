@@ -50,7 +50,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
  *
  * <p>Checkpointing is required for at-least-once to work because messages are resend only when a
  * checkpoint is triggered (to avoid complex time tracking mechanisms for each individual message).
- * On a checkpoint, a resend of all messages that are unacknowledged is issued.
+ * Thus on each checkpoint, all messages which were sent at least once before to RabbitMQ but are still
+ * unacknowledged will be send once again - duplications are possible by this behavior.
  *
  * <p>After a failure, a new writer gets initialized with one or more states that contain
  * unacknowledged messages. These messages get resend immediately while buffering them in the new
