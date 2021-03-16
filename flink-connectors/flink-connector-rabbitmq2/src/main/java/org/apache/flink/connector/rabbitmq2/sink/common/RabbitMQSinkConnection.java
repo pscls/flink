@@ -59,7 +59,7 @@ public class RabbitMQSinkConnection<T> {
      *
      * @param message sink message wrapping the atomic message object
      */
-    protected void send(RabbitMQSinkMessageWrapper<T> message) {
+    protected void send(RabbitMQSinkMessageWrapper<T> message) throws IOException {
         send(message.getMessage(), message.getBytes());
     }
 
@@ -70,15 +70,11 @@ public class RabbitMQSinkConnection<T> {
      * @param message original message, only required for publishing with publish options present
      * @param serializedMessage serialized message to send to RabbitMQ
      */
-    protected void send(T message, byte[] serializedMessage) {
-        try {
-            if (publishOptions == null) {
-                rmqChannel.basicPublish("", queueName, null, serializedMessage);
-            } else {
-                publishWithOptions(message, serializedMessage);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage());
+    protected void send(T message, byte[] serializedMessage) throws IOException {
+        if (publishOptions == null) {
+            rmqChannel.basicPublish("", queueName, null, serializedMessage);
+        } else {
+            publishWithOptions(message, serializedMessage);
         }
     }
 

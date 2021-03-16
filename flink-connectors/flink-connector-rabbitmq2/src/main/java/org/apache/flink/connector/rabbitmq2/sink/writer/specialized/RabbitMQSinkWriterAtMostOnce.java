@@ -26,6 +26,8 @@ import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptio
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
+import java.io.IOException;
+
 /**
  * A {@link SinkWriter} implementation for {@link RabbitMQSink}.
  *
@@ -55,7 +57,7 @@ public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
     }
 
     @Override
-    public void write(T element, Context context) {
+    public void write(T element, Context context) throws IOException {
         send(element, serializationSchema.serialize(element));
     }
 }

@@ -66,7 +66,7 @@ public abstract class RabbitMQSinkWriterBase<T> extends RabbitMQSinkConnection<T
      * @param context context of this sink writer
      */
     @Override
-    public void write(T element, Context context) {
+    public void write(T element, Context context) throws IOException {
         send(new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
     }
 
