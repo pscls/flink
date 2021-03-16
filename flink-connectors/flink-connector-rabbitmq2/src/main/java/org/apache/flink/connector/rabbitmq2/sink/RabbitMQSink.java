@@ -26,7 +26,6 @@ import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
-import org.apache.flink.connector.rabbitmq2.sink.committer.RabbitMQTransactionCommitter;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
@@ -86,7 +85,7 @@ import static java.util.Objects.requireNonNull;
  * part of an earlier checkpoint are needed to recompute routing/exchange.
  */
 public class RabbitMQSink<T>
-        implements Sink<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>, Void> {
+        implements Sink<T, Void, RabbitMQSinkWriterState<T>, Void> {
 
     private final RabbitMQConnectionConfig connectionConfig;
     private final String queueName;
@@ -147,22 +146,18 @@ public class RabbitMQSink<T>
      * @return The SinkWriter implementation depending on the consistency mode set by the user
      */
     @Override
-    public SinkWriter<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>> createWriter(
+    public SinkWriter<T, Void, RabbitMQSinkWriterState<T>> createWriter(
             InitContext context, List<RabbitMQSinkWriterState<T>> states) {
-        switch (consistencyMode) {
-            case AT_MOST_ONCE:
-                try {
-                    return new RabbitMQSinkWriterAtMostOnce<>(
-                            connectionConfig,
-                            queueName,
-                            serializationSchema,
-                            publishOptions,
-                            returnListener);
-                } catch (Exception e) {
-                    throw new RuntimeException(e.getMessage());
-                }
-            case AT_LEAST_ONCE:
-                try {
+        try {
+            switch (consistencyMode) {
+                case AT_MOST_ONCE:
+                        return new RabbitMQSinkWriterAtMostOnce<>(
+                                connectionConfig,
+                                queueName,
+                                serializationSchema,
+                                publishOptions,
+                                returnListener);
+                case AT_LEAST_ONCE:
                     return new RabbitMQSinkWriterAtLeastOnce<>(
                             connectionConfig,
                             queueName,
@@ -170,41 +165,37 @@ public class RabbitMQSink<T>
                             publishOptions,
                             returnListener,
                             states);
-                } catch (Exception e) {
-                    throw new RuntimeException(e.getMessage());
-                }
-            case EXACTLY_ONCE:
-                return new RabbitMQSinkWriterExactlyOnce<>(serializationSchema, states);
-            default:
-                throw new RuntimeException(
-                        "Error in creating a SinkWriter: "
-                                + "No valid consistency mode was specified.");
-        }
-    }
-
-    @Override
-    public Optional<Committer<RabbitMQSinkWriterState<T>>> createCommitter() {
-        if (consistencyMode == ConsistencyMode.EXACTLY_ONCE) {
-            try {
-                return Optional.of(
-                        new RabbitMQTransactionCommitter<>(
-                                connectionConfig, queueName, publishOptions, returnListener));
-            } catch (Exception e) {
-                throw new RuntimeException(e.getMessage());
+                case EXACTLY_ONCE:
+                    return new RabbitMQSinkWriterExactlyOnce<>(connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener,
+                            states);
+                default:
+                    throw new RuntimeException(
+                            "Error in creating a SinkWriter: "
+                                    + "No valid consistency mode was specified.");
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
+    }
+
+    @Override
+    public Optional<Committer<Void>> createCommitter() {
         return Optional.empty();
     }
 
     @Override
-    public Optional<GlobalCommitter<RabbitMQSinkWriterState<T>, Void>> createGlobalCommitter() {
+    public Optional<GlobalCommitter<Void, Void>> createGlobalCommitter() {
         return Optional.empty();
     }
 
     @Override
-    public Optional<SimpleVersionedSerializer<RabbitMQSinkWriterState<T>>>
+    public Optional<SimpleVersionedSerializer<Void>>
             getCommittableSerializer() {
-        return getWriterStateSerializer();
+        return Optional.empty();
     }
 
     @Override

@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 
+// TODO: Documentation
 public class RabbitMQSinkConnection<T> {
     protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkConnection.class);
 

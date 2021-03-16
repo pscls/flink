@@ -18,12 +18,19 @@
 
 package org.apache.flink.connector.rabbitmq2.sink.writer.specialized;
 
+import com.rabbitmq.client.ConfirmCallback;
+
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
+import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,25 +53,37 @@ import java.util.List;
  *
  * @param <T> Type of the elements in this sink
  */
-public class RabbitMQSinkWriterExactlyOnce<T>
-        implements SinkWriter<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>> {
+public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
 
-    private final SerializationSchema<T> serializationSchema;
-    // TODO: Think about whether this needs to be synchronized
-    // All messages that arrived and could not be committed this far.
+    /** All messages that arrived and could not be committed this far. */
     private List<RabbitMQSinkMessageWrapper<T>> messages;
 
     /**
      * Create a new RabbitMQSinkWriterExactlyOnce.
      *
+     * @param connectionConfig configuration parameters used to connect to RabbitMQ
+     * @param queueName name of the queue to publish to
      * @param serializationSchema serialization schema to turn elements into byte representation
+     * @param publishOptions optionally used to compute routing/exchange for messages
+     * @param returnListener return listener
      * @param states a list of states to initialize this reader with
      */
     public RabbitMQSinkWriterExactlyOnce(
-            SerializationSchema<T> serializationSchema, List<RabbitMQSinkWriterState<T>> states) {
+            RabbitMQConnectionConfig connectionConfig,
+            String queueName,
+            SerializationSchema<T> serializationSchema,
+            RabbitMQSinkPublishOptions<T> publishOptions,
+            SerializableReturnListener returnListener,
+            List<RabbitMQSinkWriterState<T>> states) throws Exception {
+        super(
+                connectionConfig,
+                queueName,
+                serializationSchema,
+                publishOptions,
+                returnListener);
         messages = new ArrayList<>();
-        this.serializationSchema = serializationSchema;
         initWithState(states);
+        configureChannel();
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
@@ -75,24 +94,42 @@ public class RabbitMQSinkWriterExactlyOnce<T>
         this.messages = messages;
     }
 
-    @Override
-    public void write(T element, Context context) {
-        messages.add(
-                new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
+    private void configureChannel() throws IOException {
+        // puts channel in commit mode
+        getRmqChannel().txSelect();
     }
 
     @Override
-    public List<RabbitMQSinkWriterState<T>> prepareCommit(boolean flush) {
-        List<RabbitMQSinkMessageWrapper<T>> messagesToSend = new ArrayList<>(messages);
-        messages.subList(0, messagesToSend.size()).clear();
-        return Collections.singletonList(new RabbitMQSinkWriterState<>(messagesToSend));
+    public void write(T element, Context context) {
+        messages.add(new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
     }
 
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        return Collections.emptyList();
+        commitMessages();
+        return Collections.singletonList(new RabbitMQSinkWriterState<>(messages));
     }
 
-    @Override
-    public void close() {}
+    private void commitMessages() {
+        List<RabbitMQSinkMessageWrapper<T>> messagesToSend = new ArrayList<>(messages);
+        messages.subList(0, messagesToSend.size()).clear();
+        try {
+            for (RabbitMQSinkMessageWrapper<T> msg : messagesToSend) {
+                super.send(msg);
+            }
+            getRmqChannel().txCommit();
+            LOG.info("Successfully committed {} messages.", messagesToSend.size());
+        } catch (IOException e) {
+            LOG.error(
+                    "Error during commit of {} messages. Rollback Messages. Error: {}",
+                    messagesToSend.size(),
+                    e.getMessage());
+            messages.addAll(0, messagesToSend);
+            try {
+                getRmqChannel().txRollback();
+            } catch (IOException rollbackException) {
+                throw new RuntimeException(rollbackException.getMessage());
+            }
+        }
+    }
 }

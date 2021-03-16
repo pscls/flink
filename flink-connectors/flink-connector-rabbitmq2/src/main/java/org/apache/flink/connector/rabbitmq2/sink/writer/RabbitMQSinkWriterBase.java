@@ -45,7 +45,7 @@ import java.util.List;
  * @param <T> Type of the elements in this sink
  */
 public abstract class RabbitMQSinkWriterBase<T> extends RabbitMQSinkConnection<T>
-        implements SinkWriter<T, RabbitMQSinkWriterState<T>, RabbitMQSinkWriterState<T>> {
+        implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
     protected final SerializationSchema<T> serializationSchema;
 
     public RabbitMQSinkWriterBase(
@@ -71,7 +71,7 @@ public abstract class RabbitMQSinkWriterBase<T> extends RabbitMQSinkConnection<T
     }
 
     @Override
-    public List<RabbitMQSinkWriterState<T>> prepareCommit(boolean flush) {
+    public List<Void> prepareCommit(boolean flush) {
         return Collections.emptyList();
     }
 
