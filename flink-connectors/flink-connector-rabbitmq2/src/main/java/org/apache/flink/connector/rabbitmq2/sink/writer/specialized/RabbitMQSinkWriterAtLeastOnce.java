@@ -28,9 +28,7 @@ import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListen
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
-import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmCallback;
-import com.rabbitmq.client.Connection;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,8 +48,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
  *
  * <p>Checkpointing is required for at-least-once to work because messages are resend only when a
  * checkpoint is triggered (to avoid complex time tracking mechanisms for each individual message).
- * Thus on each checkpoint, all messages which were sent at least once before to RabbitMQ but are still
- * unacknowledged will be send once again - duplications are possible by this behavior.
+ * Thus on each checkpoint, all messages which were sent at least once before to RabbitMQ but are
+ * still unacknowledged will be send once again - duplications are possible by this behavior.
  *
  * <p>After a failure, a new writer gets initialized with one or more states that contain
  * unacknowledged messages. These messages get resend immediately while buffering them in the new
@@ -85,7 +83,6 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
         initWithState(states);
-        configureChannel();
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) throws IOException {
@@ -144,8 +141,8 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         };
     }
 
-    private void configureChannel()
-            throws IOException {
+    @Override
+    protected void configureChannel() throws IOException {
         ConfirmCallback ackCallback = handleAcknowledgements();
         ConfirmCallback nackCallback = handleNegativeAcknowledgements();
         // register callbacks for cases of ack and negative ack of messages (seq numbers)

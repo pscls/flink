@@ -36,11 +36,8 @@ import java.util.List;
 
 /**
  * RabbitMQSinkWriterBase is the common abstract class of {@link RabbitMQSinkWriterAtMostOnce},
- * {@link RabbitMQSinkWriterAtLeastOnce} and {@link RabbitMQSinkWriterExactlyOnce}
- *
- * <p>It provides basic functionality and common behaviour such as establishing and closing a
- * connection via the {@code connectionConfig} and methods for serializing and sending messages to
- * RabbitMQ (with or without publish options).
+ * {@link RabbitMQSinkWriterAtLeastOnce} and {@link RabbitMQSinkWriterExactlyOnce}. It inherits
+ * RabbitMQ behavior from {@link RabbitMQSinkConnection}.
  *
  * @param <T> Type of the elements in this sink
  */

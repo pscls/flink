@@ -68,8 +68,8 @@ public class RabbitMQSinkWriterStateSerializer<T>
         return baos.toByteArray();
     }
 
-    private void serializeV1(
-            DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages) throws IOException {
+    private void serializeV1(DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages)
+            throws IOException {
         out.writeInt(messages.size());
         for (RabbitMQSinkMessageWrapper<T> message : messages) {
             out.writeInt(message.getBytes().length);
@@ -110,10 +110,8 @@ public class RabbitMQSinkWriterStateSerializer<T>
         List<RabbitMQSinkMessageWrapper<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
-            /**
-             * In this case, the messages need to be deserialized again, so we can recompute publish
-             * options *
-             */
+            // In this case, the messages need to be deserialized again, so we can recompute publish
+            // options
             if (deserializationSchema != null) {
                 messages.add(
                         new RabbitMQSinkMessageWrapper<>(

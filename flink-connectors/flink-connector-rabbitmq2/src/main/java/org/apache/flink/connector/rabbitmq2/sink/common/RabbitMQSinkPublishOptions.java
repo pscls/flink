@@ -28,7 +28,7 @@ import java.util.Optional;
  * This class was copied from the old RabbitMQ connector and got extended by the serialization
  * schema which is required for at-least-once and exactly-once.
  *
- * The message computation provides methods to compute the message routing key and/or the
+ * <p>The message computation provides methods to compute the message routing key and/or the
  * properties.
  *
  * @param <IN> The type of the data used by the sink.

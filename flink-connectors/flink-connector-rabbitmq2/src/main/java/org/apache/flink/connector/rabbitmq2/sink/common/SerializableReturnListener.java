@@ -23,8 +23,8 @@ import com.rabbitmq.client.ReturnListener;
 import java.io.Serializable;
 
 /**
- * This class was copied from the old RabbitMQ connector.
- * A serializable {@link ReturnListener} to handle unroutable but "mandatory" messages.
+ * This class was copied from the old RabbitMQ connector. A serializable {@link ReturnListener} to
+ * handle unroutable but "mandatory" messages.
  *
  * <p>If a message has the "mandatory" flag set, but cannot be routed, RabbitMQ's broker will return
  * the message to the publishing client (via an AMQP.Basic.Return command). This ReturnListener

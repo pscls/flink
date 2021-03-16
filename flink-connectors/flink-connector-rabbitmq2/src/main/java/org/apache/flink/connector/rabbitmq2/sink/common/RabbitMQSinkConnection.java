@@ -12,7 +12,13 @@ import javax.annotation.Nullable;
 
 import java.io.IOException;
 
-// TODO: Documentation
+/**
+ * This class provides basic RabbitMQ functionality and common behaviour such as establishing and
+ * closing a connection via the {@code connectionConfig}. In addition, it provides methods for
+ * serializing and sending messages to RabbitMQ (with or without publish options).
+ *
+ * @param <T> The type of the messages that are published.
+ */
 public class RabbitMQSinkConnection<T> {
     protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkConnection.class);
 
@@ -35,10 +41,10 @@ public class RabbitMQSinkConnection<T> {
         this.returnListener = returnListener;
         this.rmqConnection = setupConnection(connectionConfig);
         this.rmqChannel = setupChannel(rmqConnection, queueName, returnListener);
+        configureChannel();
     }
 
-    private Connection setupConnection(RabbitMQConnectionConfig connectionConfig)
-            throws Exception {
+    private Connection setupConnection(RabbitMQConnectionConfig connectionConfig) throws Exception {
         return connectionConfig.getConnectionFactory().newConnection();
     }
 
@@ -52,6 +58,14 @@ public class RabbitMQSinkConnection<T> {
         }
         return rmqChannel;
     }
+
+    /**
+     * This method provides a hook in the constructor to apply additional configuration to the
+     * channel. It is called at the end of the constructor.
+     *
+     * @throws IOException possible IOException that might be thrown when configuring the channel
+     */
+    protected void configureChannel() throws IOException {}
 
     /**
      * Only used by at-least-once and exactly-once for resending messages that could not be

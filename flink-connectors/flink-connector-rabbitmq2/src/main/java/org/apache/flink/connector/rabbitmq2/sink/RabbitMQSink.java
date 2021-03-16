@@ -84,8 +84,7 @@ import static java.util.Objects.requireNonNull;
  * require a {@link DeserializationSchema} to be provided because messages that were persisted as
  * part of an earlier checkpoint are needed to recompute routing/exchange.
  */
-public class RabbitMQSink<T>
-        implements Sink<T, Void, RabbitMQSinkWriterState<T>, Void> {
+public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>, Void> {
 
     private final RabbitMQConnectionConfig connectionConfig;
     private final String queueName;
@@ -151,12 +150,12 @@ public class RabbitMQSink<T>
         try {
             switch (consistencyMode) {
                 case AT_MOST_ONCE:
-                        return new RabbitMQSinkWriterAtMostOnce<>(
-                                connectionConfig,
-                                queueName,
-                                serializationSchema,
-                                publishOptions,
-                                returnListener);
+                    return new RabbitMQSinkWriterAtMostOnce<>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener);
                 case AT_LEAST_ONCE:
                     return new RabbitMQSinkWriterAtLeastOnce<>(
                             connectionConfig,
@@ -166,7 +165,8 @@ public class RabbitMQSink<T>
                             returnListener,
                             states);
                 case EXACTLY_ONCE:
-                    return new RabbitMQSinkWriterExactlyOnce<>(connectionConfig,
+                    return new RabbitMQSinkWriterExactlyOnce<>(
+                            connectionConfig,
                             queueName,
                             serializationSchema,
                             publishOptions,
@@ -193,8 +193,7 @@ public class RabbitMQSink<T>
     }
 
     @Override
-    public Optional<SimpleVersionedSerializer<Void>>
-            getCommittableSerializer() {
+    public Optional<SimpleVersionedSerializer<Void>> getCommittableSerializer() {
         return Optional.empty();
     }
 

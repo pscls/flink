@@ -18,10 +18,6 @@
 
 package org.apache.flink.connector.rabbitmq2.sink.writer.specialized;
 
-import com.rabbitmq.client.ConfirmCallback;
-
-import org.apache.commons.collections.list.SynchronizedList;
-
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
@@ -76,34 +72,32 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
             SerializableReturnListener returnListener,
-            List<RabbitMQSinkWriterState<T>> states) throws Exception {
-        super(
-                connectionConfig,
-                queueName,
-                serializationSchema,
-                publishOptions,
-                returnListener);
+            List<RabbitMQSinkWriterState<T>> states)
+            throws Exception {
+        super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
         messages = Collections.synchronizedList(new ArrayList<>());
         initWithState(states);
-        configureChannel();
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
-        List<RabbitMQSinkMessageWrapper<T>> messages = Collections.synchronizedList(new ArrayList<>());
+        List<RabbitMQSinkMessageWrapper<T>> messages =
+                Collections.synchronizedList(new ArrayList<>());
         for (RabbitMQSinkWriterState<T> state : states) {
             messages.addAll(state.getOutstandingMessages());
         }
         this.messages = messages;
     }
 
-    private void configureChannel() throws IOException {
+    @Override
+    protected void configureChannel() throws IOException {
         // puts channel in commit mode
         getRmqChannel().txSelect();
     }
 
     @Override
     public void write(T element, Context context) {
-        messages.add(new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
+        messages.add(
+                new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
     }
 
     @Override
