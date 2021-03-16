@@ -39,38 +39,51 @@ import java.util.Set;
  */
 public class RabbitMQSourceSplitSerializer
         implements SimpleVersionedSerializer<RabbitMQSourceSplit> {
-    private static final int CURRENT_VERSION = 0;
 
     @Override
     public int getVersion() {
-        return CURRENT_VERSION;
+        return 1;
     }
 
     @Override
     public byte[] serialize(RabbitMQSourceSplit rabbitMQSourceSplit) throws IOException {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                DataOutputStream out = new DataOutputStream(baos);
-                ObjectOutputStream objectOutputStream = new ObjectOutputStream(out)) {
-            objectOutputStream.writeObject(rabbitMQSourceSplit.getConnectionConfig());
-            out.writeUTF(rabbitMQSourceSplit.getQueueName());
-            writeStringSet(out, rabbitMQSourceSplit.getCorrelationIds());
-            out.flush();
-            return baos.toByteArray();
-        }
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(baos);
+        serializeV1(out, rabbitMQSourceSplit);
+        return baos.toByteArray();
+    }
+
+    public void serializeV1(DataOutputStream out, RabbitMQSourceSplit rabbitMQSourceSplit)
+            throws IOException {
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(out);
+        objectOutputStream.writeObject(rabbitMQSourceSplit.getConnectionConfig());
+        out.writeUTF(rabbitMQSourceSplit.getQueueName());
+        writeStringSet(out, rabbitMQSourceSplit.getCorrelationIds());
+        out.flush();
     }
 
     @Override
-    public RabbitMQSourceSplit deserialize(int i, byte[] bytes) throws IOException {
+    public RabbitMQSourceSplit deserialize(int version, byte[] bytes) throws IOException {
+        switch (version) {
+            case 1:
+                return deserializeV1(bytes);
+            default:
+                throw new IOException("Unrecognized version or corrupt state: " + version);
+        }
+    }
+
+    public RabbitMQSourceSplit deserializeV1(byte[] bytes) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
                 DataInputStream in = new DataInputStream(bais);
                 ObjectInputStream objectInputStream = new ObjectInputStream(in)) {
             RabbitMQConnectionConfig config =
                     (RabbitMQConnectionConfig) objectInputStream.readObject();
+            // Queue names may be up to 255 bytes of UTF-8 characters.
             String queueName = in.readUTF();
             Set<String> correlationIds = readStringSet(in);
             return new RabbitMQSourceSplit(config, queueName, correlationIds);
         } catch (ClassNotFoundException e) {
-            throw new IOException(e.getException());
+            throw new RuntimeException(e.getException());
         }
     }
 

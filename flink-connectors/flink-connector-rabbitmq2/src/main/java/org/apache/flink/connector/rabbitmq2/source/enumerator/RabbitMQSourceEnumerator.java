@@ -61,6 +61,13 @@ public class RabbitMQSourceEnumerator
             ConsistencyMode consistencyMode,
             RabbitMQConnectionConfig connectionConfig,
             String rmqQueueName) {
+
+        if (consistencyMode == ConsistencyMode.EXACTLY_ONCE && context.currentParallelism() > 1) {
+            throw new RuntimeException(
+                    "The consistency mode is exactly-once and a parallelism higher than one was defined. "
+                            + "For exactly once a parallelism higher than one is forbidden.");
+        }
+
         this.context = context;
         this.consistencyMode = consistencyMode;
         this.split = new RabbitMQSourceSplit(connectionConfig, rmqQueueName);
@@ -68,7 +75,7 @@ public class RabbitMQSourceEnumerator
 
     @Override
     public void start() {
-        LOG.info("Start rabbitmq source enumerator");
+        LOG.info("Start RabbitMQ source enumerator");
     }
 
     @Override
@@ -79,12 +86,20 @@ public class RabbitMQSourceEnumerator
 
     @Override
     public void addSplitsBack(List<RabbitMQSourceSplit> list, int i) {
-        LOG.info("Splits returned from reader " + i);
         if (list.size() == 0) {
             return;
         }
-        // Every Source Reader will only receive one splits, thus we will never get back more.
-        assert list.size() == 1;
+
+        // Every Source Reader will only receive one split, thus we will never get back more.
+        if (list.size() != 1) {
+            throw new RuntimeException(
+                    "There should only be one split added back at a time. per reader");
+        }
+
+        LOG.info("Split returned from reader " + i);
+        // In case of exactly-once (parallelism 1) the single split gets updated with the
+        // correlation ids and in case of a recovery we have to store this split until we can
+        // assign it to the recovered reader.
         split = list.get(0);
     }
 
@@ -107,12 +122,6 @@ public class RabbitMQSourceEnumerator
     public void close() {}
 
     private void assignSplitToReader(int readerId, RabbitMQSourceSplit split) {
-        if (consistencyMode == ConsistencyMode.EXACTLY_ONCE && context.currentParallelism() > 1) {
-            throw new RuntimeException(
-                    "The consistency mode is exactly-once and more than one source reader was created. "
-                            + "For exactly once a parallelism higher than one is forbidden.");
-        }
-
         SplitsAssignment<RabbitMQSourceSplit> assignment = new SplitsAssignment<>(split, readerId);
         context.assignSplits(assignment);
     }
