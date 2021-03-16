@@ -51,7 +51,7 @@ public class RabbitMQSinkWriterStateSerializer<T>
 
     @Override
     public int getVersion() {
-        return 0;
+        return 1;
     }
 
     /**
@@ -64,18 +64,18 @@ public class RabbitMQSinkWriterStateSerializer<T>
     public byte[] serialize(RabbitMQSinkWriterState<T> rabbitMQSinkWriterState) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(baos);
-        writeSinkMessages(out, rabbitMQSinkWriterState.getOutstandingMessages());
-        out.flush();
+        serializeV1(out, rabbitMQSinkWriterState.getOutstandingMessages());
         return baos.toByteArray();
     }
 
-    private void writeSinkMessages(
+    private void serializeV1(
             DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages) throws IOException {
         out.writeInt(messages.size());
         for (RabbitMQSinkMessageWrapper<T> message : messages) {
             out.writeInt(message.getBytes().length);
             out.write(message.getBytes());
         }
+        out.flush();
     }
 
     /**
@@ -83,13 +83,22 @@ public class RabbitMQSinkWriterStateSerializer<T>
      * a message that needs to be delivered to RabbitMQ as well as the original object
      * representation if a deserialization schema is provided.
      *
-     * @param i
+     * @param version which deserialization version should be used
      * @param bytes Serialized outstanding sink messages
      * @return A list of messages that need to be redelivered to RabbitMQ
      * @throws IOException If input stream cant read the required data
      */
     @Override
-    public RabbitMQSinkWriterState<T> deserialize(int i, byte[] bytes) throws IOException {
+    public RabbitMQSinkWriterState<T> deserialize(int version, byte[] bytes) throws IOException {
+        switch (version) {
+            case 1:
+                return deserializeV1(bytes);
+            default:
+                throw new IOException("Unrecognized version or corrupt state: " + version);
+        }
+    }
+
+    private RabbitMQSinkWriterState<T> deserializeV1(byte[] bytes) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);
         return new RabbitMQSinkWriterState<>(readSinkMessages(in));
