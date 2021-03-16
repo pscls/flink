@@ -20,6 +20,8 @@ package org.apache.flink.connector.rabbitmq2.sink.writer.specialized;
 
 import com.rabbitmq.client.ConfirmCallback;
 
+import org.apache.commons.collections.list.SynchronizedList;
+
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
@@ -81,13 +83,13 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
                 serializationSchema,
                 publishOptions,
                 returnListener);
-        messages = new ArrayList<>();
+        messages = Collections.synchronizedList(new ArrayList<>());
         initWithState(states);
         configureChannel();
     }
 
     private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
-        List<RabbitMQSinkMessageWrapper<T>> messages = new ArrayList<>();
+        List<RabbitMQSinkMessageWrapper<T>> messages = Collections.synchronizedList(new ArrayList<>());
         for (RabbitMQSinkWriterState<T> state : states) {
             messages.addAll(state.getOutstandingMessages());
         }
