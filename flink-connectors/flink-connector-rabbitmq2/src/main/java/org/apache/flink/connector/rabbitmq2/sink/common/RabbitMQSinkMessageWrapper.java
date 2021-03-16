@@ -16,28 +16,38 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2.sink.state;
+package org.apache.flink.connector.rabbitmq2.sink.common;
 
-import org.apache.flink.api.connector.sink.SinkWriter;
-import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterAtLeastOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterExactlyOnce;
 
-import java.util.List;
-
 /**
- * The state of a {@link SinkWriter} implementation. Contains {@code outstandingMessages} that could
- * not be delivered in a checkpoint. Used in the {@link RabbitMQSinkWriterAtLeastOnce} and {@link
- * RabbitMQSinkWriterExactlyOnce} implementations.
+ * A wrapper class for messages that need to be persisted in the state of a {@link
+ * RabbitMQSinkWriterAtLeastOnce} or {@link RabbitMQSinkWriterExactlyOnce}.
+ *
+ * <p>It holds the message in its serialized format which gets sent to RabbitMQ. In the case of
+ * publish options being present and checkpointing modes of at-least-once or exactly-once the
+ * original message needs to be stored as well because it is needed for recomputing the
+ * exchange/routing key from the message content.
  */
-public class RabbitMQSinkWriterState<T> {
-    private final List<RabbitMQSinkMessageWrapper<T>> outstandingMessages;
+public class RabbitMQSinkMessageWrapper<T> {
+    private T message;
+    private byte[] bytes;
 
-    public RabbitMQSinkWriterState(List<RabbitMQSinkMessageWrapper<T>> outstandingMessages) {
-        this.outstandingMessages = outstandingMessages;
+    public RabbitMQSinkMessageWrapper(byte[] bytes) {
+        this.bytes = bytes;
     }
 
-    public List<RabbitMQSinkMessageWrapper<T>> getOutstandingMessages() {
-        return outstandingMessages;
+    public RabbitMQSinkMessageWrapper(T message, byte[] bytes) {
+        this.message = message;
+        this.bytes = bytes;
+    }
+
+    public byte[] getBytes() {
+        return bytes;
+    }
+
+    public T getMessage() {
+        return message;
     }
 }

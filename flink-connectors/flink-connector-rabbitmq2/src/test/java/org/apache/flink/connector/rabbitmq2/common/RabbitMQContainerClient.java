@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -47,6 +48,7 @@ public class RabbitMQContainerClient {
     private Channel channel;
     private final Queue<byte[]> messages;
     private String queueName;
+    private CountDownLatch latch;
 
     public RabbitMQContainerClient(RabbitMQContainer container) {
         container.withExposedPorts(5762).waitingFor(Wait.forListeningPort());
@@ -99,6 +101,9 @@ public class RabbitMQContainerClient {
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) {
         byte[] body = delivery.getBody();
         messages.add(body);
+        if (latch != null) {
+            latch.countDown();
+        }
     }
 
     private Connection getRabbitMQConnection() throws TimeoutException, IOException {
@@ -111,5 +116,9 @@ public class RabbitMQContainerClient {
         factory.setPort(container.getAmqpPort());
 
         return factory.newConnection();
+    }
+
+    public void setCountDownLatch(CountDownLatch latch) {
+        this.latch = latch;
     }
 }

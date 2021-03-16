@@ -19,7 +19,7 @@
 package org.apache.flink.connector.rabbitmq2.sink.state;
 
 import org.apache.flink.api.common.serialization.DeserializationSchema;
-import org.apache.flink.connector.rabbitmq2.sink.SinkMessage;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import javax.annotation.Nullable;
@@ -51,7 +51,7 @@ public class RabbitMQSinkWriterStateSerializer<T>
 
     @Override
     public int getVersion() {
-        return 0;
+        return 1;
     }
 
     /**
@@ -64,52 +64,60 @@ public class RabbitMQSinkWriterStateSerializer<T>
     public byte[] serialize(RabbitMQSinkWriterState<T> rabbitMQSinkWriterState) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(baos);
-        writeSinkMessages(out, rabbitMQSinkWriterState.getOutstandingMessages());
-        out.flush();
+        serializeV1(out, rabbitMQSinkWriterState.getOutstandingMessages());
         return baos.toByteArray();
     }
 
-    private void writeSinkMessages(DataOutputStream out, List<SinkMessage<T>> messages)
+    private void serializeV1(DataOutputStream out, List<RabbitMQSinkMessageWrapper<T>> messages)
             throws IOException {
         out.writeInt(messages.size());
-        for (SinkMessage<T> message : messages) {
+        for (RabbitMQSinkMessageWrapper<T> message : messages) {
             out.writeInt(message.getBytes().length);
             out.write(message.getBytes());
-            out.writeInt(message.getRetries());
         }
+        out.flush();
     }
 
     /**
-     * Deserializes {@link SinkMessage} objects that wrap the byte representation of a message that
-     * needs to be delivered to RabbitMQ as well as the original object representation if a
-     * deserialization schema is provided.
+     * Deserializes {@link RabbitMQSinkMessageWrapper} objects that wrap the byte representation of
+     * a message that needs to be delivered to RabbitMQ as well as the original object
+     * representation if a deserialization schema is provided.
      *
-     * @param i
+     * @param version which deserialization version should be used
      * @param bytes Serialized outstanding sink messages
      * @return A list of messages that need to be redelivered to RabbitMQ
      * @throws IOException If input stream cant read the required data
      */
     @Override
-    public RabbitMQSinkWriterState<T> deserialize(int i, byte[] bytes) throws IOException {
+    public RabbitMQSinkWriterState<T> deserialize(int version, byte[] bytes) throws IOException {
+        switch (version) {
+            case 1:
+                return deserializeV1(bytes);
+            default:
+                throw new IOException("Unrecognized version or corrupt state: " + version);
+        }
+    }
+
+    private RabbitMQSinkWriterState<T> deserializeV1(byte[] bytes) throws IOException {
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         DataInputStream in = new DataInputStream(bais);
         return new RabbitMQSinkWriterState<>(readSinkMessages(in));
     }
 
-    private List<SinkMessage<T>> readSinkMessages(DataInputStream in) throws IOException {
+    private List<RabbitMQSinkMessageWrapper<T>> readSinkMessages(DataInputStream in)
+            throws IOException {
         final int numberOfMessages = in.readInt();
-        List<SinkMessage<T>> messages = new ArrayList<>();
+        List<RabbitMQSinkMessageWrapper<T>> messages = new ArrayList<>();
         for (int i = 0; i < numberOfMessages; i++) {
             byte[] bytes = in.readNBytes(in.readInt());
-            int retries = in.readInt();
-            // in this case, the messages need to be deserialized again, so we can recompute publish
+            // In this case, the messages need to be deserialized again, so we can recompute publish
             // options
             if (deserializationSchema != null) {
                 messages.add(
-                        new SinkMessage<>(
-                                deserializationSchema.deserialize(bytes), bytes, retries));
+                        new RabbitMQSinkMessageWrapper<>(
+                                deserializationSchema.deserialize(bytes), bytes));
             } else {
-                messages.add(new SinkMessage<>(bytes, retries));
+                messages.add(new RabbitMQSinkMessageWrapper<>(bytes));
             }
         }
         return messages;

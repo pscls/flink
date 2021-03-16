@@ -21,8 +21,6 @@ package org.apache.flink.connector.rabbitmq2.common;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.source.RabbitMQSource;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
@@ -52,9 +50,9 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class RabbitMQBaseTest {
 
-    protected static final int RABBITMQ_PORT = 5672;
-    protected RabbitMQContainerClient client;
-    protected String queueName;
+    private static final int RABBITMQ_PORT = 5672;
+    private RabbitMQContainerClient client;
+    private String queueName;
 
     @Rule public Timeout globalTimeout = Timeout.seconds(10);
 
@@ -176,6 +174,12 @@ public abstract class RabbitMQBaseTest {
 
     public void addCollectorSink(DataStream<String> stream, CountDownLatch latch) {
         stream.addSink(new CollectSink(latch));
+    }
+
+    public CountDownLatch setContainerClientCountDownLatch(int count) {
+        CountDownLatch latch = new CountDownLatch(count);
+        client.setCountDownLatch(latch);
+        return latch;
     }
 
     /** CollectSink to access the messages from the stream. */

@@ -24,30 +24,30 @@ import org.apache.flink.api.connector.sink.Committer;
 import org.apache.flink.api.connector.sink.GlobalCommitter;
 import org.apache.flink.api.connector.sink.Sink;
 import org.apache.flink.api.connector.sink.SinkWriter;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
+import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterStateSerializer;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterAtLeastOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterAtMostOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterExactlyOnce;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.util.Preconditions;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.Objects.requireNonNull;
+
 /**
- * RabbitMQ sink (publisher) that publishes messages from upstream flink tasks to a RabbitMQ queue.
- * It provides at-most-once, at-least-once and exactly-once processing semantics. For at-least-once
- * and exactly-once, checkpointing needs to be enabled. The sink operates as a StreamingSink and
- * thus works in a streaming fashion.
+ * RabbitMQ sink that publishes messages to a RabbitMQ queue. It provides at-most-once,
+ * at-least-once or exactly-once processing semantics. For at-least-once and exactly-once,
+ * checkpointing needs to be enabled.
  *
  * <pre>{@code
  * RabbitMQSink
@@ -56,7 +56,6 @@ import java.util.Optional;
  *     .setQueueName("queue")
  *     .setSerializationSchema(new SimpleStringSchema())
  *     .setConsistencyMode(ConsistencyMode.AT_LEAST_ONCE)
- *     .setMinimalResendInterval(10L)
  *     .build();
  * }</pre>
  *
@@ -64,16 +63,12 @@ import java.util.Optional;
  * RabbitMQConnectionConfig}. It contains required information for the RabbitMQ java client to
  * connect to the RabbitMQ server. A minimum configuration contains a (virtual) host, a username, a
  * password and a port. Besides that, the {@code queueName} to publish to and a {@link
- * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added to
- * route messages in RabbitMQ.
+ * SerializationSchema} for the sink input type is required. {@code publishOptions} can be added
+ * optionally to route messages in RabbitMQ.
  *
- * <p>If at-least-once is required, an optional number of {@code maxRetry} attempts can be specified
- * until a failure is triggered. Generally, messages are buffered until an acknowledgement arrives
- * because delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be
- * resent to RabbitMQ. If the checkpointing interval is set low or a high frequency of resending is
- * not desired, the {@code minimalResendIntervalMilliseconds} can be specified to prevent the sink
- * from resending data that has just arrived. In case of a failure, all unacknowledged messages can
- * be restored and resend.
+ * <p>If at-least-once is required messages are buffered until an acknowledgement arrives because
+ * delivery needs to be guaranteed. On each checkpoint, all unacknowledged messages will be resent
+ * to RabbitMQ. In case of a failure, all unacknowledged messages can be restored and resend.
  *
  * <p>In the case of exactly-once a transactional RabbitMQ channel is used to achieve that all
  * messages within a checkpoint are delivered once and only once. All messages that arrive in a
@@ -81,8 +76,8 @@ import java.util.Optional;
  * is triggered. If the transaction fails, all messages that were a part of the transaction are put
  * back into the buffer and a resend is issued in the next checkpoint.
  *
- * <p>Keep in mind that the transactional channels are heavyweight and performance will drop. Under
- * heavy load, checkpoints can be delayed if a transaction takes longer than the specified
+ * <p>Keep in mind that the transactional channels are heavyweight and the performance will drop.
+ * Under heavy load, checkpoints can be delayed if a transaction takes longer than the specified
  * checkpointing interval.
  *
  * <p>If publish options are used and the checkpointing mode is at-least-once or exactly-once, they
@@ -96,31 +91,27 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     private final SerializationSchema<T> serializationSchema;
     private final RabbitMQSinkPublishOptions<T> publishOptions;
     private final ConsistencyMode consistencyMode;
-    private final int maxRetry;
     private final SerializableReturnListener returnListener;
-    private final Long minimalResendIntervalMilliseconds;
-    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSink.class);
 
-    public static final int DEFAULT_MAX_RETRY = 5;
-    public static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
+    private static final ConsistencyMode DEFAULT_CONSISTENCY_MODE = ConsistencyMode.AT_MOST_ONCE;
 
-    public RabbitMQSink(
+    private RabbitMQSink(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             ConsistencyMode consistencyMode,
             SerializableReturnListener returnListener,
-            @Nullable RabbitMQSinkPublishOptions<T> publishOptions,
-            @Nullable Integer maxRetry,
-            @Nullable Long minimalResendIntervalMilliseconds) {
+            @Nullable RabbitMQSinkPublishOptions<T> publishOptions) {
         this.connectionConfig = connectionConfig;
         this.queueName = queueName;
         this.serializationSchema = serializationSchema;
         this.consistencyMode = consistencyMode;
         this.returnListener = returnListener;
         this.publishOptions = publishOptions;
-        this.maxRetry = maxRetry != null ? maxRetry : DEFAULT_MAX_RETRY;
-        this.minimalResendIntervalMilliseconds = minimalResendIntervalMilliseconds;
+
+        requireNonNull(connectionConfig);
+        requireNonNull(queueName);
+        requireNonNull(serializationSchema);
 
         Preconditions.checkState(
                 verifyPublishOptions(),
@@ -156,35 +147,39 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     @Override
     public SinkWriter<T, Void, RabbitMQSinkWriterState<T>> createWriter(
             InitContext context, List<RabbitMQSinkWriterState<T>> states) {
-        switch (consistencyMode) {
-            case AT_MOST_ONCE:
-                return new RabbitMQSinkWriterAtMostOnce<>(
-                        connectionConfig,
-                        queueName,
-                        serializationSchema,
-                        publishOptions,
-                        returnListener);
-            case AT_LEAST_ONCE:
-                return new RabbitMQSinkWriterAtLeastOnce<>(
-                        connectionConfig,
-                        queueName,
-                        serializationSchema,
-                        publishOptions,
-                        maxRetry,
-                        returnListener,
-                        minimalResendIntervalMilliseconds,
-                        states);
-            case EXACTLY_ONCE:
-                return new RabbitMQSinkWriterExactlyOnce<>(
-                        connectionConfig,
-                        queueName,
-                        serializationSchema,
-                        publishOptions,
-                        maxRetry,
-                        returnListener,
-                        states);
+        try {
+            switch (consistencyMode) {
+                case AT_MOST_ONCE:
+                    return new RabbitMQSinkWriterAtMostOnce<>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener);
+                case AT_LEAST_ONCE:
+                    return new RabbitMQSinkWriterAtLeastOnce<>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener,
+                            states);
+                case EXACTLY_ONCE:
+                    return new RabbitMQSinkWriterExactlyOnce<>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener,
+                            states);
+                default:
+                    throw new RuntimeException(
+                            "Error in creating a SinkWriter: "
+                                    + "No valid consistency mode was specified.");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
-        return null;
     }
 
     @Override
@@ -224,6 +219,123 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                             publishOptions.getDeserializationSchema().get()));
         } else {
             return Optional.of(new RabbitMQSinkWriterStateSerializer<>());
+        }
+    }
+
+    /**
+     * A Builder for the {@link RabbitMQSink}. Available consistency modes are contained in {@link
+     * ConsistencyMode} Required parameters are a {@code queueName}, a {@code connectionConfig} and
+     * a {@code serializationSchema}. Optional parameters include {@code publishOptions}, a {@code
+     * minimalResendIntervalMilliseconds} (for at-least-once) and a {@code returnListener}.
+     *
+     * <pre>{@code
+     * RabbitMQSink
+     *   .builder()
+     *   .setConnectionConfig(connectionConfig)
+     *   .setQueueName("queue")
+     *   .setSerializationSchema(new SimpleStringSchema())
+     *   .setConsistencyMode(ConsistencyMode.AT_LEAST_ONCE)
+     *   .build();
+     * }</pre>
+     */
+    public static class RabbitMQSinkBuilder<T> {
+
+        private String queueName;
+        private RabbitMQConnectionConfig connectionConfig;
+        private SerializationSchema<T> serializationSchema;
+        private ConsistencyMode consistencyMode;
+        private RabbitMQSinkPublishOptions<T> publishOptions;
+        private SerializableReturnListener returnListener;
+
+        public RabbitMQSinkBuilder() {
+            this.consistencyMode = RabbitMQSink.DEFAULT_CONSISTENCY_MODE;
+        }
+
+        /**
+         * Builds the sink instance.
+         *
+         * @return new Sink instance that has the specified configuration
+         */
+        public RabbitMQSink<T> build() {
+            return new RabbitMQSink<>(
+                    connectionConfig,
+                    queueName,
+                    serializationSchema,
+                    consistencyMode,
+                    returnListener,
+                    publishOptions);
+        }
+
+        /**
+         * Sets the RMQConnectionConfig for this sink.
+         *
+         * @param connectionConfig configuration required to connect to RabbitMQ
+         * @return this builder
+         */
+        public RabbitMQSinkBuilder<T> setConnectionConfig(
+                RabbitMQConnectionConfig connectionConfig) {
+            this.connectionConfig = connectionConfig;
+            return this;
+        }
+
+        /**
+         * Sets the name of the queue to publish to.
+         *
+         * @param queueName name of an existing queue in RabbitMQ
+         * @return this builder
+         */
+        public RabbitMQSinkBuilder<T> setQueueName(String queueName) {
+            this.queueName = queueName;
+            return this;
+        }
+
+        /**
+         * Sets the SerializationSchema used to serialize incoming objects.
+         *
+         * @param serializationSchema the serialization schema to use
+         * @return this builder
+         */
+        public RabbitMQSinkBuilder<T> setSerializationSchema(
+                SerializationSchema<T> serializationSchema) {
+            this.serializationSchema = serializationSchema;
+            return this;
+        }
+
+        /**
+         * Sets the RabbitMQSinkPublishOptions for this sink. Publish options can be used for
+         * routing in an exchange in RabbitMQ.
+         *
+         * @param publishOptions the publish options to be used
+         * @return this builder
+         */
+        public RabbitMQSinkBuilder<T> setPublishOptions(
+                RabbitMQSinkPublishOptions<T> publishOptions) {
+            this.publishOptions = publishOptions;
+            return this;
+        }
+
+        /**
+         * Set the ConsistencyMode for this sink to operate in. Available modes are AT_MOST_ONCE,
+         * AT_LEAST_ONCE and EXACTLY_ONCE
+         *
+         * @param consistencyMode set the consistency mode
+         * @return this builder
+         */
+        public RabbitMQSinkBuilder<T> setConsistencyMode(ConsistencyMode consistencyMode) {
+            this.consistencyMode = consistencyMode;
+            return this;
+        }
+
+        /**
+         * Set the {@link SerializableReturnListener} for this sink. If no ReturnListener is set,
+         * unrouted messages, which are returned by RabbitMQ, will be dropped silently.
+         *
+         * @param returnListener the return listener to use
+         * @return this builder
+         */
+        public RabbitMQSinkBuilder<T> setReturnListener(SerializableReturnListener returnListener) {
+            this.returnListener = returnListener;
+            return this;
         }
     }
 }

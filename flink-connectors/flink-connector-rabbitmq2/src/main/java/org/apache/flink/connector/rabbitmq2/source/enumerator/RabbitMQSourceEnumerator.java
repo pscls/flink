@@ -21,8 +21,8 @@ package org.apache.flink.connector.rabbitmq2.source.enumerator;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
-import org.apache.flink.connector.rabbitmq2.ConsistencyMode;
-import org.apache.flink.connector.rabbitmq2.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 
 import org.slf4j.Logger;
@@ -76,7 +76,6 @@ public class RabbitMQSourceEnumerator
     @Override
     public void start() {
         LOG.info("Start RabbitMQ source enumerator");
-        System.out.println(context.currentParallelism());
     }
 
     @Override
