@@ -1,13 +1,12 @@
 package org.apache.flink.connector.rabbitmq2.sink.committer;
 
-import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.Committer;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
+import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkConnection;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkPublishOptions;
 import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListener;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
-import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -16,21 +15,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RabbitMQTransactionCommitter<T> extends RabbitMQSinkWriterBase<T>
+public class RabbitMQTransactionCommitter<T> extends RabbitMQSinkConnection<T>
         implements Committer<RabbitMQSinkWriterState<T>> {
 
     public RabbitMQTransactionCommitter(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
-            SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            SerializableReturnListener returnListener) {
-        super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
+            SerializableReturnListener returnListener)
+            throws Exception {
+        super(connectionConfig, queueName, publishOptions, returnListener);
     }
 
     @Override
-    protected Channel setupChannel(Connection rmqConnection) throws IOException {
-        Channel rmqChannel = super.setupChannel(rmqConnection);
+    protected Channel setupChannel(
+            Connection rmqConnection, String queueName, SerializableReturnListener returnListener)
+            throws IOException {
+        Channel rmqChannel = super.setupChannel(rmqConnection, queueName, returnListener);
         // Put the channel in commit mode
         rmqChannel.txSelect();
         return rmqChannel;
@@ -61,7 +62,7 @@ public class RabbitMQTransactionCommitter<T> extends RabbitMQSinkWriterBase<T>
         for (RabbitMQSinkMessageWrapper<T> msg : messagesToSend) {
             super.send(msg);
         }
-        rmqChannel.txCommit();
+        getRmqChannel().txCommit();
     }
 
     @Override

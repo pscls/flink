@@ -32,9 +32,9 @@ import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListen
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterStateSerializer;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtLeastOnce;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterAtMostOnce;
-import org.apache.flink.connector.rabbitmq2.sink.writer.specalized.RabbitMQSinkWriterExactlyOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterAtLeastOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterAtMostOnce;
+import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterExactlyOnce;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.util.Preconditions;
 
@@ -151,20 +151,28 @@ public class RabbitMQSink<T>
             InitContext context, List<RabbitMQSinkWriterState<T>> states) {
         switch (consistencyMode) {
             case AT_MOST_ONCE:
-                return new RabbitMQSinkWriterAtMostOnce<>(
-                        connectionConfig,
-                        queueName,
-                        serializationSchema,
-                        publishOptions,
-                        returnListener);
+                try {
+                    return new RabbitMQSinkWriterAtMostOnce<>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener);
+                } catch (Exception e) {
+                    throw new RuntimeException(e.getMessage());
+                }
             case AT_LEAST_ONCE:
-                return new RabbitMQSinkWriterAtLeastOnce<>(
-                        connectionConfig,
-                        queueName,
-                        serializationSchema,
-                        publishOptions,
-                        returnListener,
-                        states);
+                try {
+                    return new RabbitMQSinkWriterAtLeastOnce<>(
+                            connectionConfig,
+                            queueName,
+                            serializationSchema,
+                            publishOptions,
+                            returnListener,
+                            states);
+                } catch (Exception e) {
+                    throw new RuntimeException(e.getMessage());
+                }
             case EXACTLY_ONCE:
                 return new RabbitMQSinkWriterExactlyOnce<>(serializationSchema, states);
             default:
@@ -177,13 +185,13 @@ public class RabbitMQSink<T>
     @Override
     public Optional<Committer<RabbitMQSinkWriterState<T>>> createCommitter() {
         if (consistencyMode == ConsistencyMode.EXACTLY_ONCE) {
-            return Optional.of(
-                    new RabbitMQTransactionCommitter<T>(
-                            connectionConfig,
-                            queueName,
-                            serializationSchema,
-                            publishOptions,
-                            returnListener));
+            try {
+                return Optional.of(
+                        new RabbitMQTransactionCommitter<>(
+                                connectionConfig, queueName, publishOptions, returnListener));
+            } catch (Exception e) {
+                throw new RuntimeException(e.getMessage());
+            }
         }
         return Optional.empty();
     }

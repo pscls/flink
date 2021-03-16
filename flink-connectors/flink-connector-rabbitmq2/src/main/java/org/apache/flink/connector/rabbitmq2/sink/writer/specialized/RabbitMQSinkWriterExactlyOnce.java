@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
+package org.apache.flink.connector.rabbitmq2.sink.writer.specialized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
@@ -24,7 +24,6 @@ import org.apache.flink.connector.rabbitmq2.sink.RabbitMQSink;
 import org.apache.flink.connector.rabbitmq2.sink.common.RabbitMQSinkMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -94,5 +93,5 @@ public class RabbitMQSinkWriterExactlyOnce<T>
     }
 
     @Override
-    public void close() throws Exception {}
+    public void close() {}
 }

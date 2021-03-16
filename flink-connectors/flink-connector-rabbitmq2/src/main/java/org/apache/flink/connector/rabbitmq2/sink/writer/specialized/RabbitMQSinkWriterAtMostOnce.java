@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
+package org.apache.flink.connector.rabbitmq2.sink.writer.specialized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
@@ -49,7 +49,8 @@ public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            SerializableReturnListener returnListener) {
+            SerializableReturnListener returnListener)
+            throws Exception {
         super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
     }
 

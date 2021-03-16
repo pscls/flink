@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.rabbitmq2.sink.writer.specalized;
+package org.apache.flink.connector.rabbitmq2.sink.writer.specialized;
 
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink.SinkWriter;
@@ -78,7 +78,8 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
             SerializableReturnListener returnListener,
-            List<RabbitMQSinkWriterState<T>> states) {
+            List<RabbitMQSinkWriterState<T>> states)
+            throws Exception {
         super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
@@ -95,7 +96,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
 
     @Override
     protected void send(RabbitMQSinkMessageWrapper<T> msg) {
-        long sequenceNumber = rmqChannel.getNextPublishSeqNo();
+        long sequenceNumber = getRmqChannel().getNextPublishSeqNo();
         super.send(msg);
         outstandingConfirms.put(sequenceNumber, msg);
     }
@@ -141,8 +142,11 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         };
     }
 
-    protected Channel setupChannel(Connection rmqConnection) throws IOException {
-        Channel channel = super.setupChannel(rmqConnection);
+    @Override
+    protected Channel setupChannel(
+            Connection rmqConnection, String queueName, SerializableReturnListener returnListener)
+            throws IOException {
+        Channel channel = super.setupChannel(rmqConnection, queueName, returnListener);
         ConfirmCallback ackCallback = handleAcknowledgements();
         ConfirmCallback nackCallback = handleNegativeAcknowledgements();
         // register callbacks for cases of ack and negative ack of messages (seq numbers)
