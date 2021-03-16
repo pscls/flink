@@ -39,8 +39,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
 /**
- * This class provides a rabbitmq container client which allows creating queues, sending messages to
- * rabbitmq and get the messages received by rabbitmq.
+ * This class provides a RabbitMQ container client which allows creating queues, sending messages to
+ * RabbitMQ and get the messages received by RabbitMQ.
  */
 public class RabbitMQContainerClient {
 

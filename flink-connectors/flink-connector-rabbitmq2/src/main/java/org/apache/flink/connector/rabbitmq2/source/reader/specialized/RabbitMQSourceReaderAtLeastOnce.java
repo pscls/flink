@@ -25,11 +25,13 @@ import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 
-import java.util.ArrayDeque;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Deque;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * The RabbitMQSourceReaderAtLeastOnce provides at-least-once guarantee. The deliveryTag from the
@@ -37,8 +39,8 @@ import java.util.List;
  * consumed by the output. This means that the deliveryTags of the messages that were polled by the
  * output are stored separately. Once a snapshot is executed the deliveryTags get associated with
  * the checkpoint id. When the checkpoint is completed successfully, all messages from before are
- * acknowledged. In the case of a failure of and a successful restart does RabbitMQ resend the
- * messages that were unacknowledged. This way at-least-once is guaranteed.
+ * acknowledged. In the case of a system failure and a successful restart, the messages that are
+ * unacknowledged, are resend by RabbitMQ. This way at-least-once is guaranteed.
  *
  * <p>In order for the at-least-once source reader to work, checkpointing needs to be enabled.
  *
@@ -51,14 +53,15 @@ public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase
     private final List<Long> polledAndUnacknowledgedMessageIds;
     // List of tuples of checkpoint id and deliveryTags that were polled by the output since the
     // last checkpoint.
-    private final Deque<Tuple2<Long, List<Long>>> polledAndUnacknowledgedMessageIdsPerCheckpoint;
+    private final BlockingQueue<Tuple2<Long, List<Long>>>
+            polledAndUnacknowledgedMessageIdsPerCheckpoint;
 
     public RabbitMQSourceReaderAtLeastOnce(
             SourceReaderContext sourceReaderContext,
             DeserializationSchema<T> deliveryDeserializer) {
         super(sourceReaderContext, deliveryDeserializer);
-        this.polledAndUnacknowledgedMessageIds = new ArrayList<>();
-        this.polledAndUnacknowledgedMessageIdsPerCheckpoint = new ArrayDeque<>();
+        this.polledAndUnacknowledgedMessageIds = Collections.synchronizedList(new ArrayList<>());
+        this.polledAndUnacknowledgedMessageIdsPerCheckpoint = new LinkedBlockingQueue<>();
     }
 
     @Override
@@ -89,7 +92,12 @@ public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase
             final Tuple2<Long, List<Long>> nextCheckpoint = checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
-                acknowledgeMessageIds(nextCheckpoint.f1);
+                try {
+                    acknowledgeMessageIds(nextCheckpoint.f1);
+                } catch (IOException e) {
+                    throw new RuntimeException(
+                            "Messages could not be acknowledged during checkpoint complete.", e);
+                }
                 checkpointIterator.remove();
             }
         }

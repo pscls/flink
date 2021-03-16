@@ -18,7 +18,6 @@
 
 package org.apache.flink.connector.rabbitmq2.source;
 
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQBaseTest;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -28,26 +27,29 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The tests for the rabbitmq source with different consistency modes. As the tests are working a
+ * The tests for the RabbitMQ source with different consistency modes. As the tests are working a
  * lot with timeouts to uphold stream it is possible that tests might fail.
  */
 public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
     // --------------- at most once ---------------
     @Test
-    public void simpleAtMostOnceTest() throws Exception {
-        // Test whether at-most-once is working correctly.
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_MOST_ONCE);
-        addCollectorSink(stream);
+    public void atMostOnceTest() throws Exception {
+        List<String> messages = getRandomMessages(100);
+        CountDownLatch latch = new CountDownLatch(messages.size());
+
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.AT_MOST_ONCE);
+        addCollectorSink(stream, latch);
         env.executeAsync();
 
-        List<String> messages = getRandomMessages(5);
         sendToRabbit(messages);
+        latch.await();
 
         assertEquals(
                 CollectionUtils.getCardinalityMap(messages),
@@ -56,66 +58,56 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
     // --------------- at least once ---------------
     @Test
-    public void simpleAtLeastOnceTest() throws Exception {
-        // Test whether at-least-once is working correctly.
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_LEAST_ONCE);
-        addCollectorSink(stream);
+    public void atLeastOnceTest() throws Exception {
+        List<String> messages = getRandomMessages(100);
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.AT_LEAST_ONCE);
+        CountDownLatch latch = new CountDownLatch(messages.size());
+        addCollectorSink(stream, latch);
         env.executeAsync();
 
-        List<String> messages = getRandomMessages(5);
         sendToRabbit(messages);
+        latch.await();
 
         assertEquals(
                 CollectionUtils.getCardinalityMap(messages),
                 CollectionUtils.getCardinalityMap(getCollectedSinkMessages()));
     }
 
-    // Needs to be static so it can be accessed by the MapFunction.
-    static boolean shouldFail = true;
-
     @Test
-    public void simpleAtLeastOnceFailureTest() throws Exception {
+    public void atLeastOnceFailureTest() throws Exception {
         // An exception is thrown in the MapFunction in order to trigger a restart of Flink and it
         // is assured that the source receives the messages again.
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.AT_LEAST_ONCE);
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.AT_LEAST_ONCE);
 
-        List<String> messages = getSequentialMessages(5);
-
-        shouldFail = true;
-
-        DataStream<String> outStream =
-                stream.map(
-                                (MapFunction<String, String>)
-                                        message -> {
-                                            if (message.equals("Message 2") && shouldFail) {
-                                                shouldFail = false;
-                                                throw new Exception(
-                                                        "This is supposed to be thrown.");
-                                            }
-                                            return message;
-                                        })
-                        .setParallelism(1);
-        outStream.addSink(new CollectSink());
+        List<String> messages = getSequentialMessages(100);
+        int failAtNthMessage = 30;
+        CountDownLatch latch = new CountDownLatch(messages.size() + failAtNthMessage - 1);
+        addCollectorSink(stream, latch, failAtNthMessage);
 
         env.executeAsync();
 
         sendToRabbit(messages);
+        latch.await();
+
         List<String> collectedMessages = getCollectedSinkMessages();
         assertTrue(collectedMessages.containsAll(messages));
     }
 
     // --------------- exactly once ---------------
     @Test
-    public void simpleFilterCorrelationIdsTest() throws Exception {
-        // Test whether exactly-once is working correctly and filters correlation ids.
+    public void filterCorrelationIdsTest() throws Exception {
+        List<String> messages = getRandomMessages(5);
+        CountDownLatch latch = new CountDownLatch(3);
+
         env.enableCheckpointing(5000);
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.EXACTLY_ONCE);
-        addCollectorSink(stream);
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.EXACTLY_ONCE);
+        addCollectorSink(stream, latch);
         env.executeAsync();
 
         List<String> correlationIds = Arrays.asList("1", "2", "3", "3", "3");
-        List<String> messages = getSequentialMessages(5);
-        sendToRabbit(messages, correlationIds, 1);
+        sendToRabbit(messages, correlationIds);
+
+        latch.await();
 
         List<String> collectedMessages = getCollectedSinkMessages();
         List<String> expectedMessages = messages.subList(0, 3);
@@ -126,29 +118,18 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
     public void exactlyOnceWithFailure() throws Exception {
         // An exception is thrown in the MapFunction in order to trigger a restart of Flink and it
         // is assured that the system receives the messages only once.
-        DataStream<String> stream = getSinkOn(env, ConsistencyMode.EXACTLY_ONCE);
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.EXACTLY_ONCE);
 
         List<String> messages = getSequentialMessages(5);
         List<String> correlationIds = Arrays.asList("0", "1", "2", "3", "4");
+        CountDownLatch latch = new CountDownLatch(5);
 
-        shouldFail = true;
-        DataStream<String> outStream =
-                stream.map(
-                                (MapFunction<String, String>)
-                                        message -> {
-                                            if (message.equals("Message 2") && shouldFail) {
-                                                shouldFail = false;
-                                                throw new Exception(
-                                                        "This is supposed to be thrown.");
-                                            }
-                                            return message;
-                                        })
-                        .setParallelism(1);
-        outStream.addSink(new CollectSink());
-
+        addCollectorSink(stream, latch, 3);
         env.executeAsync();
 
         sendToRabbit(messages, correlationIds);
+        latch.await();
+
         List<String> collectedMessages = getCollectedSinkMessages();
         // Add these messages that get received by the CollectSink but are not lost as they should
         // be in a normal sink.

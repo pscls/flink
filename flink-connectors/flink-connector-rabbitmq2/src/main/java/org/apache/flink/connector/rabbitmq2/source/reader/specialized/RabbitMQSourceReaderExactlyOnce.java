@@ -31,12 +31,13 @@ import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.stream.Collectors;
 
 /**
@@ -46,30 +47,40 @@ import java.util.stream.Collectors;
  * polled by the output are stored so they can be later acknowledged. During a checkpoint the
  * messages that were polled since the last checkpoint are associated with the id of the current
  * checkpoint. Once the checkpoint is completed, the messages for the checkpoint are acknowledged in
- * a transaction to assure that rabbitmq successfully receives the acknowledgements.
+ * a transaction to assure that RabbitMQ successfully receives the acknowledgements.
  *
  * <p>In order for the exactly-once source reader to work, checkpointing needs to be enabled and the
- * message from rabbitmq need to have a correlation id.
+ * message from RabbitMQ need to have a correlation id.
  *
  * @param <T> The output type of the source.
  * @see RabbitMQSourceReaderBase
  */
 public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase<T> {
-    // Message that were polled by the output since the last checkpoint.
+    // Message that were polled by the output since the last checkpoint was created.
+    // These messages are currently forward but not yet acknowledged to RabbitMQ.
+    // It needs to be ensured they are persisted before they can be acknowledged and thus be delete
+    // in RabbitMQ.
     private final List<RabbitMQMessageWrapper<T>>
             polledAndUnacknowledgedMessagesSinceLastCheckpoint;
-    //
-    private final Deque<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>>
+
+    // All message in polledAndUnacknowledgedMessagesSinceLastCheckpoint will move to hear when
+    // a new checkpoint is created and therefore the messages can be mapped to it. This mapping is
+    // necessary to ensure we acknowledge only message which belong to a completed checkpoint.
+    private final BlockingQueue<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>>
             polledAndUnacknowledgedMessagesPerCheckpoint;
+
     // Set of correlation ids that have been seen and are not acknowledged yet.
+    // The message publisher (who pushes the messages to RabbitMQ) is obligated to set the
+    // correlation id per message and ensure their uniqueness.
     private final ConcurrentHashMap.KeySetView<String, Boolean> correlationIds;
 
     public RabbitMQSourceReaderExactlyOnce(
             SourceReaderContext sourceReaderContext,
             DeserializationSchema<T> deliveryDeserializer) {
         super(sourceReaderContext, deliveryDeserializer);
-        this.polledAndUnacknowledgedMessagesSinceLastCheckpoint = new ArrayList<>();
-        this.polledAndUnacknowledgedMessagesPerCheckpoint = new ArrayDeque<>();
+        this.polledAndUnacknowledgedMessagesSinceLastCheckpoint =
+                Collections.synchronizedList(new ArrayList<>());
+        this.polledAndUnacknowledgedMessagesPerCheckpoint = new LinkedBlockingQueue<>();
         this.correlationIds = ConcurrentHashMap.newKeySet();
     }
 
@@ -97,10 +108,14 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         long deliveryTag = envelope.getDeliveryTag();
 
         if (correlationIds.add(correlationId)) {
-            // handle the message only if the correlation id hasn't been seen before
+            // Handle the message only if the correlation id hasn't been seen before.
+            // The message will follow the normal process and be acknowledge when it got polled.
             super.handleMessageReceivedCallback(consumerTag, delivery);
         } else {
-            // otherwise, store the new delivery-tag for later acknowledgments
+            // Otherwise, store the new delivery-tag for later acknowledgments. The correlation id
+            // was seen before and therefore this is a duplicate received from RabbitMQ.
+            // Instead of letting the message to be polled, the message will directly be marked
+            // to be acknowledged in the next wave of acknowledgments under their new deliveryTag.
             polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(
                     new RabbitMQMessageWrapper<>(deliveryTag, correlationId));
         }
@@ -134,7 +149,12 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
                     checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
-                acknowledgeMessages(nextCheckpoint.f1);
+                try {
+                    acknowledgeMessages(nextCheckpoint.f1);
+                } catch (IOException e) {
+                    throw new RuntimeException(
+                            "Messages could not be acknowledged during checkpoint complete.", e);
+                }
                 checkpointIterator.remove();
             }
         }
@@ -147,7 +167,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         getRmqChannel().txSelect();
     }
 
-    private void acknowledgeMessages(List<RabbitMQMessageWrapper<T>> messages) {
+    private void acknowledgeMessages(List<RabbitMQMessageWrapper<T>> messages) throws IOException {
         List<String> correlationIds =
                 messages.stream()
                         .map(RabbitMQMessageWrapper::getCorrelationId)
@@ -169,7 +189,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
                             + " messages. CorrelationIds will be rolled back. Error: "
                             + e.getMessage());
             this.correlationIds.addAll(correlationIds);
-            e.printStackTrace();
+            throw e;
         }
     }
 }
