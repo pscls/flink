@@ -1,7 +1,6 @@
 package org.apache.flink.connector.rabbitmq2.sink.common;
 
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
-import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.Preconditions;
 
 import com.rabbitmq.client.Channel;
@@ -79,7 +78,7 @@ public class RabbitMQSinkConnection<T> {
                 publishWithOptions(message, serializedMessage);
             }
         } catch (IOException e) {
-            throw new FlinkRuntimeException(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 
