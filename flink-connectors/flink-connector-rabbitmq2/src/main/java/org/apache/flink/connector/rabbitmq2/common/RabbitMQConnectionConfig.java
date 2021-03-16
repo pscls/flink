@@ -16,7 +16,7 @@
  */
 
 /*
- * This class is copied from the old rabbitmq connector.
+ * This class is copied from the old RabbitMQ connector.
  */
 
 package org.apache.flink.connector.rabbitmq2.common;
