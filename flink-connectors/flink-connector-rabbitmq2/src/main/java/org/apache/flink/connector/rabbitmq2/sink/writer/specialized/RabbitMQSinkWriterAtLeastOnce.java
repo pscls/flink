@@ -88,7 +88,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         configureChannel();
     }
 
-    private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
+    private void initWithState(List<RabbitMQSinkWriterState<T>> states) throws IOException {
         for (RabbitMQSinkWriterState<T> state : states) {
             for (RabbitMQSinkMessageWrapper<T> message : state.getOutstandingMessages()) {
                 send(message);
@@ -97,13 +97,13 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     @Override
-    protected void send(RabbitMQSinkMessageWrapper<T> msg) {
+    protected void send(RabbitMQSinkMessageWrapper<T> msg) throws IOException {
         long sequenceNumber = getRmqChannel().getNextPublishSeqNo();
         super.send(msg);
         outstandingConfirms.put(sequenceNumber, msg);
     }
 
-    private void resendMessages() {
+    private void resendMessages() throws IOException {
         Set<Long> temp = outstandingConfirms.keySet();
         Set<Long> messagesToResend = new HashSet<>(temp);
         messagesToResend.retainAll(lastSeenMessageIds);
@@ -162,7 +162,11 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
      */
     @Override
     public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        resendMessages();
+        try {
+            resendMessages();
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage());
+        }
         return Collections.singletonList(
                 new RabbitMQSinkWriterState<>(new ArrayList<>(outstandingConfirms.values())));
     }
