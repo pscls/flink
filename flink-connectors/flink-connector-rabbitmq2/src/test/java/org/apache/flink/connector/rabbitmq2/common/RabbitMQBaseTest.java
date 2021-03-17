@@ -123,9 +123,12 @@ public abstract class RabbitMQBaseTest {
                         .build();
 
         RabbitMQSource<String> rabbitMQSource =
-                new RabbitMQSource<>(
-                        connectionConfig, queueName, new SimpleStringSchema(), consistencyMode);
-
+                RabbitMQSource.<String>builder()
+                        .setConnectionConfig(connectionConfig)
+                        .setQueueName(queueName)
+                        .setDeserializationSchema(new SimpleStringSchema())
+                        .setConsistencyMode(consistencyMode)
+                        .build();
         final DataStream<String> stream =
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);

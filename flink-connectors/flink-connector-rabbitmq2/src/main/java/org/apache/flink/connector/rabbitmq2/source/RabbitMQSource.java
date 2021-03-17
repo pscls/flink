@@ -98,7 +98,7 @@ public class RabbitMQSource<T>
     private final DeserializationSchema<T> deserializationSchema;
     private final ConsistencyMode consistencyMode;
 
-    public RabbitMQSource(
+    private RabbitMQSource(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
             DeserializationSchema<T> deserializationSchema,
