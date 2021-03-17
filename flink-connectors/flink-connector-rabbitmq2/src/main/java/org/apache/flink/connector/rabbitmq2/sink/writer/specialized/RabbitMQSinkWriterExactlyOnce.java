@@ -53,7 +53,7 @@ import java.util.List;
  */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
 
-    /** All messages that arrived and could not be committed this far. */
+    // All messages that arrived and could not be committed this far.
     private List<RabbitMQSinkMessageWrapper<T>> messages;
 
     /**
@@ -64,22 +64,24 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
      * @param serializationSchema serialization schema to turn elements into byte representation
      * @param publishOptions optionally used to compute routing/exchange for messages
      * @param returnListener return listener
-     * @param states a list of states to initialize this reader with
      */
     public RabbitMQSinkWriterExactlyOnce(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            SerializableReturnListener returnListener,
-            List<RabbitMQSinkWriterState<T>> states)
-            throws Exception {
+            SerializableReturnListener returnListener) {
         super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
         messages = Collections.synchronizedList(new ArrayList<>());
-        initWithState(states);
     }
 
-    private void initWithState(List<RabbitMQSinkWriterState<T>> states) {
+    /**
+     * On recover the messages are set to the outstanding messages from the states.
+     *
+     * @param states a list of states to recover the reader with
+     */
+    @Override
+    public void recoverFromStates(List<RabbitMQSinkWriterState<T>> states) {
         List<RabbitMQSinkMessageWrapper<T>> messages =
                 Collections.synchronizedList(new ArrayList<>());
         for (RabbitMQSinkWriterState<T> state : states) {
@@ -97,7 +99,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     @Override
     public void write(T element, Context context) {
         messages.add(
-                new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
+                new RabbitMQSinkMessageWrapper<>(element, getSerializationSchema().serialize(element)));
     }
 
     @Override

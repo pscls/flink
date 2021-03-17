@@ -52,12 +52,12 @@ public class RabbitMQSinkWriterAtMostOnce<T> extends RabbitMQSinkWriterBase<T> {
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
             SerializableReturnListener returnListener)
-            throws Exception {
+            {
         super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
     }
 
     @Override
     public void write(T element, Context context) throws IOException {
-        send(element, serializationSchema.serialize(element));
+        send(element, getSerializationSchema().serialize(element));
     }
 }
