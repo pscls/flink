@@ -75,8 +75,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            SerializableReturnListener returnListener)
-            {
+            SerializableReturnListener returnListener) {
         super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
@@ -97,10 +96,9 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         }
     }
 
-    @Override
-    protected void send(RabbitMQSinkMessageWrapper<T> msg) throws IOException {
+    private void send(RabbitMQSinkMessageWrapper<T> msg) throws IOException {
         long sequenceNumber = getRmqChannel().getNextPublishSeqNo();
-        super.send(msg);
+        getRmqSinkConnection().send(msg);
         outstandingConfirms.put(sequenceNumber, msg);
     }
 

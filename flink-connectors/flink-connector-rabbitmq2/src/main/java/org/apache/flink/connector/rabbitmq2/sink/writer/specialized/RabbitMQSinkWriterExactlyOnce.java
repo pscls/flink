@@ -99,7 +99,8 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
     @Override
     public void write(T element, Context context) {
         messages.add(
-                new RabbitMQSinkMessageWrapper<>(element, getSerializationSchema().serialize(element)));
+                new RabbitMQSinkMessageWrapper<>(
+                        element, getSerializationSchema().serialize(element)));
     }
 
     @Override
@@ -113,7 +114,7 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
         messages.subList(0, messagesToSend.size()).clear();
         try {
             for (RabbitMQSinkMessageWrapper<T> msg : messagesToSend) {
-                super.send(msg);
+                getRmqSinkConnection().send(msg);
             }
             getRmqChannel().txCommit();
             LOG.info("Successfully committed {} messages.", messagesToSend.size());
