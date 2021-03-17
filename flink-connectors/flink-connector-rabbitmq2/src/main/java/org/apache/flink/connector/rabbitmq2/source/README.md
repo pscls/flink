@@ -1,7 +1,7 @@
 # RabbitMQ Source
 
 Flink's RabbitMQ connector provides a streaming-only source which enables you to receive messages
-from a RabbitMQqueue in three different consistency modes: at-most-once, at-least-once, 
+from a RabbitMQ queue in three different consistency modes: at-most-once, at-least-once, 
 and exactly-once.
 
 ## Consistency Modes

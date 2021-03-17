@@ -100,18 +100,14 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
             String queueName,
             SerializationSchema<T> serializationSchema,
             ConsistencyMode consistencyMode,
-            SerializableReturnListener returnListener,
+            @Nullable SerializableReturnListener returnListener,
             @Nullable RabbitMQSinkPublishOptions<T> publishOptions) {
-        this.connectionConfig = connectionConfig;
-        this.queueName = queueName;
-        this.serializationSchema = serializationSchema;
-        this.consistencyMode = consistencyMode;
+        this.connectionConfig = requireNonNull(connectionConfig);
+        this.queueName = requireNonNull(queueName);
+        this.serializationSchema = requireNonNull(serializationSchema);
+        this.consistencyMode = requireNonNull(consistencyMode);
         this.returnListener = returnListener;
         this.publishOptions = publishOptions;
-
-        requireNonNull(connectionConfig);
-        requireNonNull(queueName);
-        requireNonNull(serializationSchema);
 
         Preconditions.checkState(
                 verifyPublishOptions(),
@@ -148,38 +144,45 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
     public SinkWriter<T, Void, RabbitMQSinkWriterState<T>> createWriter(
             InitContext context, List<RabbitMQSinkWriterState<T>> states) {
         try {
-            switch (consistencyMode) {
-                case AT_MOST_ONCE:
-                    return new RabbitMQSinkWriterAtMostOnce<>(
-                            connectionConfig,
-                            queueName,
-                            serializationSchema,
-                            publishOptions,
-                            returnListener);
-                case AT_LEAST_ONCE:
-                    return new RabbitMQSinkWriterAtLeastOnce<>(
-                            connectionConfig,
-                            queueName,
-                            serializationSchema,
-                            publishOptions,
-                            returnListener,
-                            states);
-                case EXACTLY_ONCE:
-                    return new RabbitMQSinkWriterExactlyOnce<>(
-                            connectionConfig,
-                            queueName,
-                            serializationSchema,
-                            publishOptions,
-                            returnListener,
-                            states);
-                default:
-                    throw new IllegalStateException(
-                            "Error in creating a SinkWriter: No valid consistency mode ("
-                                    + consistencyMode
-                                    + ") was specified.");
-            }
+            RabbitMQSinkWriterBase<T> sinkWriter = createSpecializedWriter();
+            // Setup RabbitMQ needs to be called before recover from states as the writer might send
+            // messages to RabbitMQ on recover.
+            sinkWriter.setupRabbitMQ();
+            sinkWriter.recoverFromStates(states);
+            return sinkWriter;
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    private RabbitMQSinkWriterBase<T> createSpecializedWriter() throws IllegalStateException {
+        switch (consistencyMode) {
+            case AT_MOST_ONCE:
+                return new RabbitMQSinkWriterAtMostOnce<>(
+                        connectionConfig,
+                        queueName,
+                        serializationSchema,
+                        publishOptions,
+                        returnListener);
+            case AT_LEAST_ONCE:
+                return new RabbitMQSinkWriterAtLeastOnce<>(
+                        connectionConfig,
+                        queueName,
+                        serializationSchema,
+                        publishOptions,
+                        returnListener);
+            case EXACTLY_ONCE:
+                return new RabbitMQSinkWriterExactlyOnce<>(
+                        connectionConfig,
+                        queueName,
+                        serializationSchema,
+                        publishOptions,
+                        returnListener);
+            default:
+                throw new IllegalStateException(
+                        "Error in creating a SinkWriter: No valid consistency mode ("
+                                + consistencyMode
+                                + ") was specified.");
         }
     }
 

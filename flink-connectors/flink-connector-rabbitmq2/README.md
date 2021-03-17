@@ -13,7 +13,7 @@ must be aware that this may be subject to conditions declared in the
 Mozilla Public License 1.1 ("MPL"), the GNU General Public License version 2 ("GPL")
 and the Apache License version 2 ("ASL").
 
-This connector allows consuming messages from and publishing to RabbitMQ. It supports the
+This connector allows consuming messages from and publishing to RabbitMQ. It implements the
 Source API specified in [FLIP-27](https://cwiki.apache.org/confluence/display/FLINK/FLIP-27%3A+Refactor+Source+Interface)
 and the Sink API specified in [FLIP-143](https://cwiki.apache.org/confluence/display/FLINK/FLIP-143%3A+Unified+Sink+API).
 

@@ -30,30 +30,39 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSink
 import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterAtMostOnce;
 import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSinkWriterExactlyOnce;
 
+import com.rabbitmq.client.Channel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RabbitMQSinkWriterBase is the common abstract class of {@link RabbitMQSinkWriterAtMostOnce},
- * {@link RabbitMQSinkWriterAtLeastOnce} and {@link RabbitMQSinkWriterExactlyOnce}. It inherits
- * RabbitMQ behavior from {@link RabbitMQSinkConnection}.
+ * {@link RabbitMQSinkWriterAtLeastOnce} and {@link RabbitMQSinkWriterExactlyOnce}.
  *
  * @param <T> Type of the elements in this sink
  */
-public abstract class RabbitMQSinkWriterBase<T> extends RabbitMQSinkConnection<T>
+public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
-    protected final SerializationSchema<T> serializationSchema;
+    protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterBase.class);
+
+    private final RabbitMQSinkConnection<T> rmqSinkConnection;
+    private final SerializationSchema<T> serializationSchema;
 
     public RabbitMQSinkWriterBase(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            SerializableReturnListener returnListener)
-            throws Exception {
-        super(connectionConfig, queueName, publishOptions, returnListener);
-        this.serializationSchema = serializationSchema;
+            SerializableReturnListener returnListener) {
+        this.rmqSinkConnection =
+                new RabbitMQSinkConnection<>(
+                        connectionConfig, queueName, publishOptions, returnListener);
+        this.serializationSchema = requireNonNull(serializationSchema);
     }
 
     /**
@@ -64,8 +73,37 @@ public abstract class RabbitMQSinkWriterBase<T> extends RabbitMQSinkConnection<T
      */
     @Override
     public void write(T element, Context context) throws IOException {
-        send(new RabbitMQSinkMessageWrapper<>(element, serializationSchema.serialize(element)));
+        getRmqSinkConnection()
+                .send(
+                        new RabbitMQSinkMessageWrapper<>(
+                                element, serializationSchema.serialize(element)));
     }
+
+    /**
+     * Recover the writer with a specific state.
+     *
+     * @param states a list of states to recover the reader with
+     * @throws IOException that can be thrown as specialized writers might want to send messages.
+     */
+    public void recoverFromStates(List<RabbitMQSinkWriterState<T>> states) throws IOException {}
+
+    /**
+     * Setup the RabbitMQ connection and a channel to send messages to. In the end specialized
+     * writers can configure the channel through {@link #configureChannel()}.
+     *
+     * @throws Exception that might occur when setting up the connection and channel.
+     */
+    public void setupRabbitMQ() throws Exception {
+        this.rmqSinkConnection.setupRabbitMQ();
+        configureChannel();
+    }
+
+    /**
+     * This method provides a hook to apply additional configuration to the channel.
+     *
+     * @throws IOException possible IOException that might be thrown when configuring the channel
+     */
+    protected void configureChannel() throws IOException {}
 
     @Override
     public List<Void> prepareCommit(boolean flush) {
@@ -79,6 +117,18 @@ public abstract class RabbitMQSinkWriterBase<T> extends RabbitMQSinkConnection<T
 
     @Override
     public void close() throws Exception {
-        super.close();
+        rmqSinkConnection.close();
+    }
+
+    protected RabbitMQSinkConnection<T> getRmqSinkConnection() {
+        return rmqSinkConnection;
+    }
+
+    protected Channel getRmqChannel() {
+        return rmqSinkConnection.getRmqChannel();
+    }
+
+    protected SerializationSchema<T> getSerializationSchema() {
+        return serializationSchema;
     }
 }

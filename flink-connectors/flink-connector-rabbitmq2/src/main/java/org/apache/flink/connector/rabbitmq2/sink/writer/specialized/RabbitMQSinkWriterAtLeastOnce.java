@@ -62,30 +62,33 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     private Set<Long> lastSeenMessageIds;
 
     /**
-     * Create a new RabbitMQSinkWriterExactlyOnce.
+     * Create a new RabbitMQSinkWriterAtLeastOnce.
      *
      * @param connectionConfig configuration parameters used to connect to RabbitMQ
      * @param queueName name of the queue to publish to
      * @param serializationSchema serialization schema to turn elements into byte representation
      * @param publishOptions optionally used to compute routing/exchange for messages
      * @param returnListener returnListener
-     * @param states a list of states to initialize this reader with
      */
     public RabbitMQSinkWriterAtLeastOnce(
             RabbitMQConnectionConfig connectionConfig,
             String queueName,
             SerializationSchema<T> serializationSchema,
             RabbitMQSinkPublishOptions<T> publishOptions,
-            SerializableReturnListener returnListener,
-            List<RabbitMQSinkWriterState<T>> states)
-            throws Exception {
+            SerializableReturnListener returnListener) {
         super(connectionConfig, queueName, serializationSchema, publishOptions, returnListener);
         this.outstandingConfirms = new ConcurrentSkipListMap<>();
         this.lastSeenMessageIds = new HashSet<>();
-        initWithState(states);
     }
 
-    private void initWithState(List<RabbitMQSinkWriterState<T>> states) throws IOException {
+    /**
+     * On recover all stored messages in the states get resend.
+     *
+     * @param states a list of states to recover the reader with
+     * @throws IOException as messages are send to RabbitMQ
+     */
+    @Override
+    public void recoverFromStates(List<RabbitMQSinkWriterState<T>> states) throws IOException {
         for (RabbitMQSinkWriterState<T> state : states) {
             for (RabbitMQSinkMessageWrapper<T> message : state.getOutstandingMessages()) {
                 send(message);
@@ -93,10 +96,9 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
         }
     }
 
-    @Override
-    protected void send(RabbitMQSinkMessageWrapper<T> msg) throws IOException {
+    private void send(RabbitMQSinkMessageWrapper<T> msg) throws IOException {
         long sequenceNumber = getRmqChannel().getNextPublishSeqNo();
-        super.send(msg);
+        getRmqSinkConnection().send(msg);
         outstandingConfirms.put(sequenceNumber, msg);
     }
 
