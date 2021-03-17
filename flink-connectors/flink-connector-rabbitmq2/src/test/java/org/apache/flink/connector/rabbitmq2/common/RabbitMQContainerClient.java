@@ -88,14 +88,14 @@ public class RabbitMQContainerClient<T> {
         return createQueue(UUID.randomUUID().toString(), withConsumer);
     }
 
-    public <T> void sendMessage(SerializationSchema<T> valueSerializer, T... messages)
+    public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
             throws IOException {
         for (T message : messages) {
             channel.basicPublish("", queueName, null, valueSerializer.serialize(message));
         }
     }
 
-    public <T> void sendMessage(
+    public <T> void sendMessages(
             SerializationSchema<T> valueSerializer, T message, String correlationId)
             throws IOException {
         AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();

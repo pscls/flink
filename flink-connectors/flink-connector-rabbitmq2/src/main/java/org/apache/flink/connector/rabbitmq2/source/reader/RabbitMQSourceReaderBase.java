@@ -115,6 +115,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
      */
     protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery)
             throws IOException {
+
         AMQP.BasicProperties properties = delivery.getProperties();
         byte[] body = delivery.getBody();
         Envelope envelope = delivery.getEnvelope();
@@ -149,7 +150,6 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
     @Override
     public InputStatus pollNext(ReaderOutput<T> output) {
         RabbitMQSourceMessageWrapper<T> message = collector.pollMessage();
-
         if (message == null) {
             return InputStatus.NOTHING_AVAILABLE;
         }

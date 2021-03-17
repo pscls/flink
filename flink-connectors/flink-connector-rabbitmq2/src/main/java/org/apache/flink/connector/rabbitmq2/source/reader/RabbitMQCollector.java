@@ -60,10 +60,6 @@ public class RabbitMQCollector<T> implements Collector<T> {
         return unpolledMessageQueue.poll();
     }
 
-    public BlockingQueue<RabbitMQSourceMessageWrapper<T>> getMessageQueue() {
-        return unpolledMessageQueue;
-    }
-
     /**
      * Sets the correlation id and the delivery tag that corresponds to the records originating from
      * the RMQ event. If the correlation id has been processed before, records will not be emitted
@@ -71,14 +67,10 @@ public class RabbitMQCollector<T> implements Collector<T> {
      *
      * <p>If not set explicitly, the {@link AMQP.BasicProperties#getCorrelationId()} and {@link
      * Envelope#getDeliveryTag()} will be used.
-     *
-     * @return true, if a message with given correlationId was seen before
      */
-    public boolean setMessageIdentifiers(String correlationId, long deliveryTag) {
+    public void setMessageIdentifiers(String correlationId, long deliveryTag) {
         this.correlationId = correlationId;
         this.deliveryTag = deliveryTag;
-
-        return true;
     }
 
     @Override

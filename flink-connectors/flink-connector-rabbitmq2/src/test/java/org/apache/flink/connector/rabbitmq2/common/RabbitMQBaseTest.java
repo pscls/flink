@@ -109,6 +109,7 @@ public abstract class RabbitMQBaseTest {
             StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
             throws IOException, TimeoutException {
         String queueName = client.createQueue(false);
+
         final RabbitMQConnectionConfig connectionConfig =
                 new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
@@ -135,14 +136,14 @@ public abstract class RabbitMQBaseTest {
 
     public void sendToRabbit(List<String> messages) throws IOException {
         for (String message : messages) {
-            client.sendMessage(new SimpleStringSchema(), message);
+            client.sendMessages(new SimpleStringSchema(), message);
         }
     }
 
     public void sendToRabbit(List<String> messages, List<String> correlationIds)
             throws IOException {
         for (int i = 0; i < messages.size(); i++) {
-            client.sendMessage(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
+            client.sendMessages(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
         }
     }
 
@@ -204,6 +205,7 @@ public abstract class RabbitMQBaseTest {
                     throw new Exception("This is supposed to be thrown.");
                 }
             }
+
             VALUES.add(value);
             latch.countDown();
         }

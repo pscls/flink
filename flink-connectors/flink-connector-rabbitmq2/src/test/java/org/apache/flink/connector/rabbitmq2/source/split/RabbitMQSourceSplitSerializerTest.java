@@ -18,6 +18,8 @@
 
 package org.apache.flink.connector.rabbitmq2.source.split;
 
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQConnectionConfig;
+
 import org.junit.Test;
 
 import java.io.IOException;
@@ -40,7 +42,15 @@ public class RabbitMQSourceSplitSerializerTest {
             ids.add(Integer.toString(i));
         }
         Set<String> correlationIds = new HashSet<>(ids);
-        return new RabbitMQSourceSplit(null, queueName, correlationIds);
+        final RabbitMQConnectionConfig connectionConfig =
+                new RabbitMQConnectionConfig.Builder()
+                        .setHost("Host")
+                        .setVirtualHost("/")
+                        .setUserName("Username")
+                        .setPassword("Password")
+                        .setPort(3000)
+                        .build();
+        return new RabbitMQSourceSplit(connectionConfig, queueName, correlationIds);
     }
 
     @Test
@@ -55,6 +65,8 @@ public class RabbitMQSourceSplitSerializerTest {
         assertEquals(split.splitId(), deserializedSplit.splitId());
         assertEquals(split.getCorrelationIds(), deserializedSplit.getCorrelationIds());
         assertEquals(split.getQueueName(), deserializedSplit.getQueueName());
-        assertEquals(split.getConnectionConfig(), deserializedSplit.getConnectionConfig());
+        assertEquals(
+                split.getConnectionConfig().getHost(),
+                deserializedSplit.getConnectionConfig().getHost());
     }
 }
