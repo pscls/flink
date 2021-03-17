@@ -29,6 +29,8 @@ import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
 import com.rabbitmq.client.ConfirmCallback;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,6 +61,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
  */
 public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> {
     protected final ConcurrentNavigableMap<Long, RabbitMQSinkMessageWrapper<T>> outstandingConfirms;
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterAtLeastOnce.class);
+
     private Set<Long> lastSeenMessageIds;
 
     /**
@@ -158,14 +162,11 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
      * checkpoint.
      *
      * @return A singleton list of RabbitMQSinkWriterState with outstanding confirms
+     * @throws IOException if resend of messages fails
      */
     @Override
-    public List<RabbitMQSinkWriterState<T>> snapshotState() {
-        try {
-            resendMessages();
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage());
-        }
+    public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
+        resendMessages();
         return Collections.singletonList(
                 new RabbitMQSinkWriterState<>(new ArrayList<>(outstandingConfirms.values())));
     }

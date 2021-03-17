@@ -44,16 +44,12 @@ public class RabbitMQSourceSplitSerializerTest {
     }
 
     @Test
-    public void testSplitSerializer() {
+    public void testSplitSerializer() throws IOException {
         RabbitMQSourceSplit split = getSourceSplit();
         RabbitMQSourceSplitSerializer serializer = new RabbitMQSourceSplitSerializer();
-        RabbitMQSourceSplit deserializedSplit = null;
-        try {
-            byte[] serializedSplit = serializer.serialize(split);
-            deserializedSplit = serializer.deserialize(1, serializedSplit);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+        byte[] serializedSplit = serializer.serialize(split);
+        RabbitMQSourceSplit deserializedSplit = serializer.deserialize(1, serializedSplit);
 
         assertNotNull(deserializedSplit);
         assertEquals(split.splitId(), deserializedSplit.splitId());

@@ -48,7 +48,7 @@ import static java.util.Objects.requireNonNull;
  */
 public abstract class RabbitMQSinkWriterBase<T>
         implements SinkWriter<T, Void, RabbitMQSinkWriterState<T>> {
-    protected static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterBase.class);
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterBase.class);
 
     private final RabbitMQSinkConnection<T> rmqSinkConnection;
     private final SerializationSchema<T> serializationSchema;
@@ -111,12 +111,13 @@ public abstract class RabbitMQSinkWriterBase<T>
     }
 
     @Override
-    public List<RabbitMQSinkWriterState<T>> snapshotState() {
+    public List<RabbitMQSinkWriterState<T>> snapshotState() throws IOException {
         return Collections.emptyList();
     }
 
     @Override
     public void close() throws Exception {
+        LOG.info("Close Sink Writer");
         rmqSinkConnection.close();
     }
 

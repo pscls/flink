@@ -28,6 +28,9 @@ import org.apache.flink.connector.rabbitmq2.sink.common.SerializableReturnListen
 import org.apache.flink.connector.rabbitmq2.sink.state.RabbitMQSinkWriterState;
 import org.apache.flink.connector.rabbitmq2.sink.writer.RabbitMQSinkWriterBase;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,6 +55,7 @@ import java.util.List;
  * @param <T> Type of the elements in this sink
  */
 public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> {
+    private static final Logger LOG = LoggerFactory.getLogger(RabbitMQSinkWriterExactlyOnce.class);
 
     // All messages that arrived and could not be committed this far.
     private List<RabbitMQSinkMessageWrapper<T>> messages;
@@ -116,8 +120,8 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
                 getRmqSinkConnection().send(msg);
             }
             getRmqChannel().txCommit();
-            messagesToSend.clear();
             LOG.info("Successfully committed {} messages.", messagesToSend.size());
+            messagesToSend.clear();
         } catch (IOException e) {
             LOG.error(
                     "Error during commit of {} messages. Rollback Messages. Error: {}",

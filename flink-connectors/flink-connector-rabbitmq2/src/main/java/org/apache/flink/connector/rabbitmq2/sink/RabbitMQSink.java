@@ -106,13 +106,14 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         this.queueName = requireNonNull(queueName);
         this.serializationSchema = requireNonNull(serializationSchema);
         this.consistencyMode = requireNonNull(consistencyMode);
+
         this.returnListener = returnListener;
-        this.publishOptions = publishOptions;
 
         Preconditions.checkState(
                 verifyPublishOptions(),
                 "If consistency mode is stronger than at-most-once and publish options are defined"
                         + "then publish options need a deserialization schema");
+        this.publishOptions = publishOptions;
     }
 
     private boolean verifyPublishOptions() {
@@ -128,6 +129,13 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
         return publishOptions.getDeserializationSchema().isPresent();
     }
 
+    /**
+     * Get a {@link RabbitMQSinkBuilder} for the sink.
+     *
+     * @param <T> type of the sink
+     * @return a sink builder
+     * @see RabbitMQSinkBuilder
+     */
     public static <T> RabbitMQSinkBuilder<T> builder() {
         return new RabbitMQSinkBuilder<>();
     }

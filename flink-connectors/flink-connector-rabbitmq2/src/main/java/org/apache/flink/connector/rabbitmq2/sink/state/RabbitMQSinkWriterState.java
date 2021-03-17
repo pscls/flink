@@ -25,6 +25,8 @@ import org.apache.flink.connector.rabbitmq2.sink.writer.specialized.RabbitMQSink
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The state of a {@link SinkWriter} implementation. Contains {@code outstandingMessages} that could
  * not be delivered in a checkpoint. Used in the {@link RabbitMQSinkWriterAtLeastOnce} and {@link
@@ -34,7 +36,7 @@ public class RabbitMQSinkWriterState<T> {
     private final List<RabbitMQSinkMessageWrapper<T>> outstandingMessages;
 
     public RabbitMQSinkWriterState(List<RabbitMQSinkMessageWrapper<T>> outstandingMessages) {
-        this.outstandingMessages = outstandingMessages;
+        this.outstandingMessages = requireNonNull(outstandingMessages);
     }
 
     public List<RabbitMQSinkMessageWrapper<T>> getOutstandingMessages() {
