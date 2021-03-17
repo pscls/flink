@@ -51,8 +51,8 @@ import java.util.concurrent.TimeoutException;
 public abstract class RabbitMQBaseTest {
 
     private static final int RABBITMQ_PORT = 5672;
-    private RabbitMQContainerClient client;
     private String queueName;
+    private RabbitMQContainerClient client;
 
     @Rule public Timeout globalTimeout = Timeout.seconds(20);
 
@@ -74,16 +74,20 @@ public abstract class RabbitMQBaseTest {
 
     @Before
     public void setUpContainerClient() {
-        client = new RabbitMQContainerClient(rabbitMq);
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(1000);
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
+        this.client = new RabbitMQContainerClient(rabbitMq);
     }
 
-    public void addSinkOn(DataStream<String> stream, ConsistencyMode consistencyMode)
+    public void containerClientReceivedMessageCallback() {}
+
+    public RabbitMQContainerClient addSinkOn(
+            DataStream<String> stream, ConsistencyMode consistencyMode, int countDownLatchSize)
             throws IOException, TimeoutException {
-        queueName = UUID.randomUUID().toString();
-        client.createQueue(queueName, true);
+        RabbitMQContainerClient client =
+                new RabbitMQContainerClient(rabbitMq, new SimpleStringSchema(), countDownLatchSize);
+        String queueName = client.createQueue();
         final RabbitMQConnectionConfig connectionConfig =
                 new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
@@ -101,17 +105,14 @@ public abstract class RabbitMQBaseTest {
                         .setConsistencyMode(consistencyMode)
                         .build();
         stream.sinkTo(sink).setParallelism(1);
-    }
-
-    public List<String> getMessageFromRabbit() throws IOException {
-        return client.readMessages(new SimpleStringSchema());
+        return client;
     }
 
     public DataStream<String> addSourceOn(
             StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
             throws IOException, TimeoutException {
-        queueName = UUID.randomUUID().toString();
-        client.createQueue(queueName);
+        RabbitMQContainerClient client = new RabbitMQContainerClient(rabbitMq);
+        String queueName = client.createQueue();
         final RabbitMQConnectionConfig connectionConfig =
                 new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
@@ -174,12 +175,6 @@ public abstract class RabbitMQBaseTest {
 
     public void addCollectorSink(DataStream<String> stream, CountDownLatch latch) {
         stream.addSink(new CollectSink(latch));
-    }
-
-    public CountDownLatch setContainerClientCountDownLatch(int count) {
-        CountDownLatch latch = new CountDownLatch(count);
-        client.setCountDownLatch(latch);
-        return latch;
     }
 
     /** CollectSink to access the messages from the stream. */

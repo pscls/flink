@@ -21,12 +21,12 @@ package org.apache.flink.connector.rabbitmq2.sink;
 import org.apache.flink.connector.rabbitmq2.common.ConsistencyMode;
 import org.apache.flink.connector.rabbitmq2.common.GlobalBoolean;
 import org.apache.flink.connector.rabbitmq2.common.RabbitMQBaseTest;
+import org.apache.flink.connector.rabbitmq2.common.RabbitMQContainerClient;
 import org.apache.flink.streaming.api.datastream.DataStream;
 
 import org.junit.Test;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
@@ -40,76 +40,75 @@ public class RabbitMQSinkTest extends RabbitMQBaseTest {
     @Test
     public void atMostOnceTest() throws Exception {
         List<String> messages = getRandomMessages(100);
-        CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
         DataStream<String> stream = env.fromCollection(messages);
-        addSinkOn(stream, ConsistencyMode.AT_MOST_ONCE);
+        RabbitMQContainerClient client =
+                addSinkOn(stream, ConsistencyMode.AT_MOST_ONCE, messages.size());
         env.execute();
-        latch.await();
+        client.await();
 
-        List<String> receivedMessages = getMessageFromRabbit();
+        List<String> receivedMessages = client.getConsumedMessages();
         assertEquals(messages, receivedMessages);
     }
 
     @Test
     public void atLeastOnceTest() throws Exception {
         List<String> messages = getRandomMessages(100);
-        CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
-
         DataStream<String> stream = env.fromCollection(messages);
-        addSinkOn(stream, ConsistencyMode.AT_LEAST_ONCE);
+        RabbitMQContainerClient client =
+                addSinkOn(stream, ConsistencyMode.AT_LEAST_ONCE, messages.size());
 
         env.execute();
-        latch.await();
+        client.await();
 
-        List<String> receivedMessages = getMessageFromRabbit();
+        List<String> receivedMessages = client.getConsumedMessages();
         assertEquals(messages, receivedMessages);
     }
 
     @Test
     public void atLeastOnceWithFlinkFailureTest() throws Exception {
         List<String> messages = getRandomMessages(100);
-        CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
-        DataStream<String> stream = env.fromCollection(messages);
         GlobalBoolean shouldFail = new GlobalBoolean(true);
-        DataStream<String> stream2 =
-                stream.map(
-                        m -> {
-                            if (m.equals("3") && shouldFail.get()) {
-                                shouldFail.set(false);
-                                throw new Exception("Supposed to be thrown.");
-                            }
-                            return m;
-                        });
-        addSinkOn(stream2, ConsistencyMode.AT_LEAST_ONCE);
+        DataStream<String> stream =
+                env.fromCollection(messages)
+                        .map(
+                                m -> {
+                                    if (m.equals("3") && shouldFail.get()) {
+                                        shouldFail.set(false);
+                                        throw new Exception("Supposed to be thrown.");
+                                    }
+                                    return m;
+                                });
+        RabbitMQContainerClient client =
+                addSinkOn(stream, ConsistencyMode.AT_LEAST_ONCE, messages.size());
 
         env.execute();
-        latch.await();
+        client.await();
 
-        List<String> receivedMessages = getMessageFromRabbit();
+        List<String> receivedMessages = client.getConsumedMessages();
         assertTrue(receivedMessages.containsAll(messages));
     }
 
     @Test
     public void exactlyOnceTest() throws Exception {
         List<String> messages = getRandomMessages(10);
-        CountDownLatch latch = setContainerClientCountDownLatch(messages.size());
 
         env.enableCheckpointing(100);
-        DataStream<String> stream = env.fromCollection(messages);
-        DataStream<String> stream2 =
-                stream.map(
-                        m -> {
-                            TimeUnit.MILLISECONDS.sleep(100);
-                            return m;
-                        });
-        addSinkOn(stream2, ConsistencyMode.EXACTLY_ONCE);
+        DataStream<String> stream =
+                env.fromCollection(messages)
+                        .map(
+                                m -> {
+                                    TimeUnit.MILLISECONDS.sleep(100);
+                                    return m;
+                                });
+        RabbitMQContainerClient client =
+                addSinkOn(stream, ConsistencyMode.EXACTLY_ONCE, messages.size());
 
         env.execute();
-        latch.await();
+        client.await();
 
-        List<String> receivedMessages = getMessageFromRabbit();
+        List<String> receivedMessages = client.getConsumedMessages();
         assertEquals(messages, receivedMessages);
     }
 }
