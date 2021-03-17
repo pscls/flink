@@ -43,8 +43,8 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * A {@link SinkWriter} implementation for {@link RabbitMQSink} that has at-least-once semantics,
  * meaning it guarantees that outgoing message arrive at RabbitMQ at least once.
  *
- * <p>At-least-once behaviour is implemented by assigning sequence numbers to arriving messages and
- * buffering them together in the state of the writer until an ack arrives.
+ * <p>At-least-once consistency is implemented by assigning sequence numbers to arriving messages
+ * and buffering them together in the state of the writer until an ack arrives.
  *
  * <p>Checkpointing is required for at-least-once to work because messages are resend only when a
  * checkpoint is triggered (to avoid complex time tracking mechanisms for each individual message).
@@ -151,7 +151,7 @@ public class RabbitMQSinkWriterAtLeastOnce<T> extends RabbitMQSinkWriterBase<T> 
     }
 
     /**
-     * All messages that are older than the minimal resend interval will get resend. A single state
+     * All messages that are sent to RabbitMQ and not acknowledge yet will be resend. A single state
      * is returned that contains just the messages that could not be acknowledged within the last
      * checkpoint.
      *

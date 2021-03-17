@@ -124,7 +124,9 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     @Override
     public List<RabbitMQSourceSplit> snapshotState(long checkpointId) {
         Tuple2<Long, List<RabbitMQMessageWrapper<T>>> tuple =
-                new Tuple2<>(checkpointId, polledAndUnacknowledgedMessagesSinceLastCheckpoint);
+                new Tuple2<>(
+                        checkpointId,
+                        new ArrayList<>(polledAndUnacknowledgedMessagesSinceLastCheckpoint));
         polledAndUnacknowledgedMessagesPerCheckpoint.add(tuple);
         polledAndUnacknowledgedMessagesSinceLastCheckpoint.clear();
 
@@ -141,7 +143,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    public void notifyCheckpointComplete(long checkpointId) {
+    public void notifyCheckpointComplete(long checkpointId) throws IOException {
         Iterator<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>> checkpointIterator =
                 polledAndUnacknowledgedMessagesPerCheckpoint.iterator();
         while (checkpointIterator.hasNext()) {
@@ -149,12 +151,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
                     checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
-                try {
-                    acknowledgeMessages(nextCheckpoint.f1);
-                } catch (IOException e) {
-                    throw new RuntimeException(
-                            "Messages could not be acknowledged during checkpoint complete.", e);
-                }
+                acknowledgeMessages(nextCheckpoint.f1);
                 checkpointIterator.remove();
             }
         }
@@ -173,7 +170,6 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
                         .map(RabbitMQMessageWrapper::getCorrelationId)
                         .collect(Collectors.toList());
         this.correlationIds.removeAll(correlationIds);
-
         try {
             List<Long> deliveryTags =
                     messages.stream()

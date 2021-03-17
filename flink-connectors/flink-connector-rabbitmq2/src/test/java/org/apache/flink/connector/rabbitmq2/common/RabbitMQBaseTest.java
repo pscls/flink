@@ -54,7 +54,7 @@ public abstract class RabbitMQBaseTest {
     private RabbitMQContainerClient client;
     private String queueName;
 
-    @Rule public Timeout globalTimeout = Timeout.seconds(10);
+    @Rule public Timeout globalTimeout = Timeout.seconds(20);
 
     @Rule
     public MiniClusterWithClientResource flinkCluster =
@@ -209,7 +209,6 @@ public abstract class RabbitMQBaseTest {
                     throw new Exception("This is supposed to be thrown.");
                 }
             }
-
             VALUES.add(value);
             latch.countDown();
         }

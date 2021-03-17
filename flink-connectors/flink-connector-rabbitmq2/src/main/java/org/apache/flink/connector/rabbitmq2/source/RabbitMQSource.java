@@ -155,8 +155,10 @@ public class RabbitMQSource<T>
                 return new RabbitMQSourceReaderExactlyOnce<>(
                         sourceReaderContext, deserializationSchema);
             default:
-                LOG.error("The requested reader of type " + consistencyMode + " is not supported");
-                return null;
+                throw new IllegalStateException(
+                        "Error in creating a SourceReader: No valid consistency mode ("
+                                + consistencyMode
+                                + ") was specified.");
         }
     }
 

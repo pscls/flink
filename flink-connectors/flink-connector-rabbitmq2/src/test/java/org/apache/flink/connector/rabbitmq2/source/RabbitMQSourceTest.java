@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -95,7 +96,25 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
 
     // --------------- exactly once ---------------
     @Test
-    public void filterCorrelationIdsTest() throws Exception {
+    public void exactlyOnceTest() throws Exception {
+        List<String> messages = getRandomMessages(1000);
+        CountDownLatch latch = new CountDownLatch(messages.size());
+
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.EXACTLY_ONCE);
+        addCollectorSink(stream, latch);
+        env.executeAsync();
+
+        // use messages as correlation ids here
+        sendToRabbit(messages, messages);
+
+        latch.await();
+
+        List<String> collectedMessages = getCollectedSinkMessages();
+        assertEquals(messages, collectedMessages);
+    }
+
+    @Test
+    public void exactlyOnceFilterCorrelationIdsTest() throws Exception {
         List<String> messages = getRandomMessages(5);
         CountDownLatch latch = new CountDownLatch(3);
 
@@ -115,25 +134,51 @@ public class RabbitMQSourceTest extends RabbitMQBaseTest {
     }
 
     @Test
-    public void exactlyOnceWithFailure() throws Exception {
-        // An exception is thrown in the MapFunction in order to trigger a restart of Flink and it
-        // is assured that the system receives the messages only once.
+    public void exactlyOnceWithFailureAndMessageDuplicationTest() throws Exception {
+        // An exception is thrown in order to trigger a restart of Flink and it
+        // is assured that the system receives the messages only once. We disable
+        // (by setting the interval higher than the test duration) checkpoint to
+        // expect receiving all pre-exception messages once again.
+        env.enableCheckpointing(500000);
         DataStream<String> stream = addSourceOn(env, ConsistencyMode.EXACTLY_ONCE);
 
-        List<String> messages = getSequentialMessages(5);
-        List<String> correlationIds = Arrays.asList("0", "1", "2", "3", "4");
-        CountDownLatch latch = new CountDownLatch(5);
+        List<String> messages = getRandomMessages(100);
+        List<String> correlationIds = messages;
 
-        addCollectorSink(stream, latch, 3);
+        int failAtNthMessage = 30;
+        CountDownLatch latch = new CountDownLatch(messages.size() + failAtNthMessage - 1);
+        addCollectorSink(stream, latch, failAtNthMessage);
         env.executeAsync();
 
         sendToRabbit(messages, correlationIds);
         latch.await();
 
         List<String> collectedMessages = getCollectedSinkMessages();
-        // Add these messages that get received by the CollectSink but are not lost as they should
-        // be in a normal sink.
-        messages.addAll(0, Arrays.asList("Message 0", "Message 1"));
+        collectedMessages =
+                collectedMessages.subList(failAtNthMessage - 1, collectedMessages.size());
+        assertEquals(messages, collectedMessages);
+    }
+
+    @Test
+    public void exactlyOnceWithFailureTest() throws Exception {
+        env.enableCheckpointing(1000);
+        DataStream<String> stream = addSourceOn(env, ConsistencyMode.EXACTLY_ONCE);
+
+        List<String> messages = getSequentialMessages(60);
+        List<String> messagesA = messages.subList(0, 30);
+        List<String> messagesB = messages.subList(30, messages.size());
+
+        int failAtNthMessage = messagesA.size() + 1;
+        CountDownLatch latch = new CountDownLatch(messagesA.size() + messagesB.size());
+        addCollectorSink(stream, latch, failAtNthMessage);
+        env.executeAsync();
+
+        sendToRabbit(messagesA, messagesA);
+        TimeUnit.MILLISECONDS.sleep(2500);
+        sendToRabbit(messagesB, messagesB);
+        latch.await();
+
+        List<String> collectedMessages = getCollectedSinkMessages();
         assertEquals(messages, collectedMessages);
     }
 }

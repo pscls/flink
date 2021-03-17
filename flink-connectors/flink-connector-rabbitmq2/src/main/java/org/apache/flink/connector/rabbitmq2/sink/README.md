@@ -5,7 +5,7 @@ to a RabbitMQ exchange in three different consistency modes: at-most-once, at-le
 and exactly-once. Furthermore, user defined publish options can be used to customize each message
 options in regard to exchange and publish settings in the RabbitMQ context.
 
-## Consistency Behaviour
+## Consistency Mode
 With __at-most-once__, the sink will simply take each message and publish the serialization of it
 (with publish options if given) to RabbitMQ. At this point the sink gives up the ownership of the message.
 
@@ -25,7 +25,7 @@ will be buffered until a checkpoint is triggered. On each checkpoint all message
 published/committed as one transaction to ensure the reception acknowledge by RabbitMQ.
 If successful, all messages which were committed will be given up, otherwise they will be stored
 and tried to commit again in the next transaction during the next checkpoint.
-This behaviour ensures that each message will be stored in RabbitMQ exactly once but also has
+This consistency mode ensures that each message will be stored in RabbitMQ exactly once but also has
 a performance drawback. Committing many messages will take time and will thus increase the overall
 time it takes to do a checkpoint. This can result in checkpoint delays and in peaks where
 checkpoint have either many or just a few messages. This also correlates to the latency of each message.

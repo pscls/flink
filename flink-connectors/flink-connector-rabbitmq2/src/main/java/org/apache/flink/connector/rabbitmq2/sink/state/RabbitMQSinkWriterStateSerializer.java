@@ -33,8 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Serializer for a {@link RabbitMQSinkWriterState} used for at-least and exactly-once behaviour of
- * the sink.
+ * Serializer for a {@link RabbitMQSinkWriterState} used for at-least and exactly-once consistency
+ * of the sink.
  */
 public class RabbitMQSinkWriterStateSerializer<T>
         implements SimpleVersionedSerializer<RabbitMQSinkWriterState<T>> {

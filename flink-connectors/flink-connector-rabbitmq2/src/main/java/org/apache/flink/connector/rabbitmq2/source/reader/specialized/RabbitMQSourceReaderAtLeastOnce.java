@@ -85,19 +85,14 @@ public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    public void notifyCheckpointComplete(long checkpointId) {
+    public void notifyCheckpointComplete(long checkpointId) throws IOException {
         Iterator<Tuple2<Long, List<Long>>> checkpointIterator =
                 polledAndUnacknowledgedMessageIdsPerCheckpoint.iterator();
         while (checkpointIterator.hasNext()) {
             final Tuple2<Long, List<Long>> nextCheckpoint = checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
-                try {
-                    acknowledgeMessageIds(nextCheckpoint.f1);
-                } catch (IOException e) {
-                    throw new RuntimeException(
-                            "Messages could not be acknowledged during checkpoint complete.", e);
-                }
+                acknowledgeMessageIds(nextCheckpoint.f1);
                 checkpointIterator.remove();
             }
         }

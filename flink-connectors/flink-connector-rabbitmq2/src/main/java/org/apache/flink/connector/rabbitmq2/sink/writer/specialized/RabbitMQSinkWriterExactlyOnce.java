@@ -38,7 +38,7 @@ import java.util.List;
  * guarantees, which means incoming stream elements will be delivered to RabbitMQ exactly once. For
  * this, checkpointing needs to be enabled.
  *
- * <p>Exactly-once behaviour is implemented using a transactional RabbitMQ channel. All incoming
+ * <p>Exactly-once consistency is implemented using a transactional RabbitMQ channel. All incoming
  * stream elements are buffered in the state of this writer until the next checkpoint is triggered.
  * All buffered {@code messages} are then send to RabbitMQ in a single transaction. When successful,
  * all messages committed get removed from the state. If the transaction is aborted, all messages
@@ -124,7 +124,9 @@ public class RabbitMQSinkWriterExactlyOnce<T> extends RabbitMQSinkWriterBase<T> 
             try {
                 getRmqChannel().txRollback();
             } catch (IOException rollbackException) {
-                throw new RuntimeException(rollbackException.getMessage());
+                throw new RuntimeException(
+                        "Cannot rollback RabbitMQ transaction, this might leave the transaction in a pending state. Error: "
+                                + rollbackException.getMessage());
             }
         }
     }

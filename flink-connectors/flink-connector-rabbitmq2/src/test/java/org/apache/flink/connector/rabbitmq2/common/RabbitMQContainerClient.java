@@ -98,7 +98,7 @@ public class RabbitMQContainerClient {
         return deserializedMessages;
     }
 
-    protected void handleMessageReceivedCallback(String consumerTag, Delivery delivery) {
+    private void handleMessageReceivedCallback(String consumerTag, Delivery delivery) {
         byte[] body = delivery.getBody();
         messages.add(body);
         if (latch != null) {

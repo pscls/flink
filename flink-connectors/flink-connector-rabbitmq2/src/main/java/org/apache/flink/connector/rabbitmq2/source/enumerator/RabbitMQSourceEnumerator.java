@@ -62,12 +62,6 @@ public class RabbitMQSourceEnumerator
             RabbitMQConnectionConfig connectionConfig,
             String rmqQueueName) {
 
-        if (consistencyMode == ConsistencyMode.EXACTLY_ONCE && context.currentParallelism() > 1) {
-            throw new RuntimeException(
-                    "The consistency mode is exactly-once and a parallelism higher than one was defined. "
-                            + "For exactly once a parallelism higher than one is forbidden.");
-        }
-
         this.context = context;
         this.consistencyMode = consistencyMode;
         this.split = new RabbitMQSourceSplit(connectionConfig, rmqQueueName);
@@ -122,6 +116,12 @@ public class RabbitMQSourceEnumerator
     public void close() {}
 
     private void assignSplitToReader(int readerId, RabbitMQSourceSplit split) {
+        if (consistencyMode == ConsistencyMode.EXACTLY_ONCE && context.currentParallelism() > 1) {
+            throw new RuntimeException(
+                    "The consistency mode is exactly-once and a parallelism higher than one was defined. "
+                            + "For exactly once a parallelism higher than one is forbidden.");
+        }
+
         SplitsAssignment<RabbitMQSourceSplit> assignment = new SplitsAssignment<>(split, readerId);
         context.assignSplits(assignment);
     }

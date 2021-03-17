@@ -173,9 +173,10 @@ public class RabbitMQSink<T> implements Sink<T, Void, RabbitMQSinkWriterState<T>
                             returnListener,
                             states);
                 default:
-                    throw new RuntimeException(
-                            "Error in creating a SinkWriter: "
-                                    + "No valid consistency mode was specified.");
+                    throw new IllegalStateException(
+                            "Error in creating a SinkWriter: No valid consistency mode ("
+                                    + consistencyMode
+                                    + ") was specified.");
             }
         } catch (Exception e) {
             throw new RuntimeException(e.getMessage());

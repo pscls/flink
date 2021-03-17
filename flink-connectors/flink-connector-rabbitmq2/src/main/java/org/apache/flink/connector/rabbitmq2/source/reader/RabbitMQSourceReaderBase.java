@@ -202,7 +202,7 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
     public void handleSourceEvents(SourceEvent sourceEvent) {}
 
     @Override
-    public void notifyCheckpointComplete(long checkpointId) {}
+    public void notifyCheckpointComplete(long checkpointId) throws IOException {}
 
     /**
      * Acknowledge a list of message ids in the RabbitMQ channel.
