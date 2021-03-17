@@ -108,7 +108,7 @@ public abstract class RabbitMQBaseTest {
     public DataStream<String> addSourceOn(
             StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
             throws IOException, TimeoutException {
-        String queueName = client.createQueue(falsegi );
+        String queueName = client.createQueue(false);
         final RabbitMQConnectionConfig connectionConfig =
                 new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
