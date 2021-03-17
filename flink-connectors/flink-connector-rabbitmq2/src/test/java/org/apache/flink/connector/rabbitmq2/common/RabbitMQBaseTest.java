@@ -51,7 +51,6 @@ import java.util.concurrent.TimeoutException;
 public abstract class RabbitMQBaseTest {
 
     private static final int RABBITMQ_PORT = 5672;
-    private String queueName;
     private RabbitMQContainerClient client;
 
     @Rule public Timeout globalTimeout = Timeout.seconds(20);
@@ -79,8 +78,6 @@ public abstract class RabbitMQBaseTest {
         env.setRestartStrategy(RestartStrategies.fixedDelayRestart(10, 1000));
         this.client = new RabbitMQContainerClient(rabbitMq);
     }
-
-    public void containerClientReceivedMessageCallback() {}
 
     public RabbitMQContainerClient addSinkOn(
             DataStream<String> stream, ConsistencyMode consistencyMode, int countDownLatchSize)
@@ -111,8 +108,7 @@ public abstract class RabbitMQBaseTest {
     public DataStream<String> addSourceOn(
             StreamExecutionEnvironment env, ConsistencyMode consistencyMode)
             throws IOException, TimeoutException {
-        RabbitMQContainerClient client = new RabbitMQContainerClient(rabbitMq);
-        String queueName = client.createQueue();
+        String queueName = client.createQueue(falsegi );
         final RabbitMQConnectionConfig connectionConfig =
                 new RabbitMQConnectionConfig.Builder()
                         .setHost(rabbitMq.getHost())
@@ -139,14 +135,14 @@ public abstract class RabbitMQBaseTest {
 
     public void sendToRabbit(List<String> messages) throws IOException {
         for (String message : messages) {
-            client.sendMessages(new SimpleStringSchema(), message);
+            client.sendMessage(new SimpleStringSchema(), message);
         }
     }
 
     public void sendToRabbit(List<String> messages, List<String> correlationIds)
             throws IOException {
         for (int i = 0; i < messages.size(); i++) {
-            client.sendMessages(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
+            client.sendMessage(new SimpleStringSchema(), messages.get(i), correlationIds.get(i));
         }
     }
 

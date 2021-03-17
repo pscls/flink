@@ -67,28 +67,34 @@ public class RabbitMQContainerClient<T> {
         this(container, null, 0);
     }
 
-    public String createQueue(String queueName) throws IOException, TimeoutException {
+    public String createQueue(String queueName, boolean withConsumer) throws IOException, TimeoutException {
         this.queueName = queueName;
         Connection connection = getRabbitMQConnection();
         this.channel = connection.createChannel();
         channel.queueDeclare(queueName, true, false, false, null);
-        final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
-        channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {});
+        if (withConsumer) {
+            final DeliverCallback deliverCallback = this::handleMessageReceivedCallback;
+            channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {});
+        }
         return this.queueName;
     }
 
     public String createQueue() throws IOException, TimeoutException {
-        return createQueue(UUID.randomUUID().toString());
+        return createQueue(UUID.randomUUID().toString(), true);
     }
 
-    public <T> void sendMessages(SerializationSchema<T> valueSerializer, T... messages)
+    public String createQueue(boolean withConsumer) throws IOException, TimeoutException {
+        return createQueue(UUID.randomUUID().toString(), withConsumer);
+    }
+
+    public <T> void sendMessage(SerializationSchema<T> valueSerializer, T... messages)
             throws IOException {
         for (T message : messages) {
             channel.basicPublish("", queueName, null, valueSerializer.serialize(message));
         }
     }
 
-    public <T> void sendMessages(
+    public <T> void sendMessage(
             SerializationSchema<T> valueSerializer, T message, String correlationId)
             throws IOException {
         AMQP.BasicProperties.Builder builder = new AMQP.BasicProperties.Builder();
