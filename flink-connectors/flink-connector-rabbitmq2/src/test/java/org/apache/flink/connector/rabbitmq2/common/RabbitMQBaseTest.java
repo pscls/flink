@@ -129,6 +129,7 @@ public abstract class RabbitMQBaseTest {
                         .setDeserializationSchema(new SimpleStringSchema())
                         .setConsistencyMode(consistencyMode)
                         .build();
+
         final DataStream<String> stream =
                 env.fromSource(rabbitMQSource, WatermarkStrategy.noWatermarks(), "RabbitMQSource")
                         .setParallelism(1);
