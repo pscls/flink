@@ -25,6 +25,8 @@ import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnum
 import java.util.HashSet;
 import java.util.Set;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * This split is passed by the {@link RabbitMQSourceEnumerator} to the SourceReader. It contains the
  * configuration for the connection and the name of the queue to connect to. In case of exactly-once
@@ -45,9 +47,9 @@ public class RabbitMQSourceSplit implements SourceSplit {
             RabbitMQConnectionConfig connectionConfig,
             String rmqQueueName,
             Set<String> correlationIds) {
-        this.connectionConfig = connectionConfig;
-        this.rmqQueueName = rmqQueueName;
-        this.correlationIds = correlationIds;
+        this.connectionConfig = requireNonNull(connectionConfig);
+        this.rmqQueueName = requireNonNull(rmqQueueName);
+        this.correlationIds = requireNonNull(correlationIds);
     }
 
     /**

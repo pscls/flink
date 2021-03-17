@@ -67,7 +67,8 @@ public class RabbitMQContainerClient<T> {
         this(container, null, 0);
     }
 
-    public String createQueue(String queueName, boolean withConsumer) throws IOException, TimeoutException {
+    public String createQueue(String queueName, boolean withConsumer)
+            throws IOException, TimeoutException {
         this.queueName = queueName;
         Connection connection = getRabbitMQConnection();
         this.channel = connection.createChannel();

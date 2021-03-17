@@ -18,7 +18,7 @@
 
 package org.apache.flink.connector.rabbitmq2.source.reader;
 
-import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQSourceMessageWrapper;
 import org.apache.flink.util.Collector;
 
 import com.rabbitmq.client.AMQP;
@@ -33,11 +33,11 @@ import java.util.concurrent.LinkedBlockingQueue;
  * #collect(Object)}. Messages can be polled in order to be processed by the output.
  *
  * @param <T> The output type of the source.
- * @see RabbitMQMessageWrapper
+ * @see RabbitMQSourceMessageWrapper
  */
 public class RabbitMQCollector<T> implements Collector<T> {
     // Queue that holds the messages.
-    private final BlockingQueue<RabbitMQMessageWrapper<T>> unpolledMessageQueue;
+    private final BlockingQueue<RabbitMQSourceMessageWrapper<T>> unpolledMessageQueue;
     // Identifiers of the next message that will be collected.
     private long deliveryTag;
     private String correlationId;
@@ -56,11 +56,11 @@ public class RabbitMQCollector<T> implements Collector<T> {
      *
      * @return Message the polled message.
      */
-    public RabbitMQMessageWrapper<T> pollMessage() {
+    public RabbitMQSourceMessageWrapper<T> pollMessage() {
         return unpolledMessageQueue.poll();
     }
 
-    public BlockingQueue<RabbitMQMessageWrapper<T>> getMessageQueue() {
+    public BlockingQueue<RabbitMQSourceMessageWrapper<T>> getMessageQueue() {
         return unpolledMessageQueue;
     }
 
@@ -83,7 +83,8 @@ public class RabbitMQCollector<T> implements Collector<T> {
 
     @Override
     public void collect(T record) {
-        unpolledMessageQueue.add(new RabbitMQMessageWrapper<>(deliveryTag, correlationId, record));
+        unpolledMessageQueue.add(
+                new RabbitMQSourceMessageWrapper<>(deliveryTag, correlationId, record));
     }
 
     @Override

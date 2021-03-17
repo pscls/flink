@@ -21,7 +21,7 @@ package org.apache.flink.connector.rabbitmq2.source.reader.specialized;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQSourceMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 
@@ -70,7 +70,7 @@ public class RabbitMQSourceReaderAtLeastOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    protected void handleMessagePolled(RabbitMQMessageWrapper<T> message) {
+    protected void handleMessagePolled(RabbitMQSourceMessageWrapper<T> message) {
         this.polledAndUnacknowledgedMessageIds.add(message.getDeliveryTag());
     }
 

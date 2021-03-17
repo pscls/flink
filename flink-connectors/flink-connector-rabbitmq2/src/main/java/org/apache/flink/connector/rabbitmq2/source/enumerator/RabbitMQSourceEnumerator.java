@@ -32,6 +32,8 @@ import javax.annotation.Nullable;
 
 import java.util.List;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * The source enumerator provides the source readers with the split. All source readers receive the
  * same split as it only contains information about the connection and in case of exactly-once, the
@@ -61,9 +63,8 @@ public class RabbitMQSourceEnumerator
             ConsistencyMode consistencyMode,
             RabbitMQConnectionConfig connectionConfig,
             String rmqQueueName) {
-
-        this.context = context;
-        this.consistencyMode = consistencyMode;
+        this.context = requireNonNull(context);
+        this.consistencyMode = requireNonNull(consistencyMode);
         this.split = new RabbitMQSourceSplit(connectionConfig, rmqQueueName);
     }
 

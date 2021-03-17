@@ -27,11 +27,10 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
  */
 public class RabbitMQSourceEnumStateSerializer
         implements SimpleVersionedSerializer<RabbitMQSourceEnumState> {
-    private static final int CURRENT_VERSION = 1;
 
     @Override
     public int getVersion() {
-        return CURRENT_VERSION;
+        return 1;
     }
 
     @Override

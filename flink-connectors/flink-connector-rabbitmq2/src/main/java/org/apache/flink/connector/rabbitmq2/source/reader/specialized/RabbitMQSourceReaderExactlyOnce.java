@@ -21,7 +21,7 @@ package org.apache.flink.connector.rabbitmq2.source.reader.specialized;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQSourceMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.source.reader.RabbitMQSourceReaderBase;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 import org.apache.flink.util.Preconditions;
@@ -60,13 +60,13 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     // These messages are currently forward but not yet acknowledged to RabbitMQ.
     // It needs to be ensured they are persisted before they can be acknowledged and thus be delete
     // in RabbitMQ.
-    private final List<RabbitMQMessageWrapper<T>>
+    private final List<RabbitMQSourceMessageWrapper<T>>
             polledAndUnacknowledgedMessagesSinceLastCheckpoint;
 
     // All message in polledAndUnacknowledgedMessagesSinceLastCheckpoint will move to hear when
     // a new checkpoint is created and therefore the messages can be mapped to it. This mapping is
     // necessary to ensure we acknowledge only message which belong to a completed checkpoint.
-    private final BlockingQueue<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>>
+    private final BlockingQueue<Tuple2<Long, List<RabbitMQSourceMessageWrapper<T>>>>
             polledAndUnacknowledgedMessagesPerCheckpoint;
 
     // Set of correlation ids that have been seen and are not acknowledged yet.
@@ -90,7 +90,7 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
     }
 
     @Override
-    protected void handleMessagePolled(RabbitMQMessageWrapper<T> message) {
+    protected void handleMessagePolled(RabbitMQSourceMessageWrapper<T> message) {
         this.polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(message);
     }
 
@@ -117,13 +117,13 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
             // Instead of letting the message to be polled, the message will directly be marked
             // to be acknowledged in the next wave of acknowledgments under their new deliveryTag.
             polledAndUnacknowledgedMessagesSinceLastCheckpoint.add(
-                    new RabbitMQMessageWrapper<>(deliveryTag, correlationId));
+                    new RabbitMQSourceMessageWrapper<>(deliveryTag, correlationId));
         }
     }
 
     @Override
     public List<RabbitMQSourceSplit> snapshotState(long checkpointId) {
-        Tuple2<Long, List<RabbitMQMessageWrapper<T>>> tuple =
+        Tuple2<Long, List<RabbitMQSourceMessageWrapper<T>>> tuple =
                 new Tuple2<>(
                         checkpointId,
                         new ArrayList<>(polledAndUnacknowledgedMessagesSinceLastCheckpoint));
@@ -144,10 +144,10 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
 
     @Override
     public void notifyCheckpointComplete(long checkpointId) throws IOException {
-        Iterator<Tuple2<Long, List<RabbitMQMessageWrapper<T>>>> checkpointIterator =
+        Iterator<Tuple2<Long, List<RabbitMQSourceMessageWrapper<T>>>> checkpointIterator =
                 polledAndUnacknowledgedMessagesPerCheckpoint.iterator();
         while (checkpointIterator.hasNext()) {
-            final Tuple2<Long, List<RabbitMQMessageWrapper<T>>> nextCheckpoint =
+            final Tuple2<Long, List<RabbitMQSourceMessageWrapper<T>>> nextCheckpoint =
                     checkpointIterator.next();
             long nextCheckpointId = nextCheckpoint.f0;
             if (nextCheckpointId <= checkpointId) {
@@ -164,16 +164,17 @@ public class RabbitMQSourceReaderExactlyOnce<T> extends RabbitMQSourceReaderBase
         getRmqChannel().txSelect();
     }
 
-    private void acknowledgeMessages(List<RabbitMQMessageWrapper<T>> messages) throws IOException {
+    private void acknowledgeMessages(List<RabbitMQSourceMessageWrapper<T>> messages)
+            throws IOException {
         List<String> correlationIds =
                 messages.stream()
-                        .map(RabbitMQMessageWrapper::getCorrelationId)
+                        .map(RabbitMQSourceMessageWrapper::getCorrelationId)
                         .collect(Collectors.toList());
         this.correlationIds.removeAll(correlationIds);
         try {
             List<Long> deliveryTags =
                     messages.stream()
-                            .map(RabbitMQMessageWrapper::getDeliveryTag)
+                            .map(RabbitMQSourceMessageWrapper::getDeliveryTag)
                             .collect(Collectors.toList());
             acknowledgeMessageIds(deliveryTags);
             getRmqChannel().txCommit();

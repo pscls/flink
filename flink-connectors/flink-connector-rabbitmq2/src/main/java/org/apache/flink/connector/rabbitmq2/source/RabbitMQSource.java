@@ -43,6 +43,8 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * RabbitMQ source (consumer) that consumes messages from a RabbitMQ queue. It provides
  * at-most-once, at-least-once and exactly-once processing semantics. For at-least-once and
@@ -103,10 +105,10 @@ public class RabbitMQSource<T>
             String queueName,
             DeserializationSchema<T> deserializationSchema,
             ConsistencyMode consistencyMode) {
-        this.connectionConfig = connectionConfig;
-        this.queueName = queueName;
-        this.deserializationSchema = deserializationSchema;
-        this.consistencyMode = consistencyMode;
+        this.connectionConfig = requireNonNull(connectionConfig);
+        this.queueName = requireNonNull(queueName);
+        this.deserializationSchema = requireNonNull(deserializationSchema);
+        this.consistencyMode = requireNonNull(consistencyMode);
 
         LOG.info("Create RabbitMQ source");
     }

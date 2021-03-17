@@ -23,7 +23,7 @@ import org.apache.flink.api.connector.source.ReaderOutput;
 import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SourceReader;
 import org.apache.flink.api.connector.source.SourceReaderContext;
-import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQMessageWrapper;
+import org.apache.flink.connector.rabbitmq2.source.common.RabbitMQSourceMessageWrapper;
 import org.apache.flink.connector.rabbitmq2.source.enumerator.RabbitMQSourceEnumerator;
 import org.apache.flink.connector.rabbitmq2.source.split.RabbitMQSourceSplit;
 import org.apache.flink.core.io.InputStatus;
@@ -43,6 +43,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * The source reader for RabbitMQ queues. This is the base class of the different consistency modes.
@@ -67,8 +69,8 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
     public RabbitMQSourceReaderBase(
             SourceReaderContext sourceReaderContext,
             DeserializationSchema<T> deliveryDeserializer) {
-        this.sourceReaderContext = sourceReaderContext;
-        this.deliveryDeserializer = deliveryDeserializer;
+        this.sourceReaderContext = requireNonNull(sourceReaderContext);
+        this.deliveryDeserializer = requireNonNull(deliveryDeserializer);
         this.collector = new RabbitMQCollector<>();
     }
 
@@ -142,11 +144,11 @@ public abstract class RabbitMQSourceReaderBase<T> implements SourceReader<T, Rab
      *
      * @param message the message that was polled by the output.
      */
-    protected void handleMessagePolled(RabbitMQMessageWrapper<T> message) {}
+    protected void handleMessagePolled(RabbitMQSourceMessageWrapper<T> message) {}
 
     @Override
     public InputStatus pollNext(ReaderOutput<T> output) {
-        RabbitMQMessageWrapper<T> message = collector.pollMessage();
+        RabbitMQSourceMessageWrapper<T> message = collector.pollMessage();
 
         if (message == null) {
             return InputStatus.NOTHING_AVAILABLE;

@@ -18,28 +18,29 @@
 
 package org.apache.flink.connector.rabbitmq2.source.common;
 
+import javax.annotation.Nullable;
+
+import static java.util.Objects.requireNonNull;
+
 /**
  * A wrapper class for the message received from RabbitMQ that holds the deserialized message, the
  * delivery tag and the correlation id.
  *
  * @param <T> The type of the message to hold.
  */
-public class RabbitMQMessageWrapper<T> {
+public class RabbitMQSourceMessageWrapper<T> {
     private final long deliveryTag;
     private final String correlationId;
     private final T message;
 
-    public RabbitMQMessageWrapper(long deliveryTag, String correlationId, T message) {
-        this.deliveryTag = deliveryTag;
-        this.correlationId = correlationId;
+    public RabbitMQSourceMessageWrapper(
+            long deliveryTag, String correlationId, @Nullable T message) {
+        this.deliveryTag = requireNonNull(deliveryTag);
+        this.correlationId = requireNonNull(correlationId);
         this.message = message;
     }
 
-    public RabbitMQMessageWrapper(T message, long deliveryTag) {
-        this(deliveryTag, null, message);
-    }
-
-    public RabbitMQMessageWrapper(long deliveryTag, String correlationId) {
+    public RabbitMQSourceMessageWrapper(long deliveryTag, String correlationId) {
         this(deliveryTag, correlationId, null);
     }
 
